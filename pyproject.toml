@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=67.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.0.1"
+name = "easyalign"
+
+requires-python = ">= 3.9"
+
+
+dependencies = [
+  "transformers>=4.45.0",
+  "torch>=2.1.2",
+  "tqdm>=4.66.1",
+  "soundfile>=0.12.1",
+  "nltk>=3.8.2",
+]
+
+readme = "README.md"
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 99
