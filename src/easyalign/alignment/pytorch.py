@@ -5,39 +5,58 @@ import numpy as np
 import torch
 import torchaudio.functional as F
 from nltk.tokenize.punkt import PunktSentenceTokenizer
+from torchaudio.functional import TokenSpan
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
 logger = logging.getLogger(__name__)
 
 
 def align_pytorch(
-    transcripts: list[str],
+    normalized_tokens: list[str],
     processor: Wav2Vec2Processor,
     emissions: torch.Tensor,
-    start_unknown: bool,
-    end_unknown: bool,
+    start_wildcard: bool,
+    end_wildcard: bool,
     device: str,
-) -> tuple:
-    transcript = " ".join(transcripts)
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Align audio emissions with text transcripts.
+
+    Args:
+        normalized_tokens: List of normalized text that has been tokenized.
+        processor: Wav2Vec2Processor instance for tokenization.
+        emissions: Tensor of audio emissions (logits) with shape (batch, sequence (time), vocab_size).
+        start_unknown: If True, adds a star wildcard token at the start of the transcript
+            to allow better alignment if the audio starts with other irrelevant speech.
+        end_unknown: If True, adds a star wildcard token at the end of the transcript.
+        device: Device to run the alignment on (e.g., "cpu" or "cuda").
+
+    Returns:
+        alignments: Aligned token indices for the emissions.
+        scores: Alignment scores (probabilities) for the tokens.
+    """
+    transcript = " ".join(normalized_tokens)
     transcript = transcript.replace("\n", " ").upper()
 
-    if start_unknown:
+    if start_wildcard:
         transcript = "* " + transcript
-    if end_unknown:
+    if end_wildcard:
         transcript = transcript + " *"
 
     targets = processor.tokenizer(transcript, return_tensors="pt")["input_ids"]
     targets = targets.to(device)
 
     # Add star wildcard token to the end of the emissions
-    star_dim = torch.zeros(
-        (1, emissions.size(1), 1), device=emissions.device, dtype=emissions.dtype
-    )
-    emissions = torch.cat((emissions, star_dim), 2)
+    if start_wildcard or end_wildcard:
+        # batch, sequence (time), vocab_size
+        star_dim = torch.zeros(
+            (1, emissions.size(1), 1), device=emissions.device, dtype=emissions.dtype
+        )
+        emissions = torch.cat((emissions, star_dim), 2)  # Add star token to the emissions
 
     alignments, scores = F.forced_align(emissions, targets, blank=0)
     alignments, scores = alignments[0], scores[0]  # remove batch dimension for simplicity
-    # scores = scores.exp()  # convert back to probability
+    scores = scores.exp()  # convert back to probability
     return alignments, scores
 
 
@@ -187,129 +206,10 @@ def add_timestamps_to_mapping(
     return mapping
 
 
-def assign_segment_time(
-    current_token: dict,
-    token_list: list[dict],
-    direction: str = "next",
-):
+def unflatten(char_list: list[TokenSpan], word_lengths: list[int]) -> list[list[TokenSpan]]:
     """
-    If alignment timestamps are missing for the current token, we search for the
-    closest available token that has a timestamp (either among future tokens in
-    the token_mapping, or the previous tokens in the previous_removed list).
-
-    Args:
-        current_token: The current token dictionary containing the token's metadata.
-        token_list: A list of token alignment dictionaries to search in, such as
-            `token_mapping` or `previous_removed`, depending on direction.
-        direction: The direction to search for a timestamp ("next" or "previous").
-    """
-    time = current_token["start_time"] if direction == "next" else current_token["end_time"]
-
-    # We start searching from the first or last token in the list, depending on the direction.
-    token_idx = 0 if direction == "next" else -1
-    index_increment = 1 if direction == "next" else -1  # Move forward or backward in the list
-
-    # Loop is skipped if the current token already has a timestamp.
-    while time is None:
-        try:
-            time = (
-                token_list[token_idx]["start_time"]
-                if direction == "next"
-                else token_list[token_idx]["end_time"]
-            )
-            token_idx += index_increment
-        except IndexError:
-            # If we reach the end of the list, return None
-            return None
-
-    return time
-
-
-def get_segment_alignment(
-    mapping: dict,
-    tokenizer: PunktSentenceTokenizer,
-    segment_spans: list[tuple[int, int]] = None,
-):
-    """
-    Get the alignment for any arbitrary segment in the original text based on the
-    provided mapping. By default, sentence spans are used if no segment spans
-    are provided.
-
-    Args:
-        mapping: Dictionary containing the original text tokens that
-            have been aligned with the audio.
-        tokenizer: A PunktSentenceTokenizer instance to tokenize the original text
-            into sentences (if segment_spans are not provided).
-        segment_spans: Optional list of tuples containing the start and end character
-            indices of custom segments in the original text.
-
-    Returns:
-        A list of dictionaries containing the start and end timestamps for each segment,
-        along with the original text of the segment.
-        dict keys:
-            - "start_segment": Start timestamp of the segment.
-            - "end_segment": End timestamp of the segment.
-            - "text": The original text of the segment.
-    """
-
-    if not segment_spans:
-        # If user does not provide segment spans, we default to sentence spans
-        segment_spans = tokenizer.span_tokenize(mapping["original_text"])
-
-    segment_mapping = []
-    token_mapping = mapping["mapping"].copy()
-    previous_removed = []
-
-    for span in segment_spans:
-        start_segment_index = span[0]  # Character index in the original text
-        end_segment_index = span[1]
-        while token_mapping:
-            token = token_mapping[0]
-
-            if start_segment_index in list(range(token["original_start"], token["original_end"])):
-                start_segment_time = assign_segment_time(
-                    current_token=token,
-                    token_list=token_mapping,
-                    direction="next",
-                )
-
-            if (end_segment_index - 1) in list(
-                range(token["original_start"], token["original_end"])
-            ):
-                print(
-                    f"start_segment_index: {start_segment_index}, end_segment_index: {end_segment_index}, token: {token}"
-                )
-                end_segment_time = assign_segment_time(
-                    current_token=token,
-                    token_list=previous_removed if previous_removed else token_mapping,
-                    direction="previous",
-                )
-
-                # Once we have both the start and end timestamps, we can append to the
-                # sentence mapping and break the loop
-                segment_mapping.append(
-                    {
-                        "start_segment": start_segment_time,
-                        "end_segment": end_segment_time,
-                        "text": mapping["original_text"][start_segment_index:end_segment_index],
-                    }
-                )
-                break
-
-            previous_removed.append(token_mapping.pop(0))
-
-    return segment_mapping
-
-    # # return sentence_mapping
-    # # Reconstruct original tokens from mapping
-    # original_tokens = []
-    # for transformation in mappings[0]["mapping"]:
-    #     original_tokens.append(transformation["original_token"])
-
-
-def unflatten(char_list, word_lengths):
-    """
-    Unflatten a list of character output tokens from wav2vec2 into words.
+    Unflatten a list of character output tokens (TokenSpans) from wav2vec2 into words
+    (lists of TokenSpans) based on provided normalized word lengths.
 
     Args:
         char_list:
@@ -337,18 +237,254 @@ def get_word_timing(
 
     Args:
         word_span:
-            A list of TokenSpan objects representing the word span timings in the
-            aligned audio chunk.
+            A list of TokenSpan objects that together represent the word span's
+            timings in the aligned audio chunk.
         ratio:
             The number of audio frames per model output logit. This is the
             total number of frames in our audio chunk divided by the number of
             (non-padding) logit outputs for the chunk.
         start_segment:
             The start time of the speech segment in the original audio file.
+            We offset the start/end time of the word span by this value (in
+            case chunking/slicing of the audio was performed).
         sample_rate:
             The sample rate of the audio file, default 16000.
 
     """
     start = (word_span[0].start * ratio) / sample_rate + start_segment
     end = (word_span[-1].end * ratio) / sample_rate + start_segment
-    return start, end
+
+    score = sum(span.score * len(span) for span in word_span)
+    length = sum(len(span) for span in word_span)  # Token utterances can last multiple frames
+    score = score / length  # Normalize the score by the length of the word span
+
+    return start, end, score
+
+
+def get_word_spans(
+    tokens: torch.Tensor,
+    scores: torch.Tensor,
+    mapping: list[dict],
+    blank: int = 0,
+    start_wildcard: bool = True,
+    end_wildcard: bool = True,
+    word_boundary: str | None = "|",
+    processor: Wav2Vec2Processor = None,
+) -> tuple[list, list]:
+    """
+    Get word spans from the token predictions and their scores.
+
+    Args:
+        tokens: Tokens predicted by the model.
+        scores: Scores for each token.
+        mapping: Token mapping information.
+        blank: The token ID for the blank (padding) token.
+        start_wildcard: Whether to add a start wildcard token, to better account for
+            speech in the audio that is not covered by the text.
+        end_wildcard: Whether to add an end wildcard token.
+        word_boundary: The token used to indicate word boundaries. Usually, this is
+            the "|" token. Sometimes, the model is trained without word boundary tokens
+            (Pytorch native Wav2Vec2 models).
+        processor: The Wav2Vec2Processor used for tokenization.
+
+    Returns:
+        A tuple containing (word_spans, updated_mapping).
+    """
+    if start_wildcard:
+        mapping.insert(0, {"normalized_token": "*", "text": "*", "start_char": 0, "end_char": 0})
+    if end_wildcard:
+        mapping.append(
+            {
+                "normalized_token": "*",
+                "text": "*",
+                "start_char": mapping[-1]["end_char"] + 1,
+                "end_char": mapping[-1]["end_char"] + 1,
+            }
+        )
+
+    token_spans = F.merge_tokens(tokens, scores, blank=blank)
+
+    if word_boundary:
+        assert processor is not None, (
+            "Wav2Vec2 Processor must be provided if word_boundary is specified."
+        )
+        # Find the token ID for the word boundary token
+        word_boundary_id = processor.tokenizer.convert_tokens_to_ids(word_boundary)
+        # Remove all TokenSpan with token=word_boundary_id
+        token_spans = [s for s in token_spans if s.token != word_boundary_id]
+
+    # Unflatten the token spans based on the normalized tokens' lengths
+    word_spans = unflatten(token_spans, [len(token["normalized_token"]) for token in mapping])
+
+    return word_spans, mapping
+
+
+def get_segment_alignment(
+    mapping: list[dict],
+    original_text: str,
+    tokenizer: PunktSentenceTokenizer | None = None,
+    segment_spans: list[tuple[int, int]] | None = None,
+):
+    """
+    Get alignment timestamps for any arbitrary segmentation of the original text.
+    By default, this function performs a sentence span tokenization if user does
+    not provide custom segment spans.
+
+    Args:
+        mapping: A list of dictionaries containing the original text tokens that
+            have been aligned with the audio, together with character indices and timestamps.
+        tokenizer: A PunktSentenceTokenizer instance to tokenize the original text
+            into sentences (if segment_spans are not provided).
+        segment_spans: Optional list of tuples containing the start and end character
+            indices of custom segments in the original text.
+
+    Returns:
+        A list of dictionaries containing the start and end timestamps for each segment,
+        along with the original text of the segment.
+        dict keys:
+            - "start_segment": Start timestamp of the segment.
+            - "end_segment": End timestamp of the segment.
+            - "text": The original text of the segment.
+    """
+
+    if not segment_spans:
+        # If user does not provide segment spans, we default to sentence spans
+        segment_spans = tokenizer.span_tokenize(original_text)
+
+    segment_mapping = []
+    remaining_tokens = mapping.copy()
+    previous_tokens = []  # List to keep track of tokens that have been removed from the mapping
+
+    for span in segment_spans:
+        start_segment_index = span[0]  # Character index in the original text
+        end_segment_index = span[1]
+        start_segment_time = None
+        end_segment_time = None
+        segment_tokens = []
+
+        while remaining_tokens:
+            token = remaining_tokens[0]
+            segment_tokens.append(token)
+
+            # Check if start_segment_index falls within this token's character range
+            if (
+                start_segment_time is None
+                and start_segment_index >= token["start_char"]
+                and start_segment_index < token["end_char_extended"]
+            ):
+                start_segment_time = assign_segment_time(
+                    current_token=token,
+                    token_list=remaining_tokens,
+                    direction="next",
+                )
+                start_segment_extended_index = token["start_char"]
+
+            # Check if end_segment_index falls within this token's character range
+            if (
+                end_segment_time is None
+                and end_segment_index > token["start_char"]
+                and end_segment_index <= token["end_char_extended"]
+            ):
+                end_segment_time = assign_segment_time(
+                    current_token=token,
+                    token_list=previous_tokens if previous_tokens else remaining_tokens,
+                    direction="previous",
+                )
+                end_segment_extended_index = token["end_char_extended"]
+
+            # If we have both timestamps, we can create the segment and break the loop
+            if start_segment_time is not None and end_segment_time is not None:
+                segment_mapping.append(
+                    {
+                        "start_segment": start_segment_time,
+                        "end_segment": end_segment_time,
+                        "text": original_text[start_segment_index:end_segment_index],
+                        "text_span_full": original_text[
+                            start_segment_extended_index:end_segment_extended_index
+                        ],
+                        "tokens": segment_tokens,
+                    }
+                )
+                break
+
+            previous_tokens.append(remaining_tokens.pop(0))
+
+    return segment_mapping
+
+
+def assign_segment_time(
+    current_token: dict,
+    token_list: list[dict],
+    direction: str = "next",
+):
+    """
+    Assign a timestamp for the segment based on the current token's metadata.
+
+    If alignment timestamps are missing for the current token, we search for the
+    closest available token that has a timestamp (either among future tokens in
+    the token_mapping, or the previous tokens in the previous_removed list).
+
+    Args:
+        current_token: The current token dictionary containing the token's metadata.
+        token_list: A list of token alignment dictionaries to search in, such as
+            `token_mapping` or `previous_removed`, depending on direction.
+        direction: The direction to search for a timestamp ("next" or "previous").
+    Returns:
+        The start or end time of the segment. If no timestamp is found, returns None.
+    """
+    time = current_token["start_time"] if direction == "next" else current_token["end_time"]
+
+    # We start searching from the first or last token in the list, depending on the direction.
+    token_idx = 0 if direction == "next" else -1
+    index_increment = 1 if direction == "next" else -1  # Move forward or backward in the list
+
+    # Loop is skipped if the current token already has a timestamp.
+    while time is None and abs(token_idx) < len(token_list):
+        try:
+            time = (
+                token_list[token_idx]["start_time"]
+                if direction == "next"
+                else token_list[token_idx]["end_time"]
+            )
+            token_idx += index_increment
+        except IndexError:
+            # If we reach the end of the list, return None
+            return None
+
+    return time
+
+
+def join_word_timestamps(
+    word_spans: list[list[F.TokenSpan]],
+    mapping: list[dict],
+    audio_length: int,
+    chunk_size: int = 20,
+    start_segment: float = 0.0,
+) -> list[dict]:
+    """
+    Join word spans from the alignment with the normalized token mapping, adding timestamps
+    to the mapping.
+
+    Args:
+        word_spans: List of lists of TokenSpan objects representing the aligned words.
+        mapping: List of dictionaries containing the original normalized text tokens that
+            have been aligned with the audio (together with character indices relative
+            to the original text).
+        audio_length: Length of the audio input in frames.
+        chunk_size: Size of the audio chunks in seconds (when doing batched inference).
+        start_segment: Start time of the audio segment inside the audio file (in seconds).
+
+    Returns:
+        An updated mapping with start and end times for each normalized token.
+    """
+    ratio = audio_length / calculate_w2v_output_length(audio_length, chunk_size=chunk_size)
+
+    for aligned_token, normalized_token in zip(word_spans, mapping):
+        start_time, end_time, score = get_word_timing(
+            aligned_token, ratio, start_segment=start_segment
+        )
+        normalized_token["start_time"] = start_time
+        normalized_token["end_time"] = end_time
+        normalized_token["score"] = score
+
+    return mapping

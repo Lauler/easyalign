@@ -1,6 +1,7 @@
 import re
 import unicodedata
 from collections import OrderedDict
+from typing import Union
 
 import num2words
 import numpy as np
@@ -37,304 +38,171 @@ def format_symbols_abbreviations():
     return abbreviation_patterns
 
 
-def collect_regex_patterns(user_patterns=None):
-    """
-    Collects regex patterns for text normalization and substitution.
+class SpanMapNormalizer:
+    def __init__(self, text: str):
+        self.original_text = text
+        self.current_text = text
+        self.span_map = [(i, i + 1) for i in range(len(text))]
 
-    Args:
-        user_patterns (list of dict): User-supplied regex patterns with keys "pattern",
-        "replacement", and "transformation_type".
+    def transform(self, pattern: str, replacement: Union[str, callable]):
+        """
+        Apply a regex transformation to the current text, while keeping track of the
+        character span that every character in the new text maps to in the original text.
 
-    Returns:
-        list of dict: Collected regex patterns with default and user-supplied patterns.
-    """
+        In the example below, the 4 characters in the replacement "I am" map to the
+        match pattern "I'm" at span (0, 3) of the original text.
 
-    patterns = []
+        Example text: "I'm sorry"
+        Example pattern: r"I'm"
+        Example replacement: "I am"
 
-    # Include abbreviations
-    patterns.extend(format_symbols_abbreviations())
+        new_text: "I am sorry"
+        new_span_map: [(0, 3), (0, 3), (0, 3), (0, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
 
-    patterns.extend(
-        [
-            # Capture pattern groups of type '(digits) kap. (digits) §'. For example "4 kap. 7 §".
-            # Replace the numbers with ordinals: "fjärde kapitlet sjunde paragrafen"
-            {
-                "pattern": r"(\d+) kap\. (\d+) \§",
-                "replacement": lambda m: (
-                    f"{num2words(int(m.group(1)), lang='sv', ordinal=True)} kapitlet "
-                    f"{num2words(int(m.group(2)), lang='sv', ordinal=True)} paragrafen"
-                ),
-                "transformation_type": "substitution",
-            },
-            {
-                "pattern": r"(\d+)[\. ](\d+)",
-                "replacement": lambda m: f"{num2words(m.group(1) + m.group(2), lang='sv')}",
-                "transformation_type": "substitution",
-            },
-            # Remove everyting within parentheses including the parentheses
-            {"pattern": r"\(.*?\)", "replacement": "", "transformation_type": "deletion"},
-            # Replace : or / between digits with whitespace and num2words the digits
-            {
-                "pattern": r"(\d+):(\d+)",
-                "replacement": lambda m: (
-                    f"{num2words(int(m.group(1)), lang='sv')} "
-                    f"{num2words(int(m.group(2)), lang='sv')}"
-                ),
-                "transformation_type": "substitution",
-            },
-            # Replace - between digits with " till " and num2words the digits
-            {
-                "pattern": r"(\d+)-(\d+)",
-                "replacement": lambda m: (
-                    f"{num2words(int(m.group(1)), lang='sv')} till "
-                    f"{num2words(int(m.group(2)), lang='sv')}"
-                ),
-                "transformation_type": "substitution",
-            },
-            # Replace , between digits with " komma " and num2words the digits
-            {
-                "pattern": r"(\d+),(\d+)",
-                "replacement": lambda m: (
-                    f"{num2words(int(m.group(1)), lang='sv')} komma "
-                    f"{num2words(int(m.group(2)), lang='sv')}"
-                ),
-                "transformation_type": "substitution",
-            },
-            {
-                "pattern": r"(\d+)[\.\,\:\-\/](\d+)",
-                "replacement": lambda m: f"{m.group(1)} {m.group(2)}",
-                "transformation_type": "substitution",
-            },
-            # Replace § with 'paragrafen' if preceded by a number
-            {
-                "pattern": r"(?<=\d )§",
-                "replacement": r"paragrafen",
-                "transformation_type": "substitution",
-            },
-            # Replace § with 'paragraf' if succeeded by a number
-            {
-                "pattern": r"§(?= \d)",
-                "replacement": r"paragraf",
-                "transformation_type": "substitution",
-            },
-            # Remove punctuation between whitespace
-            {"pattern": r"\s[^\w\s]\s", "replacement": " ", "transformation_type": "substitution"},
-            # Remove punctuation
-            {"pattern": r"[^\w\s]", "replacement": "", "transformation_type": "deletion"},
-            # Remove multiple spaces (more than one) with a single space
-            {"pattern": r"\s{2,}", "replacement": " ", "transformation_type": "substitution"},
-            # Strip leading and trailing whitespace
-            {"pattern": r"^\s+|\s+$", "replacement": "", "transformation_type": "deletion"},
-            # Replace digits with words
-            {
-                "pattern": r"(\d+)",
-                "replacement": lambda m: num2words(int(m.group(1)), lang="sv"),
-                "transformation_type": "substitution",
-            },
-            # Tokenize the rest of the text into words
-            {
-                "pattern": r"\w+",
-                "replacement": lambda m: m.group(),
-                "transformation_type": "substitution",  # Not really a substitution, but we need to record the transformation
-            },
-        ]
-    )
+        Args:
+            pattern: The regex pattern to match.
+            replacement: The replacement string or a function that takes a
+                match object and returns a replacement string.
+        """
 
-    # Include user-supplied patterns
-    if user_patterns:
-        patterns.extend(user_patterns)
-
-    return patterns
-
-
-def record_transformation(mapping, original_text, start, end, transformation_type, replacement):
-    """
-    Records a transformation in the mapping with additional context for debugging.
-
-    Args:
-        mapping (list of dicts): The list that stores transformation records.
-        original_text (str): The original text being normalized.
-        start (int): The start index of the original text span.
-        end (int): The end index of the original text span.
-        transformation_type (str): The type of transformation ('substitution', 'deletion', 'insertion').
-        replacement (str): The replacement text (empty string for deletions).
-    """
-    original_span = original_text[start:end] if start is not None and end is not None else ""
-    transformation_record = {
-        "original_start": start,
-        "original_end": end,
-        "transformation_type": transformation_type,
-        "replacement": replacement,
-        "normalized_start": None,  # To be filled in during the apply_transformations step
-        "normalized_end": None,  # To be filled in during the apply_transformations step
-        "original_token": original_span,
-        "normalized_token": (
-            replacement.lower()
-            if transformation_type == "substitution" and replacement != " "
-            else None
-        ),
-        "start_time": None,
-        "end_time": None,
-        "index": None,
-    }
-    mapping.append(transformation_record)
-
-
-def apply_transformations(text, mapping):
-    """
-    Applies recorded transformations to the text and updates the mapping with normalized positions.
-
-    Args:
-        text (str): The original text.
-        mapping (list of dicts): The list of transformations.
-
-    Returns:
-        str: The transformed (normalized) text.
-    """
-
-    text_length = len(text)
-    modified = np.zeros(text_length, dtype=bool)  # Track modified characters using a boolean mask
-
-    offset = 0
-    normalized_text = text
-
-    # Sort transformations by their original start position to ensure correct application order
-    mapping.sort(key=lambda x: x["original_start"])
-
-    for i, transformation in enumerate(mapping):
-        original_start = transformation["original_start"]
-        original_end = transformation["original_end"]
-
-        if modified[original_start:original_end].any():
-            # Skip this transformation if it overlaps with a previous transformation
-            continue
-        else:
-            # Mark the characters as modified
-            modified[original_start:original_end] = True
-
-        replacement = transformation["replacement"]
-
-        # Calculate the adjusted start and end positions based on the current offset
-        adjusted_start = original_start + offset
-        adjusted_end = original_end + offset
-
-        # Apply the transformation
-        normalized_text = (
-            normalized_text[:adjusted_start] + replacement + normalized_text[adjusted_end:]
-        )
-
-        # Update the normalized spans in the transformation record
-        transformation["normalized_start"] = adjusted_start
-        transformation["normalized_end"] = adjusted_start + len(replacement)
-
-        # Update the offset for the next transformation
-        offset += len(replacement) - (original_end - original_start)
-
-        transformation["index"] = i
-
-    return normalized_text
-
-
-def normalize_text_with_mapping(text, user_patterns=None, combine_regexes=False):
-    """
-    Normalize speech text transcript while keeping track of transformations.
-
-    Args:
-        text (str): The original text to normalize.
-        user_patterns (list of dicts, optional): User-supplied regex patterns, replacements, and type of transformation.
-
-    Returns:
-        tuple: Normalized text and list of mappings from original to new text positions.
-    """
-    mapping = []
-
-    # Correct some OCR-errors before normalization
-    for key, value in ocr_corrections.items():
-        text = re.sub(key, value, text)
-
-    # Collect all regex patterns for substitutions and deletions
-    transformations = collect_regex_patterns(user_patterns)
-
-    # Track already matched character spans using a boolean mask
-    modified_chars = np.zeros(len(text), dtype=bool)
-
-    # Record transformations for each pattern match
-    for pattern_dict in transformations:
-        pattern = pattern_dict["pattern"]
-        transformation_type = pattern_dict["transformation_type"]
-
-        for match in re.finditer(pattern, text.lower()):
+        new_text, new_span_map, last_end = "", [], 0
+        for match in re.finditer(pattern, self.current_text):
             start, end = match.span()
-            if modified_chars[start:end].any():
-                # Skip this match if it overlaps with a previous match
+            new_text += self.current_text[last_end:start]
+            new_span_map.extend(self.span_map[last_end:start])
+            replacement_text = replacement(match) if callable(replacement) else replacement
+            if start < end:
+                source_span = (self.span_map[start][0], self.span_map[end - 1][1])
+            else:
+                # if zero-width match, use the start position for both start and end
+                source_pos = (
+                    self.span_map[start][0]
+                    if start < len(self.span_map)
+                    else len(self.original_text)
+                )
+                source_span = (source_pos, source_pos)
+            new_text += replacement_text
+            new_span_map.extend([source_span] * len(replacement_text))
+            last_end = end
+        new_text += self.current_text[last_end:]
+        new_span_map.extend(self.span_map[last_end:])
+        self.current_text, self.span_map = new_text, new_span_map
+
+    def get_token_map(self, tokenization_level="word") -> list[dict]:
+        """
+        Tokenize the current text and create a mapping of normalized tokens to the
+        original text spans they were normalized from.
+        """
+        if tokenization_level == "word":
+            # Match any sequence of non-whitespace characters
+            tokenization_pattern = r"\S+"
+        elif tokenization_level == "char":
+            # Any non-whitespace character
+            tokenization_pattern = r"\S"
+
+        token_mapping = []
+        for match in re.finditer(tokenization_pattern, self.current_text):
+            norm_token = match.group(0)
+            norm_start, norm_end = match.span()
+            if not self.span_map or norm_start >= len(self.span_map):
                 continue
-            else:
-                # Mark the characters as "to be modified"
-                modified_chars[start:end] = True
-
-            # If pattern_dict["replacement"] is a lambda function, call it to get the replacement string
-            # Otherwise, use the replacement string
-            if callable(pattern_dict["replacement"]):
-                replacement = pattern_dict["replacement"](match)
-            else:
-                replacement = pattern_dict["replacement"]
-
-            record_transformation(mapping, text, start, end, transformation_type, replacement)
-
-    text = unicodedata.normalize("NFKC", text)
-
-    # Apply the recorded transformations to the text
-    normalized_text = apply_transformations(text, mapping)
-
-    return normalized_text, mapping, text
-
-
-def get_normalized_tokens(mapping, casing="lower"):
-    """
-    We previously created a mapping from the original text to the normalized text.
-    Since the normalized text may contain multi-word tokens, we need to further tokenize the
-    normalized text and maintain a mapping from the normalized tokens to the original text.
-
-    E.g. expanded abbreviations such as "bl.a." will be normalized to the token "bland annat".
-    This function will split the normalized token into two tokens, "bland" and "annat", while
-    maintaining the original token's start and end times and its index in the original mapping.
-    """
-
-    normalized_mapping = OrderedDict()
-    normalized_tokens = []
-
-    offset = 0  # Multi-word offset, used to adjust the index in the normalized_mapping
-    for i, record in enumerate(mapping):
-        if record["transformation_type"] == "substitution" and record["replacement"] != " ":
-            normalized_token = (
-                record["normalized_token"]
-                if casing == "lower"
-                else record["normalized_token"].upper()  # Swedish wav2vec2 has uppercase tokens
-            )
-
-            if " " in normalized_token:
-                # Multi-word token, split it into individual words
-                multi_tokens = normalized_token.split(" ")
-                for multi_word_index, token in enumerate(multi_tokens):
-                    normalized_tokens.append(token)
-                    offset += 1 if multi_word_index >= 1 else 0
-                    normalized_mapping[i + offset] = {
-                        "token": token,
-                        "start_time": record["start_time"],  # Empty for now
-                        "end_time": record["end_time"],  # Empty for now
-                        "normalized_word_index": i,
-                        "is_multi_word": True,
-                        "is_first_word": multi_word_index == 0,
-                        "is_last_word": multi_word_index == len(multi_tokens) - 1,
-                    }
-            else:
-                normalized_mapping[i + offset] = {
-                    "token": normalized_token,
-                    "start_time": record["start_time"],  # Empty for now
-                    "end_time": record["end_time"],  # Empty for now
-                    "normalized_word_index": i,
-                    "is_multi_word": False,
+            original_start = self.span_map[norm_start][0]
+            original_end = self.span_map[norm_end - 1][1]
+            original_text = self.original_text[original_start:original_end]
+            token_mapping.append(
+                {
+                    "normalized_token": norm_token,
+                    "text": original_text,
+                    "start_char": original_start,
+                    "end_char": original_end,
                 }
-                normalized_tokens.append(normalized_token)
+            )
+        return token_mapping
 
-    return normalized_mapping, normalized_tokens
+
+def merge_multitoken_expressions(timestamp_mapping: list[dict]) -> list[dict]:
+    """
+    Merge any multi-token expressions in the mapping.
+
+    If multiple normalized tokens share (map to) the same original source span, this
+    function will concatenate them into a single entry. The original text span
+    will be assigned the start and end times of the first and last token, respectively,
+    in the multi-token expression.
+
+    Converts the input mapping from having one entry per normalized token
+    to having one entry per "token" (span) in the original text.
+
+    Args:
+        timestamp_mapping: Normalized tokens, their original text, start and
+        end character indices, and their timestamps.
+
+    Returns:
+        A list of dictionaries with merged multi-token entries.
+
+    """
+
+    if not timestamp_mapping:
+        return []
+
+    merged_mapping, start_token_index = [], 0
+    while start_token_index < len(timestamp_mapping):
+        timestamp_token = timestamp_mapping[start_token_index]
+        end_token_index = start_token_index + 1
+
+        # Group multi-token expressions by their identical original source spans
+        while (
+            end_token_index < len(timestamp_mapping)
+            and timestamp_mapping[end_token_index]["start_char"] == timestamp_token["start_char"]
+            and timestamp_mapping[end_token_index]["end_char"] == timestamp_token["end_char"]
+        ):
+            end_token_index += 1
+
+        # Subset the (possible) multi-token group
+        multi_token = timestamp_mapping[start_token_index:end_token_index]
+        combined_item = {
+            "start_time": multi_token[0]["start_time"],
+            "end_time": multi_token[-1]["end_time"],
+            "text": timestamp_token["text"],  # text before deletions are included
+            "start_char": timestamp_token["start_char"],
+            "end_char": timestamp_token["end_char"],
+            "score": sum([item["score"] for item in multi_token]) / len(multi_token),
+            "normalized_tokens": " ".join(item["normalized_token"] for item in multi_token),
+        }
+        merged_mapping.append(combined_item)
+        start_token_index = end_token_index
+    return merged_mapping
+
+
+def add_deletions_to_mapping(merged_map: list[dict], original_text: str) -> list[dict]:
+    """
+    Takes a mapping of original text and normalized tokens with their timestamps
+    and (re)inserts previously deleted text spans into the mapping. This allows
+    us to reconstruct the original text (with punctuation and other deletions).
+
+    Deleted text spans are assigned the start and end times of the previous
+    adjacent token in the mapping.
+
+    Args:
+        merged_map: A list of dictionaries with the mapping of normalized tokens
+            to their original text spans and timestamps.
+        original_text: The original text from which the mapping was created.
+
+    Returns:
+        A list of updated dictionaries with an entry that includes deleted
+        text spans (e.g. punctuation). Allows reconstructing the original text.
+    """
+    if not merged_map:
+        return []
+    final_map = []
+    for i, item in enumerate(merged_map):
+        new_item = item.copy()
+        # The new end is the start of the next event's original span.
+        if i + 1 < len(merged_map):
+            new_end = merged_map[i + 1]["start_char"]
+        else:  # For the last event, the new end is the end of the original text.
+            new_end = len(original_text)
+
+        new_item["end_char_extended"] = new_end
+        new_item["text_span_full"] = original_text[new_item["start_char"] : new_end]
+        final_map.append(new_item)
+    return final_map
