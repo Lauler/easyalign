@@ -166,46 +166,6 @@ def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str]):
         yield speech_id, probs
 
 
-def add_timestamps_to_mapping(
-    mapping: dict,
-    tokens: torch.Tensor,
-    scores: torch.Tensor,
-    audio_length: int,
-    start_segment: float = 0.0,
-    chunk_size: int = 30,
-) -> list[dict]:
-    """
-    Add the timestamps from aligned tokens to the original text tokens via the mapping.
-    """
-
-    token_spans = F.merge_tokens(tokens, scores, blank=0)
-    # Remove all TokenSpan with token=4 (token 4 is "|", used for space)
-    token_spans = [s for s in token_spans if s.token != 4]
-    word_spans = unflatten(token_spans, [len(word) for word in mapping["normalized_tokens"]])
-    ratio = audio_length / calculate_w2v_output_length(audio_length, chunk_size=chunk_size)
-
-    for aligned_token, normalized_token in zip(word_spans, mapping["normalized_mapping"].items()):
-        original_index = normalized_token[1]["normalized_word_index"]
-        original_token = mapping["mapping"][original_index]
-        start_time, end_time = get_word_timing(aligned_token, ratio, start_segment=start_segment)
-
-        if not normalized_token[1]["is_multi_word"]:
-            normalized_token[1]["start_time"] = start_time
-            normalized_token[1]["end_time"] = end_time
-            original_token["start_time"] = start_time
-            original_token["end_time"] = end_time
-        else:
-            if normalized_token[1]["is_first_word"]:
-                original_token["start_time"] = start_time
-            if normalized_token[1]["is_last_word"]:
-                original_token["end_time"] = end_time
-
-            normalized_token[1]["start_time"] = start_time
-            normalized_token[1]["end_time"] = end_time
-
-    return mapping
-
-
 def unflatten(char_list: list[TokenSpan], word_lengths: list[int]) -> list[list[TokenSpan]]:
     """
     Unflatten a list of character output tokens (TokenSpans) from wav2vec2 into words
@@ -405,6 +365,7 @@ def get_segment_alignment(
                         "tokens": segment_tokens,
                     }
                 )
+                previous_tokens.append(remaining_tokens.pop(0))
                 break
 
             previous_tokens.append(remaining_tokens.pop(0))
