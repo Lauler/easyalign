@@ -15,17 +15,40 @@ class WordSegment(msgspec.Struct):
         return {f: getattr(self, f) for f in self.__struct_fields__}
 
 
-class AudioSegment(msgspec.Struct):
+class AudioChunk(msgspec.Struct):
     """
-    Segment of audio with (optional) associated text transcription. Alternatively,
-    a VAD segment with no text.
+    Segment of audio, usually created by VAD.
     """
 
     start: float  # in seconds
     end: float  # in seconds
-    words: list[WordSegment] = []
     duration: float | None = None  # in seconds
-    text: str | None = None  # Optional text transcription
+
+    def to_dict(self):
+        return {f: getattr(self, f) for f in self.__struct_fields__}
+
+    def calculate_duration(self):
+        self.duration = self.end - self.start
+        return self.duration
+
+    def __post_init__(self):
+        if self.duration is None:
+            self.calculate_duration()
+
+
+class AlignmentSegment(msgspec.Struct):
+    """
+    A segment of aligned audio and text.
+
+    This can be sentence, paragraph, or any other unit of text.
+    """
+
+    start: float  # in seconds
+    end: float  # in seconds
+    text: str
+    words = list[WordSegment]
+    duration: float | None = None  # in seconds
+    score: float | None = None  # Optional confidence score
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
@@ -51,8 +74,9 @@ class SpeechSegment(msgspec.Struct):
 
     start: float  # in seconds
     end: float  # in seconds
-    text: str
-    alignments: list[AudioSegment] = []
+    text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
+    chunks: list[AudioChunk] = []  # Audio chunks from which we create w2v2 logits
+    alignments: list[AlignmentSegment] = []  # Aligned text segments
     duration: float | None = None  # in seconds
     speech_id: str | int | None = None
     metadata: dict | None = None  # Extra metadata such as speaker name, etc.
