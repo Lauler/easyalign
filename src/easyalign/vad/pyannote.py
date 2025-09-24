@@ -11,7 +11,7 @@ from pyannote.core import Annotation, Segment, SlidingWindowFeature
 from tqdm import tqdm
 
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.vad.utils import encode_vad_segments, read_audio
+from easyalign.vad.utils import encode_vad_segments
 
 """
 This file contains modified functions from WhisperX (BSD-4-Clause License).
@@ -38,9 +38,7 @@ def load_vad_model(
         "min_duration_on": min_duration_on,
         "min_duration_off": min_duration_off,
     }
-    vad_pipeline = VoiceActivitySegmentation(
-        segmentation=vad_model, device=torch.device(device)
-    )
+    vad_pipeline = VoiceActivitySegmentation(segmentation=vad_model, device=torch.device(device))
     vad_pipeline.instantiate(hyperparameters)
     return vad_pipeline
 
@@ -135,13 +133,9 @@ class Binarize:
                     if curr_duration > self.max_duration:
                         search_after = len(curr_scores) // 2
                         # divide segment
-                        min_score_div_idx = search_after + np.argmin(
-                            curr_scores[search_after:]
-                        )
+                        min_score_div_idx = search_after + np.argmin(curr_scores[search_after:])
                         min_score_t = curr_timestamps[min_score_div_idx]
-                        region = Segment(
-                            start - self.pad_onset, min_score_t + self.pad_offset
-                        )
+                        region = Segment(start - self.pad_onset, min_score_t + self.pad_offset)
                         active[region, k] = label
                         start = curr_timestamps[min_score_div_idx]
                         curr_scores = curr_scores[min_score_div_idx + 1 :]
@@ -172,9 +166,7 @@ class Binarize:
         # also: fill same speaker gaps shorter than min_duration_off
         if self.pad_offset > 0.0 or self.pad_onset > 0.0 or self.min_duration_off > 0.0:
             if self.max_duration < float("inf"):
-                raise NotImplementedError(
-                    f"This would break current max_duration param"
-                )
+                raise NotImplementedError("This would break current max_duration param")
             active = active.support(collar=self.min_duration_off)
 
         # remove tracks shorter than min_duration_on
@@ -235,9 +227,7 @@ class VoiceActivitySegmentation(VoiceActivityDetection):
         return segmentations
 
 
-def merge_vad(
-    vad_arr, pad_onset=0.0, pad_offset=0.0, min_duration_off=0.0, min_duration_on=0.0
-):
+def merge_vad(vad_arr, pad_onset=0.0, pad_offset=0.0, min_duration_off=0.0, min_duration_on=0.0):
     active = Annotation()
     for k, vad_t in enumerate(vad_arr):
         region = Segment(vad_t[0] - pad_onset, vad_t[1] + pad_offset)
@@ -311,38 +301,31 @@ def merge_chunks(
     return merged_segments
 
 
-def run_vad_pipeline(
-    metadata: AudioMetadata, vad_pipeline: VoiceActivitySegmentation, chunk_size=30
-):
+def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, chunk_size=30):
     """
     Run VAD pipeline on the given audio metadata.
 
     Args:
         metadata (AudioMetadata): The audio metadata object.
-        vad_pipeline: The VAD pipeline function.
-        backend (str): The VAD backend to use ("silero" or "pyannote").
+        model: The loaded VAD model.
         chunk_size (int): The maximum chunk size in seconds.
     """
 
-    audio, sr = read_audio(metadata.audio_path)
     if audio is None:
         return None
 
     if len(metadata.speeches) > 0:
         # Run VAD on each speech segment
         for speech in tqdm(metadata.speeches, desc="Running VAD on speeches"):
-            speech_audio = audio[int(speech.start * sr) : int(speech.end * sr)]
-            vad_segments = vad_pipeline(
+            speech_audio = audio[int(speech.start * sample_rate) : int(speech.end * sample_rate)]
+            vad_segments = model(
                 {
-                    "waveform": torch.tensor(speech_audio)
-                    .unsqueeze(0)
-                    .to(torch.float32),
-                    "sample_rate": sr,
+                    "waveform": torch.tensor(speech_audio).unsqueeze(0).to(torch.float32),
+                    "sample_rate": sample_rate,
                 }
             )
             vad_segments = merge_chunks(vad_segments, chunk_size=chunk_size)
             # Add speech.start offset to each segment
-            print(vad_segments)
             vad_segments = [
                 {
                     "start": seg["start"] + speech.start,
@@ -355,17 +338,19 @@ def run_vad_pipeline(
             speech.chunks = segments
     else:
         # Run VAD on entire audio
-        vad_segments = vad_pipeline(
+        vad_segments = model(
             {
                 "waveform": torch.tensor(audio).unsqueeze(0).to(torch.float32),
-                "sample_rate": sr,
+                "sample_rate": sample_rate,
             }
         )
 
         vad_segments = merge_chunks(vad_segments, chunk_size=chunk_size)
         segments = encode_vad_segments(vad_segments)
         metadata.speeches.append(
-            SpeechSegment(start=0, end=metadata.duration, text=None, chunks=segments)
+            SpeechSegment(
+                start=segments[0].start, end=segments[-1].end, text=None, chunks=segments
+            )
         )
 
     return metadata

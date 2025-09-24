@@ -23,6 +23,7 @@ class AudioChunk(msgspec.Struct):
     start: float  # in seconds
     end: float  # in seconds
     duration: float | None = None  # in seconds
+    audio_frames: int | None = None  # Number of audio frames chunk spans
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
@@ -66,7 +67,7 @@ class SpeechSegment(msgspec.Struct):
     """
     A speech slice composed of multiple aligned audio segments.
 
-    May be a speech given by a single speaker or a dialogue between multiple speakers.
+    May be a speech given by a single speaker, or a dialogue between multiple speakers.
     Whatever unit of abstraction the user prefers.
 
     If no SpeechSegment is defined, the entire audio is treated as a single speech.
@@ -74,10 +75,13 @@ class SpeechSegment(msgspec.Struct):
 
     start: float  # in seconds
     end: float  # in seconds
+    #### If ASR is used, text and chunks have a 1 to 1 mapping ####
     text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
     chunks: list[AudioChunk] = []  # Audio chunks from which we create w2v2 logits
+    #### alignments have a many to 1, or 1 to many mapping with chunks ####
     alignments: list[AlignmentSegment] = []  # Aligned text segments
     duration: float | None = None  # in seconds
+    audio_frames: int | None = None  # Number of audio frames speech segment spans
     speech_id: str | int | None = None
     metadata: dict | None = None  # Extra metadata such as speaker name, etc.
 

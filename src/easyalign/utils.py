@@ -1,12 +1,12 @@
 import subprocess
 
 
-def convert_audio_to_wav(input_file, output_file):
+def convert_audio_to_wav(input_file, output_file, sample_rate=16000):
     # fmt: off
     command = [
         'ffmpeg',
         '-i', input_file,
-        '-ar', '16000',  # Set the audio sample rate to 16kHz
+        '-ar', str(sample_rate),  # Set the audio sample rate
         '-ac', '1',      # Set the number of audio channels to 1 (mono)
         '-c:a', 'pcm_s16le',
         '-loglevel', 'warning',

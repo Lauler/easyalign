@@ -22,7 +22,9 @@ def read_audio(audio_path):
     return audio, sr
 
 
-def encode_metadata(audio_path, sample_rate=16000, speeches: list[SpeechSegment] = []):
+def encode_metadata(
+    audio_path, sample_rate=16000, speeches: list[SpeechSegment] = [], metadata=None
+):
     # Get length of audio file
     f = sf.SoundFile(audio_path)
     audio_length = len(f) / f.samplerate
@@ -32,6 +34,7 @@ def encode_metadata(audio_path, sample_rate=16000, speeches: list[SpeechSegment]
         sample_rate=sample_rate,
         duration=audio_length,
         speeches=speeches,
+        metadata=metadata,
     )
     return audio_metadata
 
@@ -56,9 +59,7 @@ def run_vad_pipeline(metadata: AudioMetadata, vad_pipeline, chunk_size=30):
             speech_audio = audio[int(speech.start * sr) : int(speech.end * sr)]
             vad_segments = vad_pipeline(
                 {
-                    "waveform": torch.tensor(speech_audio)
-                    .unsqueeze(0)
-                    .to(torch.float32),
+                    "waveform": torch.tensor(speech_audio).unsqueeze(0).to(torch.float32),
                     "sample_rate": sr,
                 }
             )

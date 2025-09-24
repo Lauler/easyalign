@@ -7,13 +7,6 @@ from tqdm import tqdm
 
 from easyalign.data.datamodel import AudioChunk, AudioMetadata, SpeechSegment
 from easyalign.utils import convert_audio_to_wav
-from easyalign.vad.pyannote import run_vad_pipeline as run_vad_pipeline_pyannote
-from easyalign.vad.silero import run_vad_pipeline as run_vad_pipeline_silero
-
-DISPATCH_MODEL = {
-    "pyannote": run_vad_pipeline_pyannote,
-    "silero": run_vad_pipeline_silero,
-}
 
 
 def read_audio(audio_path):
@@ -27,9 +20,19 @@ def read_audio(audio_path):
     return audio, sr
 
 
-def encode_metadata(audio_path, sample_rate=16000, speeches: list[SpeechSegment] = []):
+def encode_metadata(
+    audio_path,
+    audio_dir: str | None = None,
+    sample_rate=16000,
+    speeches: list[SpeechSegment] = [],
+    metadata=None,
+):
+    full_audio_path = audio_path
+    if audio_dir is not None:
+        full_audio_path = os.path.join(audio_dir, audio_path)
+
     # Get length of audio file
-    f = sf.SoundFile(audio_path)
+    f = sf.SoundFile(full_audio_path)
     audio_length = len(f) / f.samplerate
 
     audio_metadata = AudioMetadata(
@@ -37,6 +40,7 @@ def encode_metadata(audio_path, sample_rate=16000, speeches: list[SpeechSegment]
         sample_rate=sample_rate,
         duration=audio_length,
         speeches=speeches,
+        metadata=metadata,
     )
     return audio_metadata
 
