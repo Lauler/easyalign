@@ -1,47 +1,107 @@
 import os
 
+import numpy as np
 import torch
 from tqdm import tqdm
+from transformers import AutoModelForCTC, Wav2Vec2Processor
 
+from easyalign.alignment.pytorch import calculate_w2v_output_length
 from easyalign.data.dataset import (
     AudioFileDataset,
     AudioSliceDataset,
     VADAudioDataset,
+    alignment_collate_fn,
+    audiofile_collate_fn,
     vad_collate_fn,
 )
 from easyalign.vad.silero import load_vad_model
-from easyalign.vad.utils import encode_metadata, encode_vad_segments
 from easyalign.vad.vad import run_vad
 
-vad_dataset = VADAudioDataset(
-    audio_paths=["audio_mono_120.wav"], audio_dir="data", sample_rate=16000
-)
+vad_dataset = VADAudioDataset(audio_paths=["audio_80.wav"], audio_dir="data", sample_rate=16000)
 dataloader = torch.utils.data.DataLoader(
     vad_dataset, batch_size=1, shuffle=False, collate_fn=vad_collate_fn
 )
 audio_dict = next(iter(dataloader))
 
-model = load_vad_model()
+model = AutoModelForCTC.from_pretrained(
+    "KBLab/wav2vec2-large-voxrex-swedish", torch_dtype=torch.float16
+).to("cuda")
+model_vad = load_vad_model()
+
 audio = audio_dict["audio"][0]
 res = run_vad(
     audio_path=audio_dict["audio_path"][0],
     audio_dir="data",
-    model=model,
+    model=model_vad,
     audio=audio,
     chunk_size=30,
 )
 
-logit_dataset = AudioFileDataset(
+file_dataset = AudioFileDataset(
     metadata=[res],
     audio_dir="data",
     sample_rate=16000,
     model_name="KBLab/wav2vec2-large-voxrex-swedish",
     chunk_size=30,
-    use_vad=False,
+    use_vad=True,
 )
 
-slice_dataset = logit_dataset[0]
-slice_dataset["dataset"][1]
+file_dataloader = torch.utils.data.DataLoader(
+    file_dataset, batch_size=1, shuffle=False, collate_fn=audiofile_collate_fn, num_workers=2
+)
+
+
+maximum_nr_logits = calculate_w2v_output_length(
+    file_dataset.chunk_size * file_dataset.sr, chunk_size=file_dataset.chunk_size
+)
+
+
+def pad_probs(probs, chunk_size, sample_rate):
+    nr_logits = calculate_w2v_output_length(chunk_size * sample_rate, chunk_size=chunk_size)
+    probs = np.pad(
+        array=probs,
+        pad_width=(
+            (0, 0),
+            (0, nr_logits - probs.shape[1]),  # Add remaining logits as padding
+            (0, 0),
+        ),
+        mode="constant",
+    )
+    return probs
+
+
+for features in file_dataloader:
+    slice_dataset = features[0]["dataset"]
+    feature_dataloader = torch.utils.data.DataLoader(
+        slice_dataset, batch_size=8, shuffle=False, collate_fn=alignment_collate_fn, num_workers=2
+    )
+    for batch in feature_dataloader:
+        spectograms = batch["spectograms"].half().to("cuda")
+
+        with torch.inference_mode():
+            logits = model(spectograms).logits
+
+        probs = torch.nn.functional.softmax(logits, dim=-1)
+        probs = probs.cpu().numpy()
+
+        # Pad the second dimension up to the nr_logits that args.chunk_size * args.sample_rate yields.
+        # Usually collate_fn takes care of this when batch contains at least 1 obs that is chunk_size long.
+        # We need to handle the case when batch contains only 1 obs, or all obs are shorter than chunk_size.
+        probs = np.pad(
+            array=probs,
+            pad_width=(
+                (0, 0),
+                (0, maximum_nr_logits - probs.shape[1]),  # Add remaining logits as padding
+                (0, 0),
+            ),
+            mode="constant",
+        )
+
+
+text = """Statsminister Göran Persson (asdasfs) sa ju häromdagen att det kan dröja till efter 2006 innan euron införs i Sverige om det blir ett ja i omröstningen. 
+Persson varnade för att förhandlingarna om till vilken kurs kronan ska knytas t.e. kan dra ut på tiden. Men professorn i nationalekonomi Harry Flam ser inte alls de problemen.
+Jag tror inte att frågan om knytkursen kommer att vara något större problem faktiskt. Om Sverige säger ja till euron i folkomröstningen så lämnar vi ju kronan bakom oss."""
+
 
 """
 Hallå. Förlåt. Kan du göra ljud någon annanstans? Titta. 
