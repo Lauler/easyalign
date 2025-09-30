@@ -139,7 +139,7 @@ def calculate_w2v_output_length(
     return n_full_chunk_logits + n_last_chunk_logits
 
 
-def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str]):
+def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str] | list[int]):
     """
     Divide the accumulated probs of audio file into the speeches they belong to.
     (we can't assume that a batch maps to a single speech)

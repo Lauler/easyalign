@@ -53,18 +53,14 @@ def get_probs(audiofile: str, log_probs: bool = True) -> tuple:
             padding = torch.zeros((1, chunk_size * sr - audio_chunk.shape[1]))
             audio_chunk = torch.cat([audio_chunk, padding], dim=1)
         input_values = (
-            processor(
-                audio_chunk, sampling_rate=16000, return_tensors="pt", padding="longest"
-            )
+            processor(audio_chunk, sampling_rate=16000, return_tensors="pt", padding="longest")
             .input_values.to(device)
             .squeeze(dim=0)
         )
         with torch.inference_mode():
             logits = model(input_values.half()).logits
             if log_probs:
-                probs = torch.nn.functional.log_softmax(
-                    logits, dim=-1
-                )  # Log probabilities
+                probs = torch.nn.functional.log_softmax(logits, dim=-1)  # Log probabilities
             else:
                 probs = torch.nn.functional.softmax(logits, dim=-1)
 
@@ -95,9 +91,7 @@ Jag tror inte att frågan om knytkursen kommer att vara något större problem f
 normalizer = SpanMapNormalizer(text)
 normalizer.current_text
 normalizer.original_text
-normalizer.transform(
-    r"(\d+)[\. ](\d+)", lambda m: num2words(m.group(1) + m.group(2), lang="sv")
-)
+normalizer.transform(r"(\d+)[\. ](\d+)", lambda m: num2words(m.group(1) + m.group(2), lang="sv"))
 normalizer.transform(r"\(.*?\)", "")  # Remove parentheses and their content
 normalizer.transform(r"\s[^\w\s]\s", " ")  # Remove punctuation between whitespace
 normalizer.transform(r"[^\w\s]", "")  # Remove punctuation and special characters

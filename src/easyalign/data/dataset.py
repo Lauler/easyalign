@@ -20,15 +20,9 @@ logger = logging.getLogger(__name__)
 
 class VADAudioDataset(Dataset):
     """
-    User can provide either
-
-    1. a list of audio paths.
-    2. a list of paths to metadata files that conform to the AudioMetadata datamodel,
-        each containing a path to an audio file and optional speech segments to run VAD on.
-
     Args:
         audio_paths: List of paths to audio files.
-        audio_dir: Directory containing audio files (if audio_paths are relative).
+        audio_dir: Directory containing audio files (if `audio_paths` are relative).
     """
 
     def __init__(
@@ -106,21 +100,27 @@ class AudioFileDataset(Dataset):
 
     Args:
         metadata: List of AudioMetadata objects or paths to JSON files.
-        model_name: Model name to use for the processor
+        processor: The Wav2vec2Processor to use for feature extraction.
         audio_dir: Directory with audio files
-        sr: Sample rate
-        chunk_size: Chunk size in seconds to split audio into
+        sample_rate: Sample rate to resample audio to. Default 16000.
+        chunk_size: When VAD is not used, SpeechSegments are naively split into
+            `chunk_size` sized chunks for feature extraction.
+        use_vad: Whether to use VAD-based chunks (if available in metadata), or just
+            naïvely split the audio of speech segments into `chunk_size` chunks.
     """
 
     def __init__(
         self,
-        metadata: list[AudioMetadata] | list[str],
-        model_name="KBLab/wav2vec2-large-voxrex-swedish",
+        metadata: list[AudioMetadata] | list[str] | AudioMetadata | str,
+        processor: Wav2Vec2Processor,
         audio_dir="data",
         sample_rate=16000,  # sample rate
         chunk_size=30,  # seconds per chunk for wav2vec2
         use_vad=True,
     ):
+        if not isinstance(metadata, list):
+            metadata = [metadata]
+
         if isinstance(metadata[0], str):
             json_paths = metadata
             self.metadata = []
@@ -136,41 +136,38 @@ class AudioFileDataset(Dataset):
         self.audio_dir = audio_dir
         self.sr = sample_rate
         self.chunk_size = chunk_size
-        self.processor = Wav2Vec2Processor.from_pretrained(model_name)
+        self.processor = processor
         self.use_vad = use_vad
 
     def seconds_to_frames(self, seconds, sr=16000):
         return int(seconds * sr)
 
-    def get_speech_metadata(self, metadata, sr=16000):
+    def speech_chunker(self, audio_path, metadata, sr=16000):
+        audio, sr = self.read_audio(audio_path)
+
         for speech in metadata.speeches:
             start_frame = self.seconds_to_frames(speech.start, sr)
             end_frame = self.seconds_to_frames(speech.end, sr)
             speech.audio_frames = end_frame - start_frame
-            yield speech.speech_id, start_frame, end_frame
-
-    def speech_chunker(self, audio_path, metadata, sr=16000):
-        audio, sr = self.read_audio(audio_path)
-        for speech_id, start_frame, end_frame in self.get_speech_metadata(metadata, sr):
-            yield speech_id, audio[start_frame:end_frame]
+            yield speech.speech_id, audio[start_frame:end_frame]
 
     def get_speech_features(self, audio_path, metadata):
-        spectograms = []
+        features = []
         for speech_id, audio_speech in self.speech_chunker(audio_path, metadata):
             audio_speech = torch.tensor(audio_speech).unsqueeze(0)  # Add batch dimension
             # Chunk the audio according to `chunk_size`
             audio_chunks = torch.split(audio_speech, self.chunk_size * self.sr, dim=1)  # 30s
             for audio_chunk in audio_chunks:
-                spectogram = self.processor(
+                feature = self.processor(
                     audio_chunk, sampling_rate=self.sr, return_tensors="pt"
                 ).input_values
-                # Create tuple with spectogram and speech_id so we can link back to the speech
-                spectograms.append((spectogram, speech_id))
-        return spectograms
+                # Create tuple with feature and speech_id so we can link back to the speech
+                features.append((feature, speech_id))
+        return features
 
     def get_vad_features(self, audio_path, metadata, sr=16000):
         audio, sr = self.read_audio(audio_path)
-        spectograms = []
+        features = []
         for speech in metadata.speeches:
             for vad_chunk in speech.chunks:
                 start_frame = self.seconds_to_frames(vad_chunk.start, sr)
@@ -178,12 +175,12 @@ class AudioFileDataset(Dataset):
                 vad_chunk.audio_frames = end_frame - start_frame
                 audio_chunk = audio[start_frame:end_frame]
                 audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)  # Add batch dimension
-                spectogram = self.processor(
+                feature = self.processor(
                     audio_chunk, sampling_rate=sr, return_tensors="pt"
                 ).input_values
-                spectograms.append((spectogram, speech.speech_id))
+                features.append((feature, speech.speech_id))
 
-        return spectograms
+        return features
 
     def read_audio(self, audio_path):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -208,12 +205,16 @@ class AudioFileDataset(Dataset):
         if self.audio_dir is not None:
             full_audio_path = os.path.join(self.audio_dir, metadata.audio_path)
 
-        if self.use_vad:
-            spectograms = self.get_vad_features(full_audio_path, metadata)
-        else:
-            spectograms = self.get_speech_features(full_audio_path, metadata)
+        for i, speech in enumerate(metadata.speeches):
+            if speech.speech_id is None:
+                speech.speech_id = i  # Assign ID if missing
 
-        slice_dataset = AudioSliceDataset(spectograms, self.metadata)
+        if self.use_vad:
+            features = self.get_vad_features(full_audio_path, metadata)
+        else:
+            features = self.get_speech_features(full_audio_path, metadata)
+
+        slice_dataset = AudioSliceDataset(features, metadata)
 
         out_dict = {
             "dataset": slice_dataset,
@@ -221,61 +222,3 @@ class AudioFileDataset(Dataset):
         }
 
         return out_dict
-
-
-def pad_to_min_length(vec):
-    audio_frames = torch.as_tensor(vec.shape[-1]).to(vec.device)
-    if audio_frames < 640:
-        vec = torch.nn.functional.pad(vec, (0, 640 - audio_frames))
-
-    return vec
-
-
-def alignment_collate_fn(batch):
-    """
-    We need to pad the input_values to the longest sequence,
-    since wav2vec2 doesn't do this by default.
-    The individual elements in the batch are tuples: (spectogram, speech_id)
-    """
-    # Remove None values
-    speech_ids = [b[1] for b in batch if b is not None]
-    batch = [pad_to_min_length(b[0][0].squeeze(0)) for b in batch if b is not None]
-
-    # Pad the input_values to the longest sequence
-    batch = torch.nn.utils.rnn.pad_sequence(batch, batch_first=True, padding_value=0)
-
-    return {
-        "spectograms": batch,
-        "speech_ids": speech_ids,
-    }
-
-
-def vad_collate_fn(batch):
-    audios = [item["audio"] for item in batch]
-    sample_rates = [item["sample_rate"] for item in batch]
-    audio_paths = [item["audio_path"] for item in batch]
-    audio_dirs = [item["audio_dir"] for item in batch]
-
-    audios = torch.tensor(np.array(audios)).to(torch.float32)
-
-    return {
-        "audio": audios,
-        "sample_rate": sample_rates,
-        "audio_path": audio_paths,
-        "audio_dir": audio_dirs,
-    }
-
-
-def audiofile_collate_fn(batch: dict) -> list:
-    """
-    Collate function to allow dictionaries with Datasets in the batch.
-    """
-    # Remove None values
-    batch = [b for b in batch if b is not None]
-
-    # Return None if batch is empty
-    if len(batch) == 0:
-        return None
-
-    # Return the batch
-    return batch

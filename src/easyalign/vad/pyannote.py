@@ -314,7 +314,25 @@ def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, c
     if audio is None:
         return None
 
-    if len(metadata.speeches) > 0:
+    if metadata.speeches is None:
+        # Run VAD on entire audio
+        vad_segments = model(
+            {
+                "waveform": torch.tensor(audio).unsqueeze(0).to(torch.float32),
+                "sample_rate": sample_rate,
+            }
+        )
+
+        vad_segments = merge_chunks(vad_segments, chunk_size=chunk_size)
+        segments = encode_vad_segments(vad_segments)
+
+        metadata.speeches = []
+        metadata.speeches.append(
+            SpeechSegment(
+                start=segments[0].start, end=segments[-1].end, text=None, chunks=segments
+            )
+        )
+    else:
         # Run VAD on each speech segment
         for speech in tqdm(metadata.speeches, desc="Running VAD on speeches"):
             speech_audio = audio[int(speech.start * sample_rate) : int(speech.end * sample_rate)]
@@ -336,21 +354,5 @@ def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, c
             ]
             segments = encode_vad_segments(vad_segments)
             speech.chunks = segments
-    else:
-        # Run VAD on entire audio
-        vad_segments = model(
-            {
-                "waveform": torch.tensor(audio).unsqueeze(0).to(torch.float32),
-                "sample_rate": sample_rate,
-            }
-        )
-
-        vad_segments = merge_chunks(vad_segments, chunk_size=chunk_size)
-        segments = encode_vad_segments(vad_segments)
-        metadata.speeches.append(
-            SpeechSegment(
-                start=segments[0].start, end=segments[-1].end, text=None, chunks=segments
-            )
-        )
 
     return metadata

@@ -1,44 +1,161 @@
 import os
+from pathlib import Path
 
+import msgspec
 import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import AutoModelForCTC, Wav2Vec2Processor
 
-from easyalign.alignment.pytorch import calculate_w2v_output_length
-from easyalign.data.dataset import (
-    AudioFileDataset,
-    AudioSliceDataset,
-    VADAudioDataset,
+from easyalign.alignment.pytorch import segment_speech_probs
+from easyalign.data.collators import (
     alignment_collate_fn,
     audiofile_collate_fn,
     vad_collate_fn,
 )
-from easyalign.vad.silero import load_vad_model
-from easyalign.vad.vad import run_vad
-
-vad_dataset = VADAudioDataset(audio_paths=["audio_80.wav"], audio_dir="data", sample_rate=16000)
-dataloader = torch.utils.data.DataLoader(
-    vad_dataset, batch_size=1, shuffle=False, collate_fn=vad_collate_fn
+from easyalign.data.datamodel import AudioMetadata
+from easyalign.data.dataset import (
+    AudioFileDataset,
+    VADAudioDataset,
 )
-audio_dict = next(iter(dataloader))
+from easyalign.data.utils import pad_probs
+from easyalign.pipelines import vad_pipeline
+from easyalign.vad.silero import load_vad_model
 
 model = AutoModelForCTC.from_pretrained(
     "KBLab/wav2vec2-large-voxrex-swedish", torch_dtype=torch.float16
 ).to("cuda")
+processor = Wav2Vec2Processor.from_pretrained("KBLab/wav2vec2-large-voxrex-swedish")
 model_vad = load_vad_model()
 
-audio = audio_dict["audio"][0]
-res = run_vad(
-    audio_path=audio_dict["audio_path"][0],
-    audio_dir="data",
+vad_outputs = vad_pipeline(
     model=model_vad,
-    audio=audio,
+    audio_paths=["audio_mono_120.wav"],
+    audio_dir="data",
+    speeches=None,
     chunk_size=30,
+    sample_rate=16000,
+    metadata=None,
+    batch_size=1,
+    num_workers=1,
+    prefetch_factor=2,
+    save_json=True,
+    save_msgpack=False,
+    output_dir="output/vad",
 )
 
+
+def emissions_pipeline(
+    model,
+    processor: Wav2Vec2Processor,
+    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str,
+    audio_dir: str,
+    sample_rate: int = 16000,
+    chunk_size: int = 30,
+    use_vad: bool = True,
+    batch_size_files: int = 1,
+    num_workers_files: int = 1,
+    prefetch_factor_files: int = 2,
+    batch_size_features: int = 8,
+    num_workers_features: int = 4,
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    save_emissions: bool = True,
+    return_emissions: bool = False,
+    output_dir: str = "output/emissions",
+):
+    """
+    Run emissions extraction pipeline on the given audio files.
+
+    Args:
+        model: The loaded ASR model.
+        metadata: List of AudioMetadata objects or paths to JSON files.
+        audio_dir: Directory with audio files
+        sample_rate: Sample rate to resample audio to. Default 16000.
+        chunk_size: When VAD is not used, SpeechSegments are naively split into
+            `chunk_size` sized chunks for feature extraction.
+        use_vad: Whether to use VAD-based chunks (if available in metadata), or just
+            naïvely split the audio of speech segments into `chunk_size` chunks.
+        batch_size_files: Batch size for the file DataLoader.
+        num_workers_files: Number of workers for the file DataLoader.
+        prefetch_factor_files: Prefetch factor for the file DataLoader.
+        batch_size_features: Batch size for the feature DataLoader.
+        num_workers_features: Number of workers for the feature DataLoader.
+        save_json: Whether to save the emissions output as JSON files.
+        save_msgpack: Whether to save the emissions output as Msgpack files.
+        save_emissions: Whether to save the raw emissions as .npy files.
+        return_emissions: Whether to return the emissions as a list of numpy arrays.
+        output_dir: Directory to save the output files if saving is enabled.
+
+    """
+    file_dataset = AudioFileDataset(
+        metadata=metadata,
+        audio_dir=audio_dir,
+        sample_rate=sample_rate,
+        processor=processor,
+        chunk_size=chunk_size,
+        use_vad=use_vad,
+    )
+
+    file_dataloader = torch.utils.data.DataLoader(
+        file_dataset,
+        batch_size=batch_size_files,
+        shuffle=False,
+        collate_fn=audiofile_collate_fn,
+        num_workers=num_workers_files,
+        prefetch_factor=prefetch_factor_files,
+    )
+
+    for features in file_dataloader:
+        slice_dataset = features[0]["dataset"]
+        feature_dataloader = torch.utils.data.DataLoader(
+            slice_dataset,
+            batch_size=batch_size_features,
+            shuffle=False,
+            collate_fn=alignment_collate_fn,
+            num_workers=num_workers_features,
+        )
+
+        speech_index = 0
+        probs_list = []
+        speech_ids = []
+
+        for batch in feature_dataloader:
+            features = batch["features"].half().to("cuda")
+
+            with torch.inference_mode():
+                logits = model(features).logits
+
+            probs = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
+            probs = pad_probs(
+                probs, chunk_size=file_dataset.chunk_size, sample_rate=file_dataset.sr
+            )
+
+            probs_list.append(probs)
+            speech_ids.extend(batch["speech_ids"])
+
+        metadata = slice_dataset.metadata
+        audio_path = metadata.audio_path
+        base_filename = Path(audio_path).stem
+
+        try:
+            # Multiple speeches might be processed in the same batch. We need to
+            # postprocess the probs to separate them.
+            for speech_id, probs in segment_speech_probs(probs_list, speech_ids):
+                probs_path = Path(output_dir) / base_filename / f"{speech_id}.npy"
+                Path(probs_path).parent.mkdir(parents=True, exist_ok=True)
+
+                metadata["speeches"][speech_index]["probs_path"] = str(probs_path)
+                speech_index += 1
+
+                if save_emissions:
+                    np.save(probs_path, probs)
+        except Exception:
+            continue
+
+
 file_dataset = AudioFileDataset(
-    metadata=[res],
+    metadata=vad_outputs,
     audio_dir="data",
     sample_rate=16000,
     model_name="KBLab/wav2vec2-large-voxrex-swedish",
@@ -50,52 +167,25 @@ file_dataloader = torch.utils.data.DataLoader(
     file_dataset, batch_size=1, shuffle=False, collate_fn=audiofile_collate_fn, num_workers=2
 )
 
-
-maximum_nr_logits = calculate_w2v_output_length(
-    file_dataset.chunk_size * file_dataset.sr, chunk_size=file_dataset.chunk_size
-)
-
-
-def pad_probs(probs, chunk_size, sample_rate):
-    nr_logits = calculate_w2v_output_length(chunk_size * sample_rate, chunk_size=chunk_size)
-    probs = np.pad(
-        array=probs,
-        pad_width=(
-            (0, 0),
-            (0, nr_logits - probs.shape[1]),  # Add remaining logits as padding
-            (0, 0),
-        ),
-        mode="constant",
-    )
-    return probs
-
-
 for features in file_dataloader:
     slice_dataset = features[0]["dataset"]
     feature_dataloader = torch.utils.data.DataLoader(
         slice_dataset, batch_size=8, shuffle=False, collate_fn=alignment_collate_fn, num_workers=2
     )
+    probs_list = []
+    speech_ids = []
+
     for batch in feature_dataloader:
-        spectograms = batch["spectograms"].half().to("cuda")
+        features = batch["features"].half().to("cuda")
 
         with torch.inference_mode():
-            logits = model(spectograms).logits
+            logits = model(features).logits
 
-        probs = torch.nn.functional.softmax(logits, dim=-1)
-        probs = probs.cpu().numpy()
+        probs = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
+        probs = pad_probs(probs, chunk_size=file_dataset.chunk_size, sample_rate=file_dataset.sr)
 
-        # Pad the second dimension up to the nr_logits that args.chunk_size * args.sample_rate yields.
-        # Usually collate_fn takes care of this when batch contains at least 1 obs that is chunk_size long.
-        # We need to handle the case when batch contains only 1 obs, or all obs are shorter than chunk_size.
-        probs = np.pad(
-            array=probs,
-            pad_width=(
-                (0, 0),
-                (0, maximum_nr_logits - probs.shape[1]),  # Add remaining logits as padding
-                (0, 0),
-            ),
-            mode="constant",
-        )
+        probs_list.append(probs)
+        speech_ids.extend(batch["speech_ids"])
 
 
 text = """Statsminister Göran Persson (asdasfs) sa ju häromdagen att det kan dröja till efter 2006 innan euron införs i Sverige om det blir ett ja i omröstningen. 

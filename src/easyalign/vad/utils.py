@@ -45,10 +45,17 @@ def encode_metadata(
     return audio_metadata
 
 
+def seconds_to_frames(seconds, sr=16000):
+    return int(seconds * sr)
+
+
 def encode_vad_segments(vad_segments):
     audio_segments = []
     for segment in vad_segments:
-        audio_segment = AudioChunk(start=segment["start"], end=segment["end"])
+        audio_frames = seconds_to_frames(segment["end"] - segment["start"])
+        audio_segment = AudioChunk(
+            start=segment["start"], end=segment["end"], audio_frames=audio_frames
+        )
         audio_segments.append(audio_segment)
 
     return audio_segments
