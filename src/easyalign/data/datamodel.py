@@ -83,6 +83,7 @@ class SpeechSegment(msgspec.Struct):
     duration: float | None = None  # in seconds
     audio_frames: int | None = None  # Number of audio frames speech segment spans
     speech_id: str | int | None = None
+    probs_path: str | None = None  # Path to saved wav2vec2 emissions/probs
     metadata: dict | None = None  # Extra metadata such as speaker name, etc.
 
     def to_dict(self):

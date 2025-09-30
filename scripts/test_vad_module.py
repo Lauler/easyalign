@@ -11,12 +11,10 @@ from easyalign.alignment.pytorch import segment_speech_probs
 from easyalign.data.collators import (
     alignment_collate_fn,
     audiofile_collate_fn,
-    vad_collate_fn,
 )
 from easyalign.data.datamodel import AudioMetadata
 from easyalign.data.dataset import (
     AudioFileDataset,
-    VADAudioDataset,
 )
 from easyalign.data.utils import pad_probs
 from easyalign.pipelines import vad_pipeline
@@ -30,7 +28,7 @@ model_vad = load_vad_model()
 
 vad_outputs = vad_pipeline(
     model=model_vad,
-    audio_paths=["audio_mono_120.wav"],
+    audio_paths=["audio_80.wav"],
     audio_dir="data",
     speeches=None,
     chunk_size=30,
@@ -65,7 +63,8 @@ def emissions_pipeline(
     output_dir: str = "output/emissions",
 ):
     """
-    Run emissions extraction pipeline on the given audio files.
+    Run emissions extraction pipeline on the given audio files and save results to file. If `return_emissions`
+    is True, function becomes a generator that yields tuples of (metadata, emissions) for each audio file.
 
     Args:
         model: The loaded ASR model.
@@ -116,7 +115,6 @@ def emissions_pipeline(
             num_workers=num_workers_features,
         )
 
-        speech_index = 0
         probs_list = []
         speech_ids = []
 
@@ -135,23 +133,97 @@ def emissions_pipeline(
             speech_ids.extend(batch["speech_ids"])
 
         metadata = slice_dataset.metadata
-        audio_path = metadata.audio_path
-        base_filename = Path(audio_path).stem
+        metadata, emissions = save_outputs(
+            metadata=metadata,
+            probs_list=probs_list,
+            speech_ids=speech_ids,
+            save_json=save_json,
+            save_msgpack=save_msgpack,
+            save_emissions=save_emissions,
+            return_emissions=return_emissions,
+            output_dir=output_dir,
+        )
 
-        try:
-            # Multiple speeches might be processed in the same batch. We need to
-            # postprocess the probs to separate them.
-            for speech_id, probs in segment_speech_probs(probs_list, speech_ids):
-                probs_path = Path(output_dir) / base_filename / f"{speech_id}.npy"
-                Path(probs_path).parent.mkdir(parents=True, exist_ok=True)
+        if return_emissions:
+            yield metadata, emissions
 
-                metadata["speeches"][speech_index]["probs_path"] = str(probs_path)
-                speech_index += 1
 
-                if save_emissions:
-                    np.save(probs_path, probs)
-        except Exception:
-            continue
+def save_outputs(
+    metadata: AudioMetadata,
+    probs_list: list[np.ndarray],
+    speech_ids: list[str],
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    save_emissions: bool = True,
+    return_emissions: bool = False,
+    output_dir: str = "output/emissions",
+):
+    audio_path = metadata.audio_path
+    base_path = Path(audio_path).parent / Path(audio_path).stem
+    json_encoder = msgspec.json.Encoder()
+    msgpack_encoder = msgspec.msgpack.Encoder()
+    speech_index = 0
+
+    if save_emissions:
+        # Segment the probs according to speech_ids and save each speech's probs separately
+        for speech_id, probs in segment_speech_probs(probs_list, speech_ids):
+            probs_path = Path(output_dir) / base_path / f"{speech_id}.npy"
+            Path(probs_path).parent.mkdir(parents=True, exist_ok=True)
+
+            metadata.speeches[speech_index].probs_path = str(probs_path)
+            speech_index += 1
+            np.save(probs_path, probs)
+
+    if save_json:
+        json_msgspec = json_encoder.encode(metadata)
+        json_msgspec = msgspec.json.format(json_msgspec, indent=2)
+        json_path = Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
+        Path(json_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(json_path, "wb") as f:
+            f.write(json_msgspec)
+
+    if save_msgpack:
+        msgpack_msgspec = msgpack_encoder.encode(metadata)
+        msgpack_path = (
+            Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
+        )
+        Path(msgpack_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(msgpack_path, "wb") as f:
+            f.write(msgpack_msgspec)
+
+    if return_emissions:
+        emissions = []
+        print(probs_list)
+        for _, probs in segment_speech_probs(probs_list, speech_ids):
+            print(probs)
+            emissions.append(probs)
+
+        return metadata, emissions
+
+    return None, None
+
+
+emissions_output = list(
+    emissions_pipeline(
+        model=model,
+        processor=processor,
+        metadata=vad_outputs,
+        audio_dir="data",
+        sample_rate=16000,
+        chunk_size=30,
+        use_vad=True,
+        batch_size_files=1,
+        num_workers_files=2,
+        prefetch_factor_files=2,
+        batch_size_features=8,
+        num_workers_features=4,
+        save_json=True,
+        save_msgpack=False,
+        save_emissions=True,
+        return_emissions=True,
+        output_dir="output/emissions",
+    )
+)
 
 
 file_dataset = AudioFileDataset(

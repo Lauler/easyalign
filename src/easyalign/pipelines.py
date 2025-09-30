@@ -79,13 +79,17 @@ def vad_pipeline_generator(
         if save_json:
             vad_msgspec = json_encoder.encode(vad_output)
             vad_msgspec = msgspec.json.format(vad_msgspec, indent=2)
-            json_path = Path(output_dir) / (Path(audio_path).stem + ".json")
+            json_path = (
+                Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
+            )
             with open(json_path, "wb") as f:
                 f.write(vad_msgspec)
 
         if save_msgpack:
             vad_msgpack = msgpack_encoder.encode(vad_output)
-            msgpack_path = Path(output_dir) / (Path(audio_path).stem + ".msgpack")
+            msgpack_path = (
+                Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
+            )
             with open(msgpack_path, "wb") as f:
                 f.write(vad_msgpack)
 
