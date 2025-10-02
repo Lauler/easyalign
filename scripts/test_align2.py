@@ -17,7 +17,7 @@ from easyalign.text.normalization import (
     add_deletions_to_mapping,
     merge_multitoken_expressions,
 )
-from easyalign.tokenizer import load_tokenizer
+from easyalign.text.tokenizer import load_tokenizer
 
 
 def get_probs(audiofile: str, log_probs: bool = True) -> tuple:

@@ -1,6 +1,4 @@
-import json
 import logging
-import multiprocessing as mp
 import os
 import tempfile
 
@@ -10,9 +8,9 @@ import soundfile as sf
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
-from transformers import Wav2Vec2Processor, WhisperProcessor
+from transformers import Wav2Vec2Processor
 
-from easyalign.data.datamodel import AudioChunk, AudioMetadata, SpeechSegment
+from easyalign.data.datamodel import AudioMetadata
 from easyalign.utils import convert_audio_to_wav
 
 logger = logging.getLogger(__name__)

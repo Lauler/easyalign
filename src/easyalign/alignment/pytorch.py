@@ -8,6 +8,8 @@ from nltk.tokenize.punkt import PunktSentenceTokenizer
 from torchaudio.functional import TokenSpan
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
+from easyalign.data.datamodel import SpeechSegment
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,6 +54,7 @@ def align_pytorch(
         star_dim = torch.zeros(
             (1, emissions.size(1), 1), device=emissions.device, dtype=emissions.dtype
         )
+        print(f"Star dim shape: {star_dim.shape}, Emissions shape: {emissions.shape}")
         emissions = torch.cat((emissions, star_dim), 2)  # Add star token to the emissions
 
     alignments, scores = F.forced_align(emissions, targets, blank=0)
@@ -188,7 +191,7 @@ def unflatten(char_list: list[TokenSpan], word_lengths: list[int]) -> list[list[
 
 def get_word_timing(
     word_span: list[F._alignment.TokenSpan],
-    ratio: float,
+    frames_per_logit: float,
     start_segment: float = 0.0,
     sample_rate: int = 16000,
 ) -> tuple[float, float]:
@@ -199,7 +202,7 @@ def get_word_timing(
         word_span:
             A list of TokenSpan objects that together represent the word span's
             timings in the aligned audio chunk.
-        ratio:
+        frames_per_logit:
             The number of audio frames per model output logit. This is the
             total number of frames in our audio chunk divided by the number of
             (non-padding) logit outputs for the chunk.
@@ -211,8 +214,8 @@ def get_word_timing(
             The sample rate of the audio file, default 16000.
 
     """
-    start = (word_span[0].start * ratio) / sample_rate + start_segment
-    end = (word_span[-1].end * ratio) / sample_rate + start_segment
+    start = (word_span[0].start * frames_per_logit) / sample_rate + start_segment
+    end = (word_span[-1].end * frames_per_logit) / sample_rate + start_segment
 
     score = sum(span.score * len(span) for span in word_span)
     length = sum(len(span) for span in word_span)  # Token utterances can last multiple frames
@@ -418,7 +421,7 @@ def assign_segment_time(
 def join_word_timestamps(
     word_spans: list[list[F.TokenSpan]],
     mapping: list[dict],
-    audio_length: int,
+    speech: SpeechSegment,
     chunk_size: int = 20,
     start_segment: float = 0.0,
 ) -> list[dict]:
@@ -438,11 +441,28 @@ def join_word_timestamps(
     Returns:
         An updated mapping with start and end times for each normalized token.
     """
-    ratio = audio_length / calculate_w2v_output_length(audio_length, chunk_size=chunk_size)
+
+    frames_per_logit = None
+    if speech.audio_frames is None:
+        # Chunks are aligned independently
+        audio_frames = sum([chunk.audio_frames for chunk in speech.chunks])
+
+        logit_lengths = []
+        for chunk in speech.chunks:
+            logit_length = calculate_w2v_output_length(chunk.audio_frames, chunk_size=chunk_size)
+            logit_lengths.append(logit_length)
+
+        frames_per_logit = audio_frames / sum(logit_lengths)
+    else:
+        # Whole audio segment is aligned at once, and we chunk according to chunk_size
+        audio_frames = speech.audio_frames
+        frames_per_logit = audio_frames / calculate_w2v_output_length(
+            audio_frames, chunk_size=chunk_size
+        )
 
     for aligned_token, normalized_token in zip(word_spans, mapping):
         start_time, end_time, score = get_word_timing(
-            aligned_token, ratio, start_segment=start_segment
+            aligned_token, frames_per_logit, start_segment=start_segment
         )
         normalized_token["start_time"] = start_time
         normalized_token["end_time"] = end_time
