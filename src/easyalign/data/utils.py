@@ -1,6 +1,10 @@
+from pathlib import Path
+
+import msgspec
 import numpy as np
 
 from easyalign.alignment.pytorch import calculate_w2v_output_length
+from easyalign.data.datamodel import AudioMetadata
 
 
 def pad_probs(probs, chunk_size, sample_rate):
@@ -29,3 +33,12 @@ def pad_probs(probs, chunk_size, sample_rate):
         mode="constant",
     )
     return probs
+
+
+def read_json(json_path: str | Path) -> AudioMetadata:
+    """
+    Convenience function to read a JSON file and parse it into an `AudioMetadata` object.
+    For better performance, use `JSONMetadataDataset` in `easyalign.data.dataset`.
+    """
+    with open(json_path, "r") as f:
+        return msgspec.json.decode(f.read(), type=AudioMetadata)

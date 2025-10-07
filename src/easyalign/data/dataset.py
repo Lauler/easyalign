@@ -1,19 +1,48 @@
 import logging
 import os
 import tempfile
+from pathlib import Path
 
 import msgspec
-import numpy as np
 import soundfile as sf
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
 from transformers import Wav2Vec2Processor
 
 from easyalign.data.datamodel import AudioMetadata
 from easyalign.utils import convert_audio_to_wav
 
 logger = logging.getLogger(__name__)
+
+
+class JSONMetadataDataset(Dataset):
+    """
+    Dataset for reading AudioMetadata JSON files.
+
+    Args:
+        json_paths: List of paths to JSON files.
+
+    Example:
+        >>> from torch.utils.data import DataLoader
+        >>> from easyalign.data.dataset import JSONMetadataDataset
+        >>> json_files = list(Path("output/vad").rglob("*.json"))
+        >>> dataset = JSONMetadataDataset(json_files)
+        >>> loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)
+        >>> for metadata in loader:
+        ...     print(metadata)
+    """
+
+    def __init__(self, json_paths: list[str | Path]):
+        self.json_paths = [Path(p) for p in json_paths]
+        self.decoder = msgspec.json.Decoder(type=AudioMetadata)
+
+    def __len__(self):
+        return len(self.json_paths)
+
+    def __getitem__(self, idx) -> AudioMetadata:
+        json_path = self.json_paths[idx]
+        with open(json_path, "r") as f:
+            return self.decoder.decode(f.read())
 
 
 class VADAudioDataset(Dataset):
@@ -109,14 +138,14 @@ class AudioFileDataset(Dataset):
 
     def __init__(
         self,
-        metadata: list[AudioMetadata] | list[str] | AudioMetadata | str,
+        metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
         processor: Wav2Vec2Processor,
         audio_dir="data",
         sample_rate=16000,  # sample rate
         chunk_size=30,  # seconds per chunk for wav2vec2
         use_vad=True,
     ):
-        if not isinstance(metadata, list):
+        if isinstance(metadata, str) or isinstance(metadata, AudioMetadata):
             metadata = [metadata]
 
         if isinstance(metadata[0], str):
@@ -150,6 +179,11 @@ class AudioFileDataset(Dataset):
             yield speech.speech_id, audio[start_frame:end_frame]
 
     def get_speech_features(self, audio_path, metadata):
+        """
+        Extract features for each speech segment in the metadata. When VAD is not used,
+        the speech segments are naively split into `chunk_size` sized chunks for wav2vec2
+        inference.
+        """
         features = []
         for speech_id, audio_speech in self.speech_chunker(audio_path, metadata):
             audio_speech = torch.tensor(audio_speech).unsqueeze(0)  # Add batch dimension
@@ -160,23 +194,37 @@ class AudioFileDataset(Dataset):
                     audio_chunk, sampling_rate=self.sr, return_tensors="pt"
                 ).input_values
                 # Create tuple with feature and speech_id so we can link back to the speech
-                features.append((feature, speech_id))
+                features.append(
+                    {"feature": feature, "start_time_global": -100, "speech_id": speech_id}
+                )
         return features
 
     def get_vad_features(self, audio_path, metadata, sr=16000):
+        """
+        Extract features for each VAD chunk in the metadata. To keep alignment timestamps
+        in sync, we also return the global
+        """
         audio, sr = self.read_audio(audio_path)
         features = []
         for speech in metadata.speeches:
-            for vad_chunk in speech.chunks:
+            for i, vad_chunk in enumerate(speech.chunks):
                 start_frame = self.seconds_to_frames(vad_chunk.start, sr)
                 end_frame = self.seconds_to_frames(vad_chunk.end, sr)
+                start_time_global = speech.start + vad_chunk.start
+
                 vad_chunk.audio_frames = end_frame - start_frame
                 audio_chunk = audio[start_frame:end_frame]
                 audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)  # Add batch dimension
                 feature = self.processor(
                     audio_chunk, sampling_rate=sr, return_tensors="pt"
                 ).input_values
-                features.append((feature, speech.speech_id))
+                features.append(
+                    {
+                        "feature": feature,
+                        "start_time_global": start_time_global,
+                        "speech_id": speech.speech_id,
+                    }
+                )
 
         return features
 
@@ -186,11 +234,8 @@ class AudioFileDataset(Dataset):
                 convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
                 audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
             except Exception as e:
-                print(f"Error reading audio file {audio_path}. {e}")
-                logging.error(f"Error reading audio file {audio_path}. {e}")
-                os.makedirs("logs", exist_ok=True)
-                with open("logs/error_audio_files.txt", "a") as f:
-                    f.write(f"{audio_path}\n")
+                print(f"Error reading audio file {audio_path}. \n\n {e}")
+                logging.error(f"Error reading audio file {audio_path}. \n\n {e}")
                 return None, None
         return audio, sr
 

@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import os
 from pathlib import Path
 
@@ -14,10 +15,9 @@ from easyalign.alignment.pytorch import (
     get_word_spans,
     join_word_timestamps,
 )
+from easyalign.data.collators import metadata_collate_fn
 from easyalign.data.datamodel import AudioMetadata
-from easyalign.data.dataset import (
-    AudioFileDataset,
-)
+from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import emissions_pipeline, vad_pipeline
 from easyalign.text.normalization import (
     SpanMapNormalizer,
@@ -49,11 +49,12 @@ vad_outputs = vad_pipeline(
     output_dir="output/vad",
 )
 
+json_dataset = JSONMetadataDataset(json_paths=list(Path("output/vad").rglob("*.json")))
 
 emissions_output = emissions_pipeline(
     model=model,
     processor=processor,
-    metadata=vad_outputs,
+    metadata=json_dataset,
     audio_dir="data",
     sample_rate=16000,
     chunk_size=30,
@@ -66,9 +67,24 @@ emissions_output = emissions_pipeline(
     save_json=True,
     save_msgpack=False,
     save_emissions=True,
-    return_emissions=True,
+    return_emissions=False,
     output_dir="output/emissions",
 )
+
+json_dataset = JSONMetadataDataset(json_paths=list(Path("output/emissions").rglob("*.json")))
+audiometa_loader = torch.utils.data.DataLoader(
+    json_dataset,
+    batch_size=1,
+    num_workers=4,
+    prefetch_factor=2,
+    collate_fn=metadata_collate_fn,
+)
+
+for batch in audiometa_loader:
+    for metadata in batch:
+        for speech in metadata.speeches:
+            emissions = np.load(Path("output/emissions") / speech.probs_path)
+            emissions = np.vstack(emissions)
 
 for emission in emissions_output:
     metadata = emission[0]

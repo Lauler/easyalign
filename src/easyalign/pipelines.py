@@ -9,7 +9,7 @@ from transformers import Wav2Vec2Processor
 from easyalign.alignment.pytorch import segment_speech_probs
 from easyalign.data.collators import alignment_collate_fn, audiofile_collate_fn, vad_collate_fn
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.data.dataset import AudioFileDataset, VADAudioDataset
+from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset, VADAudioDataset
 from easyalign.data.utils import pad_probs
 from easyalign.vad.vad import run_vad
 
@@ -160,7 +160,7 @@ def vad_pipeline(
 def emissions_pipeline_generator(
     model,
     processor: Wav2Vec2Processor,
-    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str,
+    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,
@@ -265,7 +265,7 @@ def emissions_pipeline_generator(
 def emissions_pipeline(
     model,
     processor: Wav2Vec2Processor,
-    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str,
+    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,
