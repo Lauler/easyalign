@@ -2,10 +2,9 @@ import multiprocessing as mp
 import os
 from pathlib import Path
 
-import msgspec
-import num2words
 import numpy as np
 import torch
+from nltk.tokenize import PunktTokenizer
 from tqdm import tqdm
 from transformers import AutoModelForCTC, Wav2Vec2Processor
 
@@ -16,7 +15,7 @@ from easyalign.alignment.pytorch import (
     join_word_timestamps,
 )
 from easyalign.data.collators import metadata_collate_fn
-from easyalign.data.datamodel import AudioMetadata
+from easyalign.data.datamodel import AudioMetadata, SpeechSegment
 from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import emissions_pipeline, vad_pipeline
 from easyalign.text.normalization import (
@@ -35,7 +34,7 @@ model_vad = load_vad_model()
 
 vad_outputs = vad_pipeline(
     model=model_vad,
-    audio_paths=["audio_mono_120.wav"],
+    audio_paths=["audio_80.wav"],
     audio_dir="data",
     speeches=None,
     chunk_size=30,
@@ -80,11 +79,98 @@ audiometa_loader = torch.utils.data.DataLoader(
     collate_fn=metadata_collate_fn,
 )
 
+
+def text_normalizer(text: str) -> str:
+    normalizer = SpanMapNormalizer(text)
+    normalizer.transform(r"\(.*?\)", "")  # Remove parentheses and their content
+    normalizer.transform(r"\s[^\w\s]\s", " ")  # Remove punctuation between whitespace
+    normalizer.transform(r"[^\w\s]", "")  # Remove punctuation and special characters
+    normalizer.transform(r"\s+", " ")  # Normalize whitespace to a single space
+    normalizer.transform(r"^\s+|\s+$", "")  # Strip leading and trailing whitespace
+    normalizer.transform(r"\w+", lambda m: m.group().lower())
+
+    mapping = normalizer.get_token_map()
+    normalized_tokens = [item["normalized_token"] for item in mapping]
+    return normalized_tokens, mapping
+
+
+def align_speech(
+    dataloader,
+    text_normalizer: callable,
+    processor: Wav2Vec2Processor,
+    tokenizer=None,
+    segment_spans: list[tuple[int, int]] | None = None,
+    start_wildcard: bool = False,
+    end_wildcard: bool = False,
+    blank_id: int = 0,
+    word_boundary: str = "|",
+    chunk_size: int = 30,
+    device="cuda",
+):
+    for batch in tqdm(dataloader):
+        for metadata in batch:
+            for speech in metadata.speeches:
+                emissions = np.load(Path("output/emissions") / speech.probs_path)
+                emissions = np.vstack(emissions)
+
+                normalized_tokens, mapping = text_normalizer(speech.text)
+                tokens, scores = align_pytorch(
+                    normalized_tokens=normalized_tokens,
+                    processor=processor,
+                    emissions=torch.tensor(emissions).to(device).unsqueeze(0),
+                    start_wildcard=True,
+                    end_wildcard=True,
+                    device=device,
+                )
+
+                word_spans, mapping = get_word_spans(
+                    tokens=tokens,
+                    scores=scores,
+                    mapping=mapping,
+                    blank=blank_id,
+                    start_wildcard=True,
+                    end_wildcard=True,
+                    word_boundary=word_boundary,
+                    processor=processor,
+                )
+
+                mapping = join_word_timestamps(
+                    word_spans=word_spans,
+                    mapping=mapping,
+                    speech=speech,
+                    chunk_size=30,
+                    start_segment=speech.start,
+                )
+
+                mapping = merge_multitoken_expressions(mapping)
+                mapping = add_deletions_to_mapping(mapping, speech.text)
+
+
+def segment_alignment(mapping, tokenizer, segment_spans=None):
+    if isinstance(tokenizer, PunktTokenizer):
+        get_segment_alignment(
+            mapping=mapping,
+            original_text=original_text,
+            tokenizer=tokenizer,
+            segment_spans=segment_spans,
+        )
+    elif callable(tokenizer):
+        tokens = tokenizer(text)
+    else:
+        raise ValueError("Tokenizer must be a callable or a PunktTokenizer instance.")
+    return tokens
+
+
+def align_chunk(dataloader, text_normalizer: callable, device="cuda"):
+    pass
+
+
 for batch in audiometa_loader:
     for metadata in batch:
         for speech in metadata.speeches:
             emissions = np.load(Path("output/emissions") / speech.probs_path)
             emissions = np.vstack(emissions)
+
 
 for emission in emissions_output:
     metadata = emission[0]

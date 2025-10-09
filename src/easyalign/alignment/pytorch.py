@@ -285,7 +285,7 @@ def get_word_spans(
 def get_segment_alignment(
     mapping: list[dict],
     original_text: str,
-    tokenizer: PunktSentenceTokenizer | None = None,
+    tokenizer=None,
     segment_spans: list[tuple[int, int]] | None = None,
 ):
     """
@@ -297,7 +297,9 @@ def get_segment_alignment(
         mapping: A list of dictionaries containing the original text tokens that
             have been aligned with the audio, together with character indices and timestamps.
         tokenizer: A PunktSentenceTokenizer instance to tokenize the original text
-            into sentences (if segment_spans are not provided).
+            into sentences (if segment_spans are not provided). Alternatively, a callable
+            function that takes the original text as input and returns a list of
+            (start_char, end_char) tuples for each segment.
         segment_spans: Optional list of tuples containing the start and end character
             indices of custom segments in the original text.
 
@@ -311,8 +313,13 @@ def get_segment_alignment(
     """
 
     if not segment_spans:
-        # If user does not provide segment spans, we default to sentence spans
-        segment_spans = tokenizer.span_tokenize(original_text)
+        # If user does not provide segment spans, we use the tokenizer to get segment spans
+        if isinstance(tokenizer, PunktSentenceTokenizer):
+            # Use the PunktSentenceTokenizer to get sentence spans
+            segment_spans = tokenizer.span_tokenize(original_text)
+        elif callable(tokenizer):
+            # Use a user supplied custom tokenizer to get custom (start_char, end_char) spans
+            segment_spans = tokenizer(original_text)
 
     segment_mapping = []
     remaining_tokens = mapping.copy()
