@@ -34,7 +34,7 @@ model_vad = load_vad_model()
 
 vad_outputs = vad_pipeline(
     model=model_vad,
-    audio_paths=["audio_80.wav"],
+    audio_paths=["audio_mono_120.wav"],
     audio_dir="data",
     speeches=None,
     chunk_size=30,
@@ -99,27 +99,40 @@ def align_speech(
     text_normalizer: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
-    segment_spans: list[tuple[int, int]] | None = None,
+    emissions_dir: str = "output/emissions",
+    output_dir: str = "output/alignments",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
+    delete_emissions: bool = False,
+    add_leading_space: bool = False,
     device="cuda",
 ):
     for batch in tqdm(dataloader):
         for metadata in batch:
             for speech in metadata.speeches:
-                emissions = np.load(Path("output/emissions") / speech.probs_path)
+                emissions_filepath = Path(emissions_dir) / speech.probs_path
+                emissions = np.load(emissions_filepath)
                 emissions = np.vstack(emissions)
 
-                normalized_tokens, mapping = text_normalizer(speech.text)
+                if len(speech.text) > 1:
+                    if add_leading_space:
+                        # Add leading space for all except the first segment
+                        original_text = "".join(
+                            [speech.text[0]] + [" " + t for t in speech.text[1:]]
+                        )
+                    else:
+                        original_text = "".join(speech.text)
+
+                normalized_tokens, mapping = text_normalizer(original_text)
                 tokens, scores = align_pytorch(
                     normalized_tokens=normalized_tokens,
                     processor=processor,
                     emissions=torch.tensor(emissions).to(device).unsqueeze(0),
-                    start_wildcard=True,
-                    end_wildcard=True,
+                    start_wildcard=start_wildcard,
+                    end_wildcard=end_wildcard,
                     device=device,
                 )
 
@@ -138,31 +151,22 @@ def align_speech(
                     word_spans=word_spans,
                     mapping=mapping,
                     speech=speech,
-                    chunk_size=30,
+                    chunk_size=chunk_size,
                     start_segment=speech.start,
                 )
 
                 mapping = merge_multitoken_expressions(mapping)
-                mapping = add_deletions_to_mapping(mapping, speech.text)
+                mapping = add_deletions_to_mapping(mapping, original_text)
 
+                mapping = get_segment_alignment(
+                    mapping=mapping,
+                    original_text=original_text,
+                    tokenizer=tokenizer,
+                    segment_spans=metadata.text_spans,
+                )
 
-def segment_alignment(mapping, tokenizer, segment_spans=None):
-    if isinstance(tokenizer, PunktTokenizer):
-        get_segment_alignment(
-            mapping=mapping,
-            original_text=original_text,
-            tokenizer=tokenizer,
-            segment_spans=segment_spans,
-        )
-    elif callable(tokenizer):
-        tokens = tokenizer(text)
-    else:
-        raise ValueError("Tokenizer must be a callable or a PunktTokenizer instance.")
-    return tokens
-
-
-def align_chunk(dataloader, text_normalizer: callable, device="cuda"):
-    pass
+                if delete_emissions:
+                    Path(emissions_filepath.parent).unlink()
 
 
 for batch in audiometa_loader:

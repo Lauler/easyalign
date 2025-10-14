@@ -104,7 +104,7 @@ def vad_pipeline(
     model,
     audio_paths: list,
     audio_dir: str,
-    speeches: list[SpeechSegment] | None = None,
+    speeches: list[list[SpeechSegment]] | None = None,
     chunk_size: int = 30,
     sample_rate: int = 16000,
     metadata: list[dict] | None = None,
@@ -160,7 +160,7 @@ def vad_pipeline(
 def emissions_pipeline_generator(
     model,
     processor: Wav2Vec2Processor,
-    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
+    metadata: JSONMetadataDataset | list[AudioMetadata] | AudioMetadata,
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,
@@ -265,7 +265,7 @@ def emissions_pipeline_generator(
 def emissions_pipeline(
     model,
     processor: Wav2Vec2Processor,
-    metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
+    metadata: JSONMetadataDataset | list[AudioMetadata] | AudioMetadata,
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,

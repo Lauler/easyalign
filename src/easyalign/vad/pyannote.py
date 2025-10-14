@@ -335,7 +335,11 @@ def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, c
     else:
         # Run VAD on each speech segment
         for speech in tqdm(metadata.speeches, desc="Running VAD on speeches"):
-            speech_audio = audio[int(speech.start * sample_rate) : int(speech.end * sample_rate)]
+            start = int(speech.start * sample_rate) if speech.start is not None else None
+            end = int(speech.end * sample_rate) if speech.end is not None else None
+            # Note: Using `None` as a slicing parameter is the same as omitting it
+            speech_audio = audio[start:end]
+
             vad_segments = model(
                 {
                     "waveform": torch.tensor(speech_audio).unsqueeze(0).to(torch.float32),

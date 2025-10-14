@@ -75,10 +75,11 @@ class SpeechSegment(msgspec.Struct):
 
     start: float  # in seconds
     end: float  # in seconds
-    #### If ASR is used, text and chunks have a 1 to 1 mapping ####
     text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
+    # If `text_spans` is supplied, custom segments of the text will be aligned to audio.
+    # Each tuple is (start_char, end_char) in the `text`.
+    text_spans: list[tuple[int, int]] | None = None
     chunks: list[AudioChunk] = []  # Audio chunks from which we create w2v2 logits
-    #### alignments have a many to 1, or 1 to many mapping with chunks ####
     alignments: list[AlignmentSegment] = []  # Aligned text segments
     duration: float | None = None  # in seconds
     audio_frames: int | None = None  # Number of audio frames speech segment spans
@@ -96,6 +97,16 @@ class SpeechSegment(msgspec.Struct):
     def __post_init__(self):
         if self.duration is None:
             self.calculate_duration()
+
+        if self.text is not None and self.text_spans is None:
+            if len(self.text) == 1:
+                self.text_spans = [(0, len(self.text[0]))]
+            else:
+                self.text_spans = []
+                current_begin = 0
+                for t in self.text:
+                    self.text_spans.append((current_begin, current_begin + len(t)))
+                    current_begin += len(t)
 
 
 class AudioMetadata(msgspec.Struct):

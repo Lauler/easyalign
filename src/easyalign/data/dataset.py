@@ -138,25 +138,15 @@ class AudioFileDataset(Dataset):
 
     def __init__(
         self,
-        metadata: list[AudioMetadata] | list[str] | AudioMetadata | str | JSONMetadataDataset,
+        metadata: JSONMetadataDataset | list[AudioMetadata] | AudioMetadata,
         processor: Wav2Vec2Processor,
         audio_dir="data",
         sample_rate=16000,  # sample rate
         chunk_size=30,  # seconds per chunk for wav2vec2
         use_vad=True,
     ):
-        if isinstance(metadata, str) or isinstance(metadata, AudioMetadata):
+        if isinstance(metadata, AudioMetadata):
             metadata = [metadata]
-
-        if isinstance(metadata[0], str):
-            json_paths = metadata
-            self.metadata = []
-            decoder = msgspec.json.Decoder()
-            for json_path in json_paths:
-                with open(json_path, "r") as f:
-                    data = f.read()
-                    data = decoder.decode(data, type=AudioMetadata)
-                    self.metadata.append(data)
         else:
             self.metadata = metadata
 
