@@ -247,7 +247,7 @@ def emissions_pipeline_generator(
             speech_ids.extend(batch["speech_ids"])
 
         metadata = slice_dataset.metadata
-        metadata, emissions = save_outputs(
+        metadata, emissions = save_emissions(
             metadata=metadata,
             probs_list=probs_list,
             speech_ids=speech_ids,
@@ -333,32 +333,15 @@ def emissions_pipeline(
     return emissions_output
 
 
-def save_outputs(
+def save_json_msgpack(
     metadata: AudioMetadata,
-    probs_list: list[np.ndarray],
-    speech_ids: list[str],
     save_json: bool = True,
     save_msgpack: bool = False,
-    save_emissions: bool = True,
-    return_emissions: bool = False,
     output_dir: str = "output/emissions",
 ):
     audio_path = metadata.audio_path
-    base_path = Path(audio_path).parent / Path(audio_path).stem
     json_encoder = msgspec.json.Encoder()
     msgpack_encoder = msgspec.msgpack.Encoder()
-    speech_index = 0
-
-    if save_emissions:
-        # Segment the probs according to speech_ids and save each speech's probs separately
-        for speech_id, probs in segment_speech_probs(probs_list, speech_ids):
-            probs_path = Path(output_dir) / base_path / f"{speech_id}.npy"
-            Path(probs_path).parent.mkdir(parents=True, exist_ok=True)
-
-            probs_base_path = Path(probs_path).relative_to(Path(output_dir))
-            metadata.speeches[speech_index].probs_path = str(probs_base_path)
-            speech_index += 1
-            np.save(probs_path, probs)
 
     if save_json:
         json_msgspec = json_encoder.encode(metadata)
@@ -377,6 +360,39 @@ def save_outputs(
         with open(msgpack_path, "wb") as f:
             f.write(msgpack_msgspec)
 
+
+def save_emissions(
+    metadata: AudioMetadata,
+    probs_list: list[np.ndarray],
+    speech_ids: list[str],
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    save_emissions: bool = True,
+    return_emissions: bool = False,
+    output_dir: str = "output/emissions",
+):
+    audio_path = metadata.audio_path
+    base_path = Path(audio_path).parent / Path(audio_path).stem
+    speech_index = 0
+
+    if save_emissions:
+        # Segment the probs according to speech_ids and save each speech's probs separately
+        for speech_id, probs in segment_speech_probs(probs_list, speech_ids):
+            probs_path = Path(output_dir) / base_path / f"{speech_id}.npy"
+            Path(probs_path).parent.mkdir(parents=True, exist_ok=True)
+
+            probs_base_path = Path(probs_path).relative_to(Path(output_dir))
+            metadata.speeches[speech_index].probs_path = str(probs_base_path)
+            speech_index += 1
+            np.save(probs_path, probs)
+
+    save_json_msgpack(
+        metadata=metadata,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        output_dir=output_dir,
+    )
+
     if return_emissions:
         emissions = []
         for _, probs in segment_speech_probs(probs_list, speech_ids):
@@ -385,3 +401,32 @@ def save_outputs(
         return metadata, emissions
 
     return None, None
+
+
+def save_alignments(
+    metadata: AudioMetadata,
+    alignments: list[dict],
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    output_dir: str = "output/alignments",
+):
+    audio_path = metadata.audio_path
+    base_path = Path(audio_path).parent / Path(audio_path).stem
+
+    for speech, alignment in zip(metadata.speeches, alignments):
+        alignment_path = Path(output_dir) / base_path / f"{speech.speech_id}_alignment.json"
+        Path(alignment_path).parent.mkdir(parents=True, exist_ok=True)
+
+        alignment_base_path = Path(alignment_path).relative_to(Path(output_dir))
+        speech.alignment_path = str(alignment_base_path)
+
+        if save_json:
+            json_encoder = msgspec.json.Encoder()
+            alignment_msgspec = json_encoder.encode(alignment)
+            alignment_msgspec = msgspec.json.format(alignment_msgspec, indent=2)
+            with open(alignment_path, "wb") as f:
+                f.write(alignment_msgspec)
+
+        if save_msgpack:
+            msgpack_encoder = msgspec.msgpack.Encoder()
+            msgpack_path = Path(output_dir) / base_path / f"{speech.speech_id}_alignment.msgpack"

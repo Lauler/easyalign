@@ -1,3 +1,4 @@
+import logging
 import multiprocessing as mp
 import os
 from pathlib import Path
@@ -25,6 +26,12 @@ from easyalign.text.normalization import (
 )
 from easyalign.text.tokenizer import load_tokenizer
 from easyalign.vad.pyannote import load_vad_model
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 model = AutoModelForCTC.from_pretrained(
     "KBLab/wav2vec2-large-voxrex-swedish", torch_dtype=torch.float16
@@ -117,7 +124,15 @@ def align_speech(
                 emissions = np.load(emissions_filepath)
                 emissions = np.vstack(emissions)
 
-                if len(speech.text) > 1:
+                if speech.text is None:
+                    logger.warning(
+                        (
+                            f"No text found for speech id {speech.speech_id} in"
+                            f"{metadata.audio_path}. Skipping alignment."
+                        )
+                    )
+                    continue
+                elif len(speech.text) > 1:
                     if add_leading_space:
                         # Add leading space for all except the first segment
                         original_text = "".join(
@@ -169,12 +184,22 @@ def align_speech(
                     Path(emissions_filepath.parent).unlink()
 
 
-for batch in audiometa_loader:
-    for metadata in batch:
-        for speech in metadata.speeches:
-            emissions = np.load(Path("output/emissions") / speech.probs_path)
-            emissions = np.vstack(emissions)
-
+align_speech(
+    dataloader=audiometa_loader,
+    text_normalizer=text_normalizer,
+    processor=processor,
+    tokenizer=None,
+    emissions_dir="output/emissions",
+    output_dir="output/alignments",
+    start_wildcard=True,
+    end_wildcard=True,
+    blank_id=0,
+    word_boundary="|",
+    chunk_size=30,
+    delete_emissions=False,
+    add_leading_space=False,
+    device="cuda",
+)
 
 for emission in emissions_output:
     metadata = emission[0]

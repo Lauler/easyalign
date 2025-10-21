@@ -393,12 +393,12 @@ def assign_segment_time(
 
     If alignment timestamps are missing for the current token, we search for the
     closest available token that has a timestamp (either among future tokens in
-    the token_mapping, or the previous tokens in the previous_removed list).
+    the `segment_mapping`, or the previous tokens in the `previous_removed` list).
 
     Args:
         current_token: The current token dictionary containing the token's metadata.
-        token_list: A list of token alignment dictionaries to search in, such as
-            `token_mapping` or `previous_removed`, depending on direction.
+        token_list: A list of token alignments (dictionaries) that acts as fallback
+            when the current token has no timestamp.
         direction: The direction to search for a timestamp ("next" or "previous").
     Returns:
         The start or end time of the segment. If no timestamp is found, returns None.
