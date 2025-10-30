@@ -24,7 +24,7 @@ def encode_metadata(
     audio_path,
     audio_dir: str | None = None,
     sample_rate=16000,
-    speeches: list[SpeechSegment] = [],
+    speeches: list[SpeechSegment] | None = None,
     metadata=None,
 ):
     full_audio_path = audio_path
@@ -42,6 +42,7 @@ def encode_metadata(
         speeches=speeches,
         metadata=metadata,
     )
+
     return audio_metadata
 
 

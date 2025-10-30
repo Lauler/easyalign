@@ -19,7 +19,7 @@ def run_vad(
     audio: torch.Tensor,
     audio_dir: str | None = None,
     chunk_size: int = 30,
-    speeches: list = [],
+    speeches: list | None = None,
     metadata: dict | None = None,
 ):
     """

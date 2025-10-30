@@ -348,15 +348,22 @@ def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, c
             )
             vad_segments = merge_chunks(vad_segments, chunk_size=chunk_size)
             # Add speech.start offset to each segment
+            offset = speech.start if speech.start is not None else 0
             vad_segments = [
                 {
-                    "start": seg["start"] + speech.start,
-                    "end": seg["end"] + speech.start,
+                    "start": seg["start"] + offset,
+                    "end": seg["end"] + offset,
                     "segments": seg["segments"],
                 }
                 for seg in vad_segments
             ]
             segments = encode_vad_segments(vad_segments)
-            speech.chunks = segments
+
+            if speech.duration is None:
+                speech.start = segments[0].start
+                speech.end = segments[-1].end
+                speech.calculate_duration()
+
+            speech.chunks = segments  # In place update of chunks in metadata
 
     return metadata

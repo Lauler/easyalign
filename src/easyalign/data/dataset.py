@@ -156,26 +156,33 @@ class AudioFileDataset(Dataset):
         self.processor = processor
         self.use_vad = use_vad
 
+    def read_audio(self, audio_path):
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            try:
+                convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
+                audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
+            except Exception as e:
+                print(f"Error reading audio file {audio_path}. \n\n {e}")
+                logging.error(f"Error reading audio file {audio_path}. \n\n {e}")
+                return None, None
+        return audio, sr
+
     def seconds_to_frames(self, seconds, sr=16000):
         return int(seconds * sr)
 
-    def speech_chunker(self, audio_path, metadata, sr=16000):
-        audio, sr = self.read_audio(audio_path)
-
-        for speech in metadata.speeches:
-            start_frame = self.seconds_to_frames(speech.start, sr)
-            end_frame = self.seconds_to_frames(speech.end, sr)
-            speech.audio_frames = end_frame - start_frame
-            yield speech.speech_id, audio[start_frame:end_frame]
-
-    def get_speech_features(self, audio_path, metadata):
+    def get_speech_features(self, audio_path, metadata, sr=16000):
         """
         Extract features for each speech segment in the metadata. When VAD is not used,
         the speech segments are naively split into `chunk_size` sized chunks for wav2vec2
         inference.
         """
+        audio, sr = self.read_audio(audio_path)
         features = []
-        for speech_id, audio_speech in self.speech_chunker(audio_path, metadata):
+        for speech in metadata.speeches:
+            start_frame = self.seconds_to_frames(speech.start, sr)
+            end_frame = self.seconds_to_frames(speech.end, sr)
+            speech.audio_frames = end_frame - start_frame
+            audio_speech = audio[start_frame:end_frame]
             audio_speech = torch.tensor(audio_speech).unsqueeze(0)  # Add batch dimension
             # Chunk the audio according to `chunk_size`
             audio_chunks = torch.split(audio_speech, self.chunk_size * self.sr, dim=1)  # 30s
@@ -185,14 +192,14 @@ class AudioFileDataset(Dataset):
                 ).input_values
                 # Create tuple with feature and speech_id so we can link back to the speech
                 features.append(
-                    {"feature": feature, "start_time_global": -100, "speech_id": speech_id}
+                    {"feature": feature, "start_time_global": -100, "speech_id": speech.speech_id}
                 )
         return features
 
     def get_vad_features(self, audio_path, metadata, sr=16000):
         """
         Extract features for each VAD chunk in the metadata. To keep alignment timestamps
-        in sync, we also return the global
+        in sync, we also return the global start time of each chunk.
         """
         audio, sr = self.read_audio(audio_path)
         features = []
@@ -217,17 +224,6 @@ class AudioFileDataset(Dataset):
                 )
 
         return features
-
-    def read_audio(self, audio_path):
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            try:
-                convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
-                audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
-            except Exception as e:
-                print(f"Error reading audio file {audio_path}. \n\n {e}")
-                logging.error(f"Error reading audio file {audio_path}. \n\n {e}")
-                return None, None
-        return audio, sr
 
     def __len__(self):
         return len(self.metadata)

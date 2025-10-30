@@ -73,8 +73,8 @@ class SpeechSegment(msgspec.Struct):
     If no SpeechSegment is defined, the entire audio is treated as a single speech.
     """
 
-    start: float  # in seconds
-    end: float  # in seconds
+    start: float | None = None  # in seconds
+    end: float | None = None  # in seconds
     text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
     # If `text_spans` is supplied, custom segments of the text will be aligned to audio.
     # Each tuple is (start_char, end_char) in the `text`.
@@ -95,10 +95,15 @@ class SpeechSegment(msgspec.Struct):
         return self.duration
 
     def __post_init__(self):
-        if self.duration is None:
+        if isinstance(self.text, str) and self.text is not None:
+            self.text = [self.text]
+
+        if self.duration is None and self.start is not None and self.end is not None:
             self.calculate_duration()
 
-        if self.text is not None and self.text_spans is None:
+        if isinstance(self.text, list) and self.text_spans is None:
+            # Create (begin_char, end_char) spans for each text segment we want to align
+            # and extract timestamps for.
             if len(self.text) == 1:
                 self.text_spans = [(0, len(self.text[0]))]
             else:
@@ -117,7 +122,7 @@ class AudioMetadata(msgspec.Struct):
     audio_path: str
     sample_rate: int
     duration: float  # in seconds
-    speeches: list[SpeechSegment] = []
+    speeches: list[SpeechSegment] | None = None  # List of speech segments in the audio
     metadata: dict | None = None  # Optional extra metadata
 
     def to_dict(self):

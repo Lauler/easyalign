@@ -18,7 +18,7 @@ def vad_pipeline_generator(
     model,
     audio_paths: list,
     audio_dir: str,
-    speeches: list[SpeechSegment] | None = None,
+    speeches: list[list[SpeechSegment]] | None = None,
     chunk_size: int = 30,
     sample_rate: int = 16000,
     metadata: list[dict] | None = None,
@@ -36,7 +36,7 @@ def vad_pipeline_generator(
         model: The loaded VAD model.
         audio_paths: List of paths to audio files.
         audio_dir: Directory where the audio files/dirs are located (if audio_paths are relative).
-        speeches (list): Optional list of SpeechSegment objects to run VAD only on specific
+        speeches: Optional list of SpeechSegment objects to run VAD only on specific
             segments of the audio. Alignment can generally be improved if VAD/alignment is only
             performed on the segments of the audio that overlap with text transcripts.
         chunk_size: The maximum length chunks VAD will create (seconds).
@@ -75,7 +75,7 @@ def vad_pipeline_generator(
             model=model,
             audio=audio,
             chunk_size=chunk_size,
-            speeches=speeches,
+            speeches=speeches[i] if speeches is not None else None,
             metadata=metadata[i] if metadata is not None else None,
         )
         results.append(vad_output)
@@ -247,7 +247,7 @@ def emissions_pipeline_generator(
             speech_ids.extend(batch["speech_ids"])
 
         metadata = slice_dataset.metadata
-        metadata, emissions = save_emissions(
+        metadata, emissions = save_emissions_and_metadata(
             metadata=metadata,
             probs_list=probs_list,
             speech_ids=speech_ids,
@@ -333,35 +333,30 @@ def emissions_pipeline(
     return emissions_output
 
 
-def save_json_msgpack(
-    metadata: AudioMetadata,
-    save_json: bool = True,
-    save_msgpack: bool = False,
-    output_dir: str = "output/emissions",
-):
+def save_metadata_json(metadata: AudioMetadata, output_dir: str = "output/emissions"):
     audio_path = metadata.audio_path
     json_encoder = msgspec.json.Encoder()
+    json_msgspec = json_encoder.encode(metadata)
+    json_msgspec = msgspec.json.format(json_msgspec, indent=2)
+    json_path = Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
+    Path(json_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(json_path, "wb") as f:
+        f.write(json_msgspec)
+
+
+def save_metadata_msgpack(metadata: AudioMetadata, output_dir: str = "output/emissions"):
+    audio_path = metadata.audio_path
     msgpack_encoder = msgspec.msgpack.Encoder()
-
-    if save_json:
-        json_msgspec = json_encoder.encode(metadata)
-        json_msgspec = msgspec.json.format(json_msgspec, indent=2)
-        json_path = Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
-        Path(json_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(json_path, "wb") as f:
-            f.write(json_msgspec)
-
-    if save_msgpack:
-        msgpack_msgspec = msgpack_encoder.encode(metadata)
-        msgpack_path = (
-            Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
-        )
-        Path(msgpack_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(msgpack_path, "wb") as f:
-            f.write(msgpack_msgspec)
+    msgpack_msgspec = msgpack_encoder.encode(metadata)
+    msgpack_path = (
+        Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
+    )
+    Path(msgpack_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(msgpack_path, "wb") as f:
+        f.write(msgpack_msgspec)
 
 
-def save_emissions(
+def save_emissions_and_metadata(
     metadata: AudioMetadata,
     probs_list: list[np.ndarray],
     speech_ids: list[str],
@@ -370,7 +365,7 @@ def save_emissions(
     save_emissions: bool = True,
     return_emissions: bool = False,
     output_dir: str = "output/emissions",
-):
+) -> tuple[AudioMetadata | None, list[np.ndarray] | None]:
     audio_path = metadata.audio_path
     base_path = Path(audio_path).parent / Path(audio_path).stem
     speech_index = 0
@@ -386,12 +381,10 @@ def save_emissions(
             speech_index += 1
             np.save(probs_path, probs)
 
-    save_json_msgpack(
-        metadata=metadata,
-        save_json=save_json,
-        save_msgpack=save_msgpack,
-        output_dir=output_dir,
-    )
+    if save_json:
+        save_metadata_json(metadata, output_dir=output_dir)
+    if save_msgpack:
+        save_metadata_msgpack(metadata, output_dir=output_dir)
 
     if return_emissions:
         emissions = []
@@ -413,6 +406,9 @@ def save_alignments(
     audio_path = metadata.audio_path
     base_path = Path(audio_path).parent / Path(audio_path).stem
 
+    json_encoder = msgspec.json.Encoder()
+    msgpack_encoder = msgspec.msgpack.Encoder()
+
     for speech, alignment in zip(metadata.speeches, alignments):
         alignment_path = Path(output_dir) / base_path / f"{speech.speech_id}_alignment.json"
         Path(alignment_path).parent.mkdir(parents=True, exist_ok=True)
@@ -421,12 +417,14 @@ def save_alignments(
         speech.alignment_path = str(alignment_base_path)
 
         if save_json:
-            json_encoder = msgspec.json.Encoder()
             alignment_msgspec = json_encoder.encode(alignment)
             alignment_msgspec = msgspec.json.format(alignment_msgspec, indent=2)
             with open(alignment_path, "wb") as f:
                 f.write(alignment_msgspec)
 
         if save_msgpack:
-            msgpack_encoder = msgspec.msgpack.Encoder()
-            msgpack_path = Path(output_dir) / base_path / f"{speech.speech_id}_alignment.msgpack"
+            alignment_msgpack = msgpack_encoder.encode(alignment)
+            # Replace .json with .msgpack
+            msgpack_path = alignment_path.with_suffix(".msgpack")
+            with open(msgpack_path, "wb") as f:
+                f.write(alignment_msgpack)

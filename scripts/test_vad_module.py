@@ -39,11 +39,28 @@ model = AutoModelForCTC.from_pretrained(
 processor = Wav2Vec2Processor.from_pretrained("KBLab/wav2vec2-large-voxrex-swedish")
 model_vad = load_vad_model()
 
+text = """
+Hallå. Förlåt. Kan du göra ljud någon annanstans? Titta. 
+Det gråa som är mot djup savann, som ger kontrast och framhäver det ännu mera kontrast, fast med färg. 
+Du menar elefanterna på savannen? Det är inte så enkelt. Jo. Vet du varför överklassen inte accepterar oss?
+För att vi är från Malmö. Nej, nej, nej. Det är Gyllenhammar, Trolle och Ramel också. Jag vet inte vilka det är.
+Precis! Det är för att vi anses vara okultiverade som inte ser mer än elefanter på savann. Vi måste se något annat, mer. Vad?
+Det är djup, kombination, struktur. Snälla, Kennedy, kan vi ta det sen? Jag måste få iväg de här hyresavierna. 
+Vi ska starta konstgalleri! Vi ska bjuda hit de största, finaste familjerna. Vi ska köpa konst. Vi ska titta på konst.
+Vi ska sälja konst. Och vi ska hjälpa unga konstnärer. Ja, vi ska bjuda på god kurdisk mat också. Och vet du Nisha? 
+Vi ska ha den dyraste, bästa konsten, hos familjen Mursa. Men snälla Kennedy, vad kan du om sånt? Jag kan lära mig.
+Som när du skulle lära dig skriva din självbiografi? Ja, precis. Och hur tyckte du att dina två A4-sidor blev?
+Jag tyckte att den första delen, den blev faktiskt bra, jag var inlevelse. Hade det varit på kurdiska, hade jag
+skrivit tusen sidor, men nu det blev kompakt. Jag är inte så bra på att beskriva. 
+"""
+
+speeches = [[SpeechSegment(speech_id=0, text=text, start=None, end=None)]]
+
 vad_outputs = vad_pipeline(
     model=model_vad,
     audio_paths=["audio_mono_120.wav"],
     audio_dir="data",
-    speeches=None,
+    speeches=speeches,
     chunk_size=30,
     sample_rate=16000,
     metadata=None,
@@ -117,6 +134,7 @@ def align_speech(
     add_leading_space: bool = False,
     device="cuda",
 ):
+    mapping = []
     for batch in tqdm(dataloader):
         for metadata in batch:
             for speech in metadata.speeches:
@@ -124,15 +142,11 @@ def align_speech(
                 emissions = np.load(emissions_filepath)
                 emissions = np.vstack(emissions)
 
-                if speech.text is None:
-                    logger.warning(
-                        (
-                            f"No text found for speech id {speech.speech_id} in"
-                            f"{metadata.audio_path}. Skipping alignment."
-                        )
-                    )
-                    continue
+                if len(speech.text) == 1:
+                    original_text = speech.text[0]
                 elif len(speech.text) > 1:
+                    # If the user tokenized the text into multiple segments, concatenate them
+                    # for alignment
                     if add_leading_space:
                         # Add leading space for all except the first segment
                         original_text = "".join(
@@ -140,6 +154,14 @@ def align_speech(
                         )
                     else:
                         original_text = "".join(speech.text)
+                else:
+                    logger.warning(
+                        (
+                            f"No text found for speech id {speech.speech_id} in"
+                            f"{metadata.audio_path}. Skipping alignment."
+                        )
+                    )
+                    continue
 
                 normalized_tokens, mapping = text_normalizer(original_text)
                 tokens, scores = align_pytorch(
@@ -156,8 +178,8 @@ def align_speech(
                     scores=scores,
                     mapping=mapping,
                     blank=blank_id,
-                    start_wildcard=True,
-                    end_wildcard=True,
+                    start_wildcard=start_wildcard,
+                    end_wildcard=end_wildcard,
                     word_boundary=word_boundary,
                     processor=processor,
                 )
@@ -177,14 +199,18 @@ def align_speech(
                     mapping=mapping,
                     original_text=original_text,
                     tokenizer=tokenizer,
-                    segment_spans=metadata.text_spans,
+                    segment_spans=speech.text_spans,
                 )
 
                 if delete_emissions:
                     Path(emissions_filepath.parent).unlink()
 
+            # Add info to metadata and save
 
-align_speech(
+    return mapping
+
+
+mapping = align_speech(
     dataloader=audiometa_loader,
     text_normalizer=text_normalizer,
     processor=processor,
@@ -200,6 +226,75 @@ align_speech(
     add_leading_space=False,
     device="cuda",
 )
+
+
+def align_chunks(
+    dataloader,
+    text_normalizer: callable,
+    processor: Wav2Vec2Processor,
+    tokenizer=None,
+    emissions_dir: str = "output/emissions",
+    output_dir: str = "output/alignments",
+    start_wildcard: bool = False,
+    end_wildcard: bool = False,
+    blank_id: int = 0,
+    word_boundary: str = "|",
+    chunk_size: int = 30,
+    delete_emissions: bool = False,
+    add_leading_space: bool = False,
+    device="cuda",
+):
+    for batch in tqdm(dataloader):
+        for metadata in batch:
+            for speech in metadata.speeches:
+                emissions_filepath = Path(emissions_dir) / speech.probs_path
+                emissions = np.load(emissions_filepath)
+
+                for i, chunk in enumerate(speech.chunks):
+                    normalized_tokens, mapping = text_normalizer(original_text)
+                    tokens, scores = align_pytorch(
+                        normalized_tokens=normalized_tokens,
+                        processor=processor,
+                        emissions=torch.tensor(emissions_chunk).to(device).unsqueeze(0),
+                        start_wildcard=start_wildcard,
+                        end_wildcard=end_wildcard,
+                        device=device,
+                    )
+
+                    word_spans, mapping = get_word_spans(
+                        tokens=tokens,
+                        scores=scores,
+                        mapping=mapping,
+                        blank=blank_id,
+                        start_wildcard=start_wildcard,
+                        end_wildcard=end_wildcard,
+                        word_boundary=word_boundary,
+                        processor=processor,
+                    )
+
+                    mapping = join_word_timestamps(
+                        word_spans=word_spans,
+                        mapping=mapping,
+                        speech=speech,
+                        chunk_size=chunk_size,
+                        start_segment=chunk.start,
+                    )
+
+                    mapping = merge_multitoken_expressions(mapping)
+                    mapping = add_deletions_to_mapping(mapping, original_text)
+                    mapping = get_segment_alignment(
+                        mapping=mapping,
+                        original_text=original_text,
+                        tokenizer=tokenizer,
+                        segment_spans=metadata.text_spans,
+                    )
+
+
+emissions = np.load(Path("output/emissions") / "audio_mono_120/0.npy")
+emissions.shape
+emissions = np.vstack(emissions)
+
+np.vstack(emissions).shape
 
 for emission in emissions_output:
     metadata = emission[0]
