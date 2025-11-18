@@ -54,7 +54,11 @@ Jag tyckte att den första delen, den blev faktiskt bra, jag var inlevelse. Hade
 skrivit tusen sidor, men nu det blev kompakt. Jag är inte så bra på att beskriva. 
 """
 
-speeches = [[SpeechSegment(speech_id=0, text=text, start=None, end=None)]]
+tokenizer = load_tokenizer(language="swedish")
+sentence_list = tokenizer.tokenize(text)
+span_list = list(tokenizer.span_tokenize(text))
+
+speeches = [[SpeechSegment(speech_id=0, text=text, text_spans=span_list, start=None, end=None)]]
 
 vad_outputs = vad_pipeline(
     model=model_vad,
@@ -81,7 +85,7 @@ emissions_output = emissions_pipeline(
     audio_dir="data",
     sample_rate=16000,
     chunk_size=30,
-    use_vad=True,
+    use_vad=False,
     batch_size_files=1,
     num_workers_files=2,
     prefetch_factor_files=2,
@@ -184,6 +188,7 @@ def align_speech(
                     processor=processor,
                 )
 
+                breakpoint()
                 mapping = join_word_timestamps(
                     word_spans=word_spans,
                     mapping=mapping,
@@ -194,6 +199,7 @@ def align_speech(
 
                 mapping = merge_multitoken_expressions(mapping)
                 mapping = add_deletions_to_mapping(mapping, original_text)
+                print("Mapping after deletions:", mapping)
 
                 mapping = get_segment_alignment(
                     mapping=mapping,
@@ -207,6 +213,7 @@ def align_speech(
 
             # Add info to metadata and save
 
+    print(mapping)
     return mapping
 
 
@@ -244,14 +251,19 @@ def align_chunks(
     add_leading_space: bool = False,
     device="cuda",
 ):
+    chunk_mappings = []
     for batch in tqdm(dataloader):
         for metadata in batch:
             for speech in metadata.speeches:
                 emissions_filepath = Path(emissions_dir) / speech.probs_path
                 emissions = np.load(emissions_filepath)
+                print("Emissions shape:", emissions.shape)
 
                 for i, chunk in enumerate(speech.chunks):
                     normalized_tokens, mapping = text_normalizer(original_text)
+                    emissions_chunk = emissions[i]
+                    print("Emissions chunk shape:", emissions_chunk.shape)
+
                     tokens, scores = align_pytorch(
                         normalized_tokens=normalized_tokens,
                         processor=processor,
@@ -288,6 +300,28 @@ def align_chunks(
                         tokenizer=tokenizer,
                         segment_spans=metadata.text_spans,
                     )
+
+                    chunk_mappings.append(mapping)
+
+    return chunk_mappings
+
+
+chunk_mappings = align_chunks(
+    dataloader=audiometa_loader,
+    text_normalizer=text_normalizer,
+    processor=processor,
+    tokenizer=None,
+    emissions_dir="output/emissions",
+    output_dir="output/alignments",
+    start_wildcard=True,
+    end_wildcard=True,
+    blank_id=0,
+    word_boundary="|",
+    chunk_size=30,
+    delete_emissions=False,
+    add_leading_space=True,
+    device="cuda",
+)
 
 
 emissions = np.load(Path("output/emissions") / "audio_mono_120/0.npy")
@@ -413,12 +447,13 @@ skrivit tusen sidor, men nu det blev kompakt. Jag är inte så bra på att beskr
 import torchaudio
 
 sr = 16000
+audio_input, sr = torchaudio.load(Path("data") / "audio_mono_120.wav")
 
 # Output the slices of audio corresponding to start_segment and end_segment
-audio_input, sr = torchaudio.load(Path("data") / metadata.audio_path)
+# audio_input, sr = torchaudio.load(Path("data") / metadata.audio_path)
 audio_slices = []
 os.makedirs("data/audio_slices", exist_ok=True)
-for i, segment in enumerate(sentence_mapping):
+for i, segment in enumerate(mapping):
     start_segment = segment["start_segment"]
     end_segment = segment["end_segment"]
     # Convert from seconds to frames

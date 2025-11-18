@@ -22,6 +22,7 @@ class AudioChunk(msgspec.Struct):
 
     start: float  # in seconds
     end: float  # in seconds
+    text: str | None = None  # Optional text transcription for the chunk
     duration: float | None = None  # in seconds
     audio_frames: int | None = None  # Number of audio frames chunk spans
 
@@ -71,13 +72,38 @@ class SpeechSegment(msgspec.Struct):
     Whatever unit of abstraction the user prefers.
 
     If no SpeechSegment is defined, the entire audio is treated as a single speech.
+
+    Attributes:
+        start:
+            Start time of the speech segment in seconds.
+        end:
+            End time of the speech segment in seconds.
+        text:
+            Optional text transcription (manual, or created by ASR).
+        text_spans:
+            If `text_spans` is supplied, custom segments of the text will be aligned to
+            audio. Each tuple is (start_char, end_char) in the `text`.
+        chunks:
+            Audio chunks from which we create w2v2 logits.
+            If ASR is used, these chunks will contain the ASR text of the chunk, which will be used
+            for forced alignment within the chunk.
+        alignments:
+            Aligned text segments.
+        duration:
+            Duration of the speech segment in seconds.
+        audio_frames:
+            Number of audio frames speech segment spans.
+        speech_id:
+            Optional unique identifier for the speech segment.
+        probs_path:
+            Path to saved wav2vec2 emissions/probs.
+        metadata:
+            Extra metadata such as speaker name, etc.
     """
 
     start: float | None = None  # in seconds
     end: float | None = None  # in seconds
     text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
-    # If `text_spans` is supplied, custom segments of the text will be aligned to audio.
-    # Each tuple is (start_char, end_char) in the `text`.
     text_spans: list[tuple[int, int]] | None = None
     chunks: list[AudioChunk] = []  # Audio chunks from which we create w2v2 logits
     alignments: list[AlignmentSegment] = []  # Aligned text segments

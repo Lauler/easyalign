@@ -7,7 +7,7 @@ import msgspec
 import soundfile as sf
 import torch
 from torch.utils.data import Dataset
-from transformers import Wav2Vec2Processor
+from transformers import Wav2Vec2Processor, WhisperProcessor
 
 from easyalign.data.datamodel import AudioMetadata
 from easyalign.utils import convert_audio_to_wav
@@ -139,7 +139,7 @@ class AudioFileDataset(Dataset):
     def __init__(
         self,
         metadata: JSONMetadataDataset | list[AudioMetadata] | AudioMetadata,
-        processor: Wav2Vec2Processor,
+        processor: Wav2Vec2Processor | WhisperProcessor,
         audio_dir="data",
         sample_rate=16000,  # sample rate
         chunk_size=30,  # seconds per chunk for wav2vec2
@@ -154,6 +154,9 @@ class AudioFileDataset(Dataset):
         self.sr = sample_rate
         self.chunk_size = chunk_size
         self.processor = processor
+        self.processor_attribute = (
+            "input_values" if isinstance(processor, Wav2Vec2Processor) else "input_features"
+        )
         self.use_vad = use_vad
 
     def read_audio(self, audio_path):
@@ -187,9 +190,13 @@ class AudioFileDataset(Dataset):
             # Chunk the audio according to `chunk_size`
             audio_chunks = torch.split(audio_speech, self.chunk_size * self.sr, dim=1)  # 30s
             for audio_chunk in audio_chunks:
-                feature = self.processor(
-                    audio_chunk, sampling_rate=self.sr, return_tensors="pt"
-                ).input_values
+                inputs = self.processor(
+                    audio_chunk,
+                    sampling_rate=self.sr,
+                    return_tensors="pt",
+                )
+                feature = getattr(inputs, self.processor_attribute)
+
                 # Create tuple with feature and speech_id so we can link back to the speech
                 features.append(
                     {"feature": feature, "start_time_global": -100, "speech_id": speech.speech_id}
@@ -207,14 +214,20 @@ class AudioFileDataset(Dataset):
             for i, vad_chunk in enumerate(speech.chunks):
                 start_frame = self.seconds_to_frames(vad_chunk.start, sr)
                 end_frame = self.seconds_to_frames(vad_chunk.end, sr)
-                start_time_global = speech.start + vad_chunk.start
+                start_time_global = vad_chunk.start
 
                 vad_chunk.audio_frames = end_frame - start_frame
                 audio_chunk = audio[start_frame:end_frame]
-                audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)  # Add batch dimension
-                feature = self.processor(
-                    audio_chunk, sampling_rate=sr, return_tensors="pt"
-                ).input_values
+
+                if isinstance(self.processor, Wav2Vec2Processor):
+                    audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)  # Add batch dimension
+
+                inputs = self.processor(
+                    audio_chunk,
+                    sampling_rate=self.sr,
+                    return_tensors="pt",
+                )
+                feature = getattr(inputs, self.processor_attribute)
                 features.append(
                     {
                         "feature": feature,
