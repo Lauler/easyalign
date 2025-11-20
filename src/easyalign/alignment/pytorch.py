@@ -55,11 +55,11 @@ def align_pytorch(
             (1, emissions.size(1), 1), device=emissions.device, dtype=emissions.dtype
         )
         print(f"Star dim shape: {star_dim.shape}, Emissions shape: {emissions.shape}")
-        emissions = torch.cat((emissions, star_dim), 2)  # Add star token to the emissions
+        emissions = torch.cat((emissions, star_dim), 2)  # Add wildcard star token to the emissions
 
     alignments, scores = F.forced_align(emissions, targets, blank=0)
     alignments, scores = alignments[0], scores[0]  # remove batch dimension for simplicity
-    scores = scores.exp()  # convert back to probability
+    # scores = scores.exp()  # convert back to probability
     return alignments, scores
 
 
@@ -235,7 +235,7 @@ def get_word_spans(
     processor: Wav2Vec2Processor = None,
 ) -> tuple[list, list]:
     """
-    Get word spans from the token predictions and their scores.
+    Merge wav2vec2 token (character level) predictions and get their word spans.
 
     Args:
         tokens: Tokens predicted by the model.
@@ -273,7 +273,7 @@ def get_word_spans(
         )
         # Find the token ID for the word boundary token
         word_boundary_id = processor.tokenizer.convert_tokens_to_ids(word_boundary)
-        # Remove all TokenSpan with token=word_boundary_id
+        # Remove all TokenSpan where token==word_boundary_id
         token_spans = [s for s in token_spans if s.token != word_boundary_id]
 
     # Unflatten the token spans based on the normalized tokens' lengths
@@ -320,6 +320,10 @@ def get_segment_alignment(
         elif callable(tokenizer):
             # Use a user supplied custom tokenizer to get custom (start_char, end_char) spans
             segment_spans = tokenizer(original_text)
+        else:
+            start_char = mapping[0]["start_char"]
+            end_char = mapping[-1]["end_char"]
+            segment_spans = [(start_char, end_char)]  # Single segment with entire text
 
     segment_mapping = []
     remaining_tokens = mapping.copy()
@@ -345,7 +349,7 @@ def get_segment_alignment(
                 start_segment_time = assign_segment_time(
                     current_token=token,
                     token_list=remaining_tokens,
-                    direction="next",
+                    fallback_direction="next",
                 )
                 start_segment_extended_index = token["start_char"]
 
@@ -358,7 +362,7 @@ def get_segment_alignment(
                 end_segment_time = assign_segment_time(
                     current_token=token,
                     token_list=previous_tokens if previous_tokens else remaining_tokens,
-                    direction="previous",
+                    fallback_direction="previous",
                 )
                 end_segment_extended_index = token["end_char_extended"]
 
@@ -386,7 +390,7 @@ def get_segment_alignment(
 def assign_segment_time(
     current_token: dict,
     token_list: list[dict],
-    direction: str = "next",
+    fallback_direction: str = "next",
 ):
     """
     Assign a timestamp for the segment based on the current token's metadata.
@@ -399,22 +403,25 @@ def assign_segment_time(
         current_token: The current token dictionary containing the token's metadata.
         token_list: A list of token alignments (dictionaries) that acts as fallback
             when the current token has no timestamp.
-        direction: The direction to search for a timestamp ("next" or "previous").
+        fallback_direction: The direction to search for a timestamp ("next" or "previous"
+            tokens) as a fallback when the current token has no timestamp.
     Returns:
         The start or end time of the segment. If no timestamp is found, returns None.
     """
-    time = current_token["start_time"] if direction == "next" else current_token["end_time"]
+    time = (
+        current_token["start_time"] if fallback_direction == "next" else current_token["end_time"]
+    )
 
     # We start searching from the first or last token in the list, depending on the direction.
-    token_idx = 0 if direction == "next" else -1
-    index_increment = 1 if direction == "next" else -1  # Move forward or backward in the list
+    token_idx = 0 if fallback_direction == "next" else -1
+    index_increment = 1 if fallback_direction == "next" else -1  # Move forward or backward
 
     # Loop is skipped if the current token already has a timestamp.
     while time is None and abs(token_idx) < len(token_list):
         try:
             time = (
                 token_list[token_idx]["start_time"]
-                if direction == "next"
+                if fallback_direction == "next"
                 else token_list[token_idx]["end_time"]
             )
             token_idx += index_increment

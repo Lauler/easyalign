@@ -1,9 +1,21 @@
+import re
+
 import msgspec
 
 
 class WordSegment(msgspec.Struct):
     """
     Word-level alignment data.
+
+    Attributes:
+        text:
+            The aligned word's text.
+        start:
+            Start time of the word in seconds.
+        end:
+            End time of the word in seconds.
+        score:
+            Optional confidence score for the word alignment.
     """
 
     text: str
@@ -43,12 +55,26 @@ class AlignmentSegment(msgspec.Struct):
     A segment of aligned audio and text.
 
     This can be sentence, paragraph, or any other unit of text.
+
+    Attributes:
+        start:
+            Start time of the aligned segment in seconds.
+        end:
+            End time of the aligned segment in seconds.
+        text:
+            The aligned text segment.
+        words:
+            List of word-level alignment data within this segment.
+        duration:
+            Duration of the aligned segment in seconds.
+        score:
+            Optional confidence score for the alignment.
     """
 
     start: float  # in seconds
     end: float  # in seconds
     text: str
-    words = list[WordSegment]
+    words: list[WordSegment] = []
     duration: float | None = None  # in seconds
     score: float | None = None  # Optional confidence score
 
@@ -98,20 +124,20 @@ class SpeechSegment(msgspec.Struct):
         probs_path:
             Path to saved wav2vec2 emissions/probs.
         metadata:
-            Extra metadata such as speaker name, etc.
+            Optional extra metadata such as speaker name, etc.
     """
 
+    speech_id: str | int | None = None
     start: float | None = None  # in seconds
     end: float | None = None  # in seconds
-    text: list[str] | None = None  # Optional text transcription (manual, or created by ASR)
+    text: list[str] | None = None
     text_spans: list[tuple[int, int]] | None = None
-    chunks: list[AudioChunk] = []  # Audio chunks from which we create w2v2 logits
+    chunks: list[AudioChunk] = []
     alignments: list[AlignmentSegment] = []  # Aligned text segments
     duration: float | None = None  # in seconds
-    audio_frames: int | None = None  # Number of audio frames speech segment spans
-    speech_id: str | int | None = None
-    probs_path: str | None = None  # Path to saved wav2vec2 emissions/probs
-    metadata: dict | None = None  # Extra metadata such as speaker name, etc.
+    audio_frames: int | None = None
+    probs_path: str | None = None
+    metadata: dict | None = None
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
@@ -128,13 +154,18 @@ class SpeechSegment(msgspec.Struct):
             self.calculate_duration()
 
         if isinstance(self.text, list) and self.text_spans is None:
-            # Create (begin_char, end_char) spans for each text segment we want to align
-            # and extract timestamps for.
+            # Create (start_char, end_char) spans for each text segment we want to align
+            # and extract timestamps for (in the case where a user has supplied a list of strings
+            # without spans).
+
+            start_char_match = re.search(r"\S", self.text[0])  # Find first non-space character
+            start_char = start_char_match.start() if start_char_match else 0
             if len(self.text) == 1:
-                self.text_spans = [(0, len(self.text[0]))]
+                end_char = len(self.text[0])
+                self.text_spans = [(start_char, end_char)]
             else:
                 self.text_spans = []
-                current_begin = 0
+                current_begin = start_char
                 for t in self.text:
                     self.text_spans.append((current_begin, current_begin + len(t)))
                     current_begin += len(t)

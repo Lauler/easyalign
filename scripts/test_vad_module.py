@@ -16,9 +16,14 @@ from easyalign.alignment.pytorch import (
     join_word_timestamps,
 )
 from easyalign.data.collators import metadata_collate_fn
-from easyalign.data.datamodel import AudioMetadata, SpeechSegment
+from easyalign.data.datamodel import AlignmentSegment, AudioMetadata, SpeechSegment, WordSegment
 from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
-from easyalign.pipelines import emissions_pipeline, vad_pipeline
+from easyalign.pipelines import (
+    emissions_pipeline,
+    save_metadata_json,
+    save_metadata_msgpack,
+    vad_pipeline,
+)
 from easyalign.text.normalization import (
     SpanMapNormalizer,
     add_deletions_to_mapping,
@@ -38,6 +43,23 @@ model = AutoModelForCTC.from_pretrained(
 ).to("cuda")
 processor = Wav2Vec2Processor.from_pretrained("KBLab/wav2vec2-large-voxrex-swedish")
 model_vad = load_vad_model()
+
+text = """Statsminister Göran Persson (asdasfs) sa ju häromdagen att det kan dröja till efter 2006 innan euron införs i Sverige om det blir ett ja i omröstningen. 
+Persson varnade för att förhandlingarna om till vilken kurs kronan ska knytas t.e. kan dra ut på tiden. Men professorn i nationalekonomi Harry Flam ser inte alls de problemen.
+Jag tror inte att frågan om knytkursen kommer att vara något större problem faktiskt. Om Sverige säger ja till euron i folkomröstningen så lämnar vi ju kronan bakom oss."""
+
+text = """
+Statsminister Göran Persson sa ju häromdagen att det kan dröja till efter 2006 innan euron införs i Sverige om det blir ett ja i omröstningen. 
+Persson varnade för att förhandlingarna om till vilken kurs kronan ska knytas till euron kan dra ut på tiden. Men professorn i nationalekonomi Harry Flam ser inte alls de problemen. 
+Jag tror inte att frågan om knytkursen kommer vara något större problem faktiskt.
+Om Sverige säger ja till euron i folkomröstningen lämnar vi kronan bakom oss. Men innan vi byter valuta måste vi veta exakt hur många kronor vi får för euron. 
+Detta kallas för knytkurs. Knytkursen bestämmer om vi får 8, 9 eller 10 kronor per euro. 
+Den frågan avgörs någon gång under denna höst i ett hemligt möte mellan euroländernas finansiella kommitté och den svenska regeringen.
+Grupperna förhandlar om och bestämmer en centralkurs mellan kronan och euron. 
+Denna kurs bestäms bl.a. av hur mycket en varukorg kostar i Sverige jämfört med EMU-länderna. 
+Det är vid denna förhandling Göran Persson är rädd för att Sverige ska få ett skambud på kronan medan nationalekonomen Harry Flam tror att det kommer gå smidigt och inte vålla några större diskussioner. 
+Nej, därför att EU tror jag kommer att vara väldigt angeläget om att underlätta Sveriges inträde. Det är
+"""
 
 text = """
 Hallå. Förlåt. Kan du göra ljud någon annanstans? Titta. 
@@ -62,7 +84,7 @@ speeches = [[SpeechSegment(speech_id=0, text=text, text_spans=span_list, start=N
 
 vad_outputs = vad_pipeline(
     model=model_vad,
-    audio_paths=["audio_mono_120.wav"],
+    audio_paths=["audio_80.wav"],
     audio_dir="data",
     speeches=speeches,
     chunk_size=30,
@@ -85,7 +107,7 @@ emissions_output = emissions_pipeline(
     audio_dir="data",
     sample_rate=16000,
     chunk_size=30,
-    use_vad=False,
+    alignment_strategy="speech",
     batch_size_files=1,
     num_workers_files=2,
     prefetch_factor_files=2,
@@ -122,6 +144,75 @@ def text_normalizer(text: str) -> str:
     return normalized_tokens, mapping
 
 
+def format_speech_text(speech: SpeechSegment, add_leading_space: bool = False) -> str:
+    print("Speech text segments:", speech.text)
+    if len(speech.text) == 1:
+        original_text = speech.text[0]
+    elif len(speech.text) > 1:
+        # If the user tokenized the text into multiple segments, concatenate them
+        # for alignment
+        if add_leading_space:
+            # Add leading space for all except the first segment
+            original_text = "".join([speech.text[0]] + [" " + t for t in speech.text[1:]])
+
+            # Modify the text_spans accordingly
+            offset = 1
+            for i, text_span in enumerate(speech.text_spans):
+                if i == 0:
+                    continue
+                start, end = text_span
+                speech.text_spans[i] = (
+                    start + offset - 1,
+                    end + offset,
+                )  # Add offset to both start and end
+                offset += 1  # Increment offset for next segment
+        else:
+            original_text = "".join(speech.text)
+    else:
+        logger.warning(
+            (
+                f"No text found for speech id {speech.speech_id} in"
+                f"{metadata.audio_path}. Skipping alignment."
+            )
+        )
+        original_text = ""
+    return original_text
+
+
+def encode_alignments(
+    mapping: list[dict],
+):
+    alignment_segments = []
+
+    for segment in mapping:
+        segment_words = []
+        word_scores = []
+
+        for token in segment["tokens"]:
+            segment_words.append(
+                WordSegment(
+                    text=token["text_span_full"],
+                    start=token["start_time"],
+                    end=token["end_time"],
+                    score=token["score"],
+                )
+            )
+            word_scores.append(token["score"])
+
+        alignment_segment = AlignmentSegment(
+            start=segment["start_segment"],
+            end=segment["end_segment"],
+            duration=segment["end_segment"] - segment["start_segment"],
+            words=segment_words,
+            text=segment["text_span_full"],
+            score=np.mean(word_scores) if word_scores else None,
+        )
+
+        alignment_segments.append(alignment_segment)
+
+    return alignment_segments
+
+
 def align_speech(
     dataloader,
     text_normalizer: callable,
@@ -134,6 +225,8 @@ def align_speech(
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
+    save_json: bool = True,
+    save_msgpack: bool = False,
     delete_emissions: bool = False,
     add_leading_space: bool = False,
     device="cuda",
@@ -141,31 +234,13 @@ def align_speech(
     mapping = []
     for batch in tqdm(dataloader):
         for metadata in batch:
+            print(f"Metadata: {metadata}")
             for speech in metadata.speeches:
                 emissions_filepath = Path(emissions_dir) / speech.probs_path
                 emissions = np.load(emissions_filepath)
                 emissions = np.vstack(emissions)
 
-                if len(speech.text) == 1:
-                    original_text = speech.text[0]
-                elif len(speech.text) > 1:
-                    # If the user tokenized the text into multiple segments, concatenate them
-                    # for alignment
-                    if add_leading_space:
-                        # Add leading space for all except the first segment
-                        original_text = "".join(
-                            [speech.text[0]] + [" " + t for t in speech.text[1:]]
-                        )
-                    else:
-                        original_text = "".join(speech.text)
-                else:
-                    logger.warning(
-                        (
-                            f"No text found for speech id {speech.speech_id} in"
-                            f"{metadata.audio_path}. Skipping alignment."
-                        )
-                    )
-                    continue
+                original_text = format_speech_text(speech, add_leading_space=add_leading_space)
 
                 normalized_tokens, mapping = text_normalizer(original_text)
                 tokens, scores = align_pytorch(
@@ -188,7 +263,6 @@ def align_speech(
                     processor=processor,
                 )
 
-                breakpoint()
                 mapping = join_word_timestamps(
                     word_spans=word_spans,
                     mapping=mapping,
@@ -199,7 +273,6 @@ def align_speech(
 
                 mapping = merge_multitoken_expressions(mapping)
                 mapping = add_deletions_to_mapping(mapping, original_text)
-                print("Mapping after deletions:", mapping)
 
                 mapping = get_segment_alignment(
                     mapping=mapping,
@@ -208,12 +281,18 @@ def align_speech(
                     segment_spans=speech.text_spans,
                 )
 
+                speech.alignments.extend(encode_alignments(mapping))
                 if delete_emissions:
                     Path(emissions_filepath.parent).unlink()
 
             # Add info to metadata and save
 
-    print(mapping)
+            if save_json:
+                save_metadata_json(metadata, output_dir=output_dir)
+
+            if save_msgpack:
+                save_metadata_msgpack(metadata, output_dir=output_dir)
+
     return mapping
 
 

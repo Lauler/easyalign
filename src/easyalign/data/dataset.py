@@ -143,7 +143,7 @@ class AudioFileDataset(Dataset):
         audio_dir="data",
         sample_rate=16000,  # sample rate
         chunk_size=30,  # seconds per chunk for wav2vec2
-        use_vad=True,
+        alignment_strategy: str = "speech",
     ):
         if isinstance(metadata, AudioMetadata):
             metadata = [metadata]
@@ -157,7 +157,7 @@ class AudioFileDataset(Dataset):
         self.processor_attribute = (
             "input_values" if isinstance(processor, Wav2Vec2Processor) else "input_features"
         )
-        self.use_vad = use_vad
+        self.alignment_strategy = alignment_strategy
 
     def read_audio(self, audio_path):
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -251,7 +251,7 @@ class AudioFileDataset(Dataset):
             if speech.speech_id is None:
                 speech.speech_id = i  # Assign ID if missing
 
-        if self.use_vad:
+        if self.alignment_strategy == "chunk":
             features = self.get_vad_features(full_audio_path, metadata)
         else:
             features = self.get_speech_features(full_audio_path, metadata)

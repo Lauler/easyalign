@@ -69,6 +69,10 @@ def vad_pipeline_generator(
     for i, audio_dict in enumerate(tqdm(vad_dataloader, desc="Running VAD on audio files")):
         audio = audio_dict["audio"][0]
         audio_path = audio_dict["audio_path"][0]
+
+        if not Path(audio_dir, audio_path).exists():
+            raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
         vad_output = run_vad(
             audio_path=audio_path,
             audio_dir=audio_dir,
@@ -164,7 +168,7 @@ def emissions_pipeline_generator(
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,
-    use_vad: bool = True,
+    alignment_strategy: str = "speech",
     batch_size_files: int = 1,
     num_workers_files: int = 1,
     prefetch_factor_files: int = 2,
@@ -187,8 +191,9 @@ def emissions_pipeline_generator(
         sample_rate: Sample rate to resample audio to. Default 16000.
         chunk_size: When VAD is not used, SpeechSegments are naively split into
             `chunk_size` sized chunks for feature extraction.
-        use_vad: Whether to use VAD-based chunks (if available in metadata), or just
-            naïvely split the audio of speech segments into `chunk_size` chunks.
+        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
+            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments
+            If `chunk`, audio is taken from existing VAD chunks.
         batch_size_files: Batch size for the file DataLoader.
         num_workers_files: Number of workers for the file DataLoader.
         prefetch_factor_files: Prefetch factor for the file DataLoader.
@@ -207,7 +212,7 @@ def emissions_pipeline_generator(
         sample_rate=sample_rate,
         processor=processor,
         chunk_size=chunk_size,
-        use_vad=use_vad,
+        alignment_strategy=alignment_strategy,
     )
 
     file_dataloader = torch.utils.data.DataLoader(
@@ -269,7 +274,7 @@ def emissions_pipeline(
     audio_dir: str,
     sample_rate: int = 16000,
     chunk_size: int = 30,
-    use_vad: bool = True,
+    alignment_strategy: str = "speech",
     batch_size_files: int = 1,
     num_workers_files: int = 1,
     prefetch_factor_files: int = 2,
@@ -289,10 +294,11 @@ def emissions_pipeline(
         metadata: List of AudioMetadata objects or paths to JSON files.
         audio_dir: Directory with audio files
         sample_rate: Sample rate to resample audio to. Default 16000.
-        chunk_size: When VAD is not used, SpeechSegments are naively split into
+        chunk_size: When `alignment_strategy` is set to `speech`, SpeechSegments are split into
             `chunk_size` sized chunks for feature extraction.
-        use_vad: Whether to use VAD-based chunks (if available in metadata), or just
-            naïvely split the audio of speech segments into `chunk_size` chunks.
+        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
+            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
+            If `chunk`, audio is taken from existing VAD chunks.
         batch_size_files: Batch size for the file DataLoader.
         num_workers_files: Number of workers for the file DataLoader.
         prefetch_factor_files: Prefetch factor for the file DataLoader.
@@ -317,7 +323,7 @@ def emissions_pipeline(
             audio_dir=audio_dir,
             sample_rate=sample_rate,
             chunk_size=chunk_size,
-            use_vad=use_vad,
+            alignment_strategy=alignment_strategy,
             batch_size_files=batch_size_files,
             num_workers_files=num_workers_files,
             prefetch_factor_files=prefetch_factor_files,
@@ -333,9 +339,16 @@ def emissions_pipeline(
     return emissions_output
 
 
+def numpy_encoder(obj):
+    """Custom encoder function for NumPy floats for msgspec."""
+    if isinstance(obj, np.floating):
+        return float(obj)
+    return obj
+
+
 def save_metadata_json(metadata: AudioMetadata, output_dir: str = "output/emissions"):
     audio_path = metadata.audio_path
-    json_encoder = msgspec.json.Encoder()
+    json_encoder = msgspec.json.Encoder(enc_hook=numpy_encoder)
     json_msgspec = json_encoder.encode(metadata)
     json_msgspec = msgspec.json.format(json_msgspec, indent=2)
     json_path = Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
@@ -346,7 +359,7 @@ def save_metadata_json(metadata: AudioMetadata, output_dir: str = "output/emissi
 
 def save_metadata_msgpack(metadata: AudioMetadata, output_dir: str = "output/emissions"):
     audio_path = metadata.audio_path
-    msgpack_encoder = msgspec.msgpack.Encoder()
+    msgpack_encoder = msgspec.msgpack.Encoder(enc_hook=numpy_encoder)
     msgpack_msgspec = msgpack_encoder.encode(metadata)
     msgpack_path = (
         Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
@@ -406,8 +419,8 @@ def save_alignments(
     audio_path = metadata.audio_path
     base_path = Path(audio_path).parent / Path(audio_path).stem
 
-    json_encoder = msgspec.json.Encoder()
-    msgpack_encoder = msgspec.msgpack.Encoder()
+    json_encoder = msgspec.json.Encoder(enc_hook=numpy_encoder)
+    msgpack_encoder = msgspec.msgpack.Encoder(enc_hook=numpy_encoder)
 
     for speech, alignment in zip(metadata.speeches, alignments):
         alignment_path = Path(output_dir) / base_path / f"{speech.speech_id}_alignment.json"
