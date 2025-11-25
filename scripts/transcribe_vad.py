@@ -20,6 +20,7 @@ from easyalign.alignment.pytorch import (
     get_word_spans,
     join_word_timestamps,
 )
+from easyalign.alignment.utils import get_output_logits_length
 from easyalign.data.collators import (
     audiofile_collate_fn,
     metadata_collate_fn,
@@ -206,7 +207,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["statsminister.wav"],
+        audio_paths=["audio_80.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,
@@ -291,6 +292,13 @@ if __name__ == "__main__":
         json_paths=list(Path("output/transcriptions").rglob("*.json"))
     )
 
+    get_output_logits_length(
+        audio_frames=719,
+        chunk_size=30,
+        conv_kernel=model.config.conv_kernel,
+        conv_stride=model.config.conv_stride,
+    )
+
     emissions_output = emissions_pipeline(
         model=model,
         processor=processor,
@@ -337,7 +345,7 @@ if __name__ == "__main__":
     )
 
     # Input random data to wav2vec2 model to verify it works
-    test_input = torch.randn(1, int(16000 * 30.005)).to("cuda").half()
+    test_input = torch.randn(1, int(720)).to("cuda").half()
     with torch.inference_mode():
         test_output = model(test_input).logits
         print(f"Test output shape: {test_output.shape}")

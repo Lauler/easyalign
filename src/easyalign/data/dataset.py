@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import Wav2Vec2Processor, WhisperProcessor
 
+from easyalign.alignment.pytorch import get_output_logits_length
 from easyalign.data.datamodel import AudioMetadata
 from easyalign.utils import convert_audio_to_wav
 

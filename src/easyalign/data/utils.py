@@ -3,11 +3,10 @@ from pathlib import Path
 import msgspec
 import numpy as np
 
-from easyalign.alignment.pytorch import calculate_w2v_output_length
 from easyalign.data.datamodel import AudioMetadata
 
 
-def pad_probs(probs, chunk_size, sample_rate):
+def pad_probs(probs, maximum_nr_logits: int):
     """
     `probs` has the shape (batch_size, nr_logits, vocab_size).
 
@@ -20,9 +19,7 @@ def pad_probs(probs, chunk_size, sample_rate):
     `chunk_size` long. However, if the entire batch contains only observations shorter than
     `chunk_size`, `probs` needs to be padded accordingly.
     """
-    maximum_nr_logits = calculate_w2v_output_length(
-        chunk_size * sample_rate, chunk_size=chunk_size
-    )
+    print(f"Maximum nr logits: {maximum_nr_logits}")
     probs = np.pad(
         array=probs,
         pad_width=(

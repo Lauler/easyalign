@@ -37,6 +37,7 @@ class AudioChunk(msgspec.Struct):
     text: str | None = None  # Optional text transcription for the chunk
     duration: float | None = None  # in seconds
     audio_frames: int | None = None  # Number of audio frames chunk spans
+    num_logits: int | None = None  # Number of model output logits for the chunk
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}

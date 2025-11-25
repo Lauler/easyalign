@@ -7,6 +7,7 @@ from tqdm import tqdm
 from transformers import Wav2Vec2Processor
 
 from easyalign.alignment.pytorch import segment_speech_probs
+from easyalign.alignment.utils import add_logits_to_metadata, get_output_logits_length
 from easyalign.data.collators import alignment_collate_fn, audiofile_collate_fn, vad_collate_fn
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
 from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset, VADAudioDataset
@@ -224,8 +225,20 @@ def emissions_pipeline_generator(
         prefetch_factor=prefetch_factor_files,
     )
 
+    maximum_nr_logits = get_output_logits_length(
+        audio_frames=int(file_dataset.chunk_size * file_dataset.sr),
+        chunk_size=file_dataset.chunk_size,
+        conv_kernel=model.config.conv_kernel,
+        conv_stride=model.config.conv_stride,
+        num_adapter_layers=getattr(model.config, "num_adapter_layers", 0),
+        adapter_stride=getattr(model.config, "adapter_stride", 2),
+        sample_rate=file_dataset.sr,
+    )
+
     for features in file_dataloader:
         slice_dataset = features[0]["dataset"]
+        metadata = slice_dataset.metadata
+
         feature_dataloader = torch.utils.data.DataLoader(
             slice_dataset,
             batch_size=batch_size_features,
@@ -239,20 +252,23 @@ def emissions_pipeline_generator(
 
         for batch in feature_dataloader:
             features = batch["features"].half().to("cuda")
-            print(f"Input lengths: {batch['input_lengths']}")
 
             with torch.inference_mode():
                 logits = model(features).logits
 
             probs = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
-            probs = pad_probs(
-                probs, chunk_size=file_dataset.chunk_size, sample_rate=file_dataset.sr
-            )
+            probs = pad_probs(probs, maximum_nr_logits=maximum_nr_logits)
 
             probs_list.append(probs)
             speech_ids.extend(batch["speech_ids"])
 
-        metadata = slice_dataset.metadata
+        # Count the number of non-padding output logits for each chunk and add to metadata
+        metadata = add_logits_to_metadata(
+            model=model,
+            metadata=metadata,
+            chunk_size=file_dataset.chunk_size,
+            sample_rate=file_dataset.sr,
+        )
         metadata, emissions = save_emissions_and_metadata(
             metadata=metadata,
             probs_list=probs_list,

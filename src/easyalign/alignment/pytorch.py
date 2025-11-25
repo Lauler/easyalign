@@ -8,6 +8,7 @@ from nltk.tokenize.punkt import PunktSentenceTokenizer
 from torchaudio.functional import TokenSpan
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
+from easyalign.alignment.utils import get_output_logits_length
 from easyalign.data.datamodel import SpeechSegment
 
 logger = logging.getLogger(__name__)
@@ -71,171 +72,6 @@ def format_timestamp(timestamp):
     seconds = int(timestamp % 60)
     milliseconds = int((timestamp % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
-
-
-def _calculate_receptive_field(
-    conv_kernel: list[int],
-    conv_stride: list[int],
-) -> int:
-    """
-    Calculate the receptive field of the model based on convolutional kernel sizes and strides.
-    Formula: RF_next = RF_prev + (kernel - 1) * accumulated_stride
-    """
-    receptive_field = 1
-    accumulated_stride = 1
-    for kernel_size, stride in zip(conv_kernel, conv_stride):
-        receptive_field += (kernel_size - 1) * accumulated_stride
-        accumulated_stride *= stride
-
-    return receptive_field
-
-
-def _compute_logits(
-    frames: int,
-    receptive_field: int,
-    conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
-    conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
-    num_adapter_layers: int = 0,
-    adapter_stride: int = 2,
-) -> int:
-    """
-    Compute the number of output logits for a given number of input frames.
-    Mimics Hugging Face's `_get_feat_extract_output_lengths` logic. This implementation
-    however always pads the input to at least the receptive field size. Our calculation
-    will therefore always output 1 logit for inputs smaller than the receptive field.
-
-    See: https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/wav2vec2/modeling_wav2vec2.py#L1073
-    """
-
-    # Pad input frames to at least the receptive field (see `pad_` easyalign/data/collators.py)
-    frames = max(frames, receptive_field)
-
-    # CNN layers
-    for kernel_size, stride in zip(conv_kernel, conv_stride):
-        current_logits = torch.div(frames - kernel_size, stride, rounding_mode="floor") + 1
-
-    for _ in range(num_adapter_layers):
-        current_logits = torch.div(frames - 1, adapter_stride, rounding_mode="floor") + 1
-
-    return int(current_logits.item())
-
-
-def get_output_logits_length(
-    audio_frames: int,
-    chunk_size: float,
-    conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
-    conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
-    num_adapter_layers: int = 0,
-    adapter_stride: int = 2,
-    sample_rate: int = 16000,
-) -> int:
-    """
-    Calculates the total number of output logits for a given audio length.
-
-    Should flexibly handle different models and configurations with various
-    numbers of adapter layers, strides, kernel sizes, etc. Also handles chunking
-    of the audio input.
-
-    Args:
-        audio_frames: Number of audio frames in the audio file, or part of audio file to be
-            aligned.
-        chunk_size: Number of seconds the audio was chunked by for batched inference or VAD.
-        conv_kernel: The convolutional kernel sizes of the emissions model
-            (see model.config.conv_kernel for default values).
-        conv_stride: The convolutional stride of the emissions model (see model.config.conv_stride).
-        num_adapter_layers: Number of adapter layers in the model.
-        adapter_stride: The stride of each adapter layer.
-        sample_rate: The sample rate of the w2v processor, default 16000.
-    """
-    receptive_field = _calculate_receptive_field(conv_kernel, conv_stride)
-
-    frames_per_chunk = int(chunk_size * sample_rate)
-    num_full_chunks = audio_frames // frames_per_chunk
-    remainder_frames = audio_frames % frames_per_chunk
-
-    # Calculate logits for full chunks
-    logits_per_full_chunk = _compute_logits(
-        frames_per_chunk,
-        receptive_field=receptive_field,
-        num_adapter_layers=num_adapter_layers,
-        adapter_stride=adapter_stride,
-    )
-    total_logits = num_full_chunks * logits_per_full_chunk
-
-    # Add logits for the remainder frames
-    if remainder_frames > 0:
-        total_logits += _compute_logits(
-            remainder_frames,
-            receptive_field=receptive_field,
-            num_adapter_layers=num_adapter_layers,
-            adapter_stride=adapter_stride,
-        )
-
-    return total_logits
-
-
-def calculate_w2v_output_length(
-    audio_frames: int,
-    chunk_size: int,
-    conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
-    sample_rate: int = 16000,
-    frames_first_logit: int = 400,
-):
-    """
-    Calculate the number of output logits ("characters") from the wav2vec2 model based
-    on the number of audio frames and audio chunk size.
-
-    The wav2vec2-large model outputs one logit per 320 audio frames. The exception
-    is the first logit, which is output after 400 audio frames (the model's minimum
-    input length).
-
-    We need to take into account the first logit, otherwise the alignment will slowly
-    drift over time for long audio files (when chunking the audio for batched inference).
-
-    Args:
-        audio_frames: Number of audio frames in the audio file, or part of audio file to be
-            aligned.
-        chunk_size: Number of seconds to chunk the audio by for batched inference.
-        conv_stride: The convolutional stride of the wav2vec2 model (see model.config.conv_stride).
-            The product sum of the list is the number of audio frames per output logit.
-            Defaults to the conv_stride of wav2vec2-large.
-        sample_rate: The sample rate of the w2v processor, default 16000.
-        frames_first_logit: First logit consists of more frames than the rest. Wav2vec2-large
-            outputs the first logit after 400 frames.
-
-    Returns:
-        The number of logit outputs for the audio file.
-    """
-    frames_per_logit = np.prod(conv_stride)  # 320 for wav2vec2-large
-    extra_frames = frames_first_logit - frames_per_logit
-
-    frames_per_full_chunk = chunk_size * sample_rate  # total frames for chunk_size seconds
-    n_full_chunks = (
-        audio_frames // frames_per_full_chunk
-    )  # This is 0 if length of audio is less than chunk_size
-
-    # Calculate the number of logit outputs for a full size chunk
-    logits_per_full_chunk = (frames_per_full_chunk - extra_frames) // frames_per_logit
-    n_full_chunk_logits = n_full_chunks * logits_per_full_chunk
-
-    # Calculate the number of logit outputs for the last chunk
-    # (the remainder of the audio may be shorter than the `chunk_size`)
-    n_last_chunk_frames = audio_frames % frames_per_full_chunk
-
-    if n_last_chunk_frames >= frames_per_logit:
-        # If the last chunk is long enough to produce at least one logit
-        n_last_chunk_logits = (n_last_chunk_frames - extra_frames) // frames_per_logit
-    elif (n_last_chunk_frames > 0) and (n_last_chunk_frames < frames_per_logit):
-        # If the last chunk is shorter than frames_per_logit but longer than 0,
-        # it will still produce one logit (the first logit).
-        # Our data collator pads the last chunk up to 400 frames
-        # if it happens to be shorter than the model's minimum input length
-        n_last_chunk_logits = 1
-    else:
-        # If the last chunk is empty (0 frames), it will not produce any logits.
-        n_last_chunk_logits = 0
-
-    return n_full_chunk_logits + n_last_chunk_logits
 
 
 def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str] | list[int]):
@@ -555,14 +391,15 @@ def join_word_timestamps(
 
         logit_lengths = []
         for chunk in speech.chunks:
-            logit_length = calculate_w2v_output_length(chunk.audio_frames, chunk_size=chunk_size)
+            logit_length = get_output_logits_length(chunk.audio_frames, chunk_size=chunk_size)
             logit_lengths.append(logit_length)
 
         frames_per_logit = audio_frames / sum(logit_lengths)
     else:
         # Whole audio segment is aligned at once, and we chunk according to chunk_size
         audio_frames = speech.audio_frames
-        frames_per_logit = audio_frames / calculate_w2v_output_length(
+
+        frames_per_logit = audio_frames / get_output_logits_length(
             audio_frames, chunk_size=chunk_size
         )
 
