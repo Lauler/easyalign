@@ -3,6 +3,10 @@ import torch
 
 
 def pad_to_min_length(vec: np.ndarray | torch.Tensor) -> torch.Tensor:
+    """
+    Wav2Vec2 models require a minimum input length of 400 frames.
+    We pad to 640 frames to be safe, so other models with larger receptive fields also work.
+    """
     audio_frames = torch.as_tensor(vec.shape[-1]).to(vec.device)
     if audio_frames < 640:
         vec = torch.nn.functional.pad(vec, (0, 640 - audio_frames))
@@ -17,8 +21,16 @@ def alignment_collate_fn(batch: list[dict]) -> dict:
     The individual elements in the batch are tuples: (feature, speech_id)
     """
     # Remove None values
-    speech_ids = [b["speech_id"] for b in batch if b is not None]
-    start_times = [b["start_time_global"] for b in batch if b is not None]
+    speech_ids = []
+    start_times = []
+    input_lengths = []
+
+    for b in batch:
+        if b is not None:
+            speech_ids.append(b["speech_id"])
+            start_times.append(b["start_time_global"])
+            input_lengths.append(b["feature"][0].shape[1])
+
     batch = [pad_to_min_length(b["feature"][0].squeeze(0)) for b in batch if b is not None]
 
     # Pad the input_values to the longest sequence
@@ -28,6 +40,7 @@ def alignment_collate_fn(batch: list[dict]) -> dict:
         "features": batch,
         "start_times": start_times,
         "speech_ids": speech_ids,
+        "input_lengths": input_lengths,
     }
 
 

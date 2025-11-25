@@ -126,9 +126,9 @@ def vad_pipeline(
         model: The loaded VAD model.
         audio_paths: List of paths to audio files.
         audio_dir: Directory where the audio files/dirs are located (if `audio_paths` are relative).
-        speeches (list): Optional list of SpeechSegment objects to run VAD only on specific
-            segments of the audio. Alignment can generally be improved if VAD/alignment is only
-            performed on the segments of the audio that overlap with text transcripts.
+        speeches (list): Optional list of SpeechSegment objects to run VAD and alignment only on
+            specific segments of the audio. Alignment can generally be improved if VAD/alignment is
+            only performed on the segments of the audio that overlap with text transcripts.
         chunk_size: The maximum length chunks VAD will create (seconds).
         sample_rate: The sample rate to resample the audio to before running VAD.
         metadata: Optional dictionary of additional file level metadata to include.
@@ -239,6 +239,7 @@ def emissions_pipeline_generator(
 
         for batch in feature_dataloader:
             features = batch["features"].half().to("cuda")
+            print(f"Input lengths: {batch['input_lengths']}")
 
             with torch.inference_mode():
                 logits = model(features).logits

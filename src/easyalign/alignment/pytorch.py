@@ -54,7 +54,6 @@ def align_pytorch(
         star_dim = torch.zeros(
             (1, emissions.size(1), 1), device=emissions.device, dtype=emissions.dtype
         )
-        print(f"Star dim shape: {star_dim.shape}, Emissions shape: {emissions.shape}")
         emissions = torch.cat((emissions, star_dim), 2)  # Add wildcard star token to the emissions
 
     alignments, scores = F.forced_align(emissions, targets, blank=0)
@@ -72,6 +71,107 @@ def format_timestamp(timestamp):
     seconds = int(timestamp % 60)
     milliseconds = int((timestamp % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+
+
+def _calculate_receptive_field(
+    conv_kernel: list[int],
+    conv_stride: list[int],
+) -> int:
+    """
+    Calculate the receptive field of the model based on convolutional kernel sizes and strides.
+    Formula: RF_next = RF_prev + (kernel - 1) * accumulated_stride
+    """
+    receptive_field = 1
+    accumulated_stride = 1
+    for kernel_size, stride in zip(conv_kernel, conv_stride):
+        receptive_field += (kernel_size - 1) * accumulated_stride
+        accumulated_stride *= stride
+
+    return receptive_field
+
+
+def _compute_logits(
+    frames: int,
+    receptive_field: int,
+    conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
+    conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
+    num_adapter_layers: int = 0,
+    adapter_stride: int = 2,
+) -> int:
+    """
+    Compute the number of output logits for a given number of input frames.
+    Mimics Hugging Face's `_get_feat_extract_output_lengths` logic. This implementation
+    however always pads the input to at least the receptive field size. Our calculation
+    will therefore always output 1 logit for inputs smaller than the receptive field.
+
+    See: https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/wav2vec2/modeling_wav2vec2.py#L1073
+    """
+
+    # Pad input frames to at least the receptive field (see `pad_` easyalign/data/collators.py)
+    frames = max(frames, receptive_field)
+
+    # CNN layers
+    for kernel_size, stride in zip(conv_kernel, conv_stride):
+        current_logits = torch.div(frames - kernel_size, stride, rounding_mode="floor") + 1
+
+    for _ in range(num_adapter_layers):
+        current_logits = torch.div(frames - 1, adapter_stride, rounding_mode="floor") + 1
+
+    return int(current_logits.item())
+
+
+def get_output_logits_length(
+    audio_frames: int,
+    chunk_size: float,
+    conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
+    conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
+    num_adapter_layers: int = 0,
+    adapter_stride: int = 2,
+    sample_rate: int = 16000,
+) -> int:
+    """
+    Calculates the total number of output logits for a given audio length.
+
+    Should flexibly handle different models and configurations with various
+    numbers of adapter layers, strides, kernel sizes, etc. Also handles chunking
+    of the audio input.
+
+    Args:
+        audio_frames: Number of audio frames in the audio file, or part of audio file to be
+            aligned.
+        chunk_size: Number of seconds the audio was chunked by for batched inference or VAD.
+        conv_kernel: The convolutional kernel sizes of the emissions model
+            (see model.config.conv_kernel for default values).
+        conv_stride: The convolutional stride of the emissions model (see model.config.conv_stride).
+        num_adapter_layers: Number of adapter layers in the model.
+        adapter_stride: The stride of each adapter layer.
+        sample_rate: The sample rate of the w2v processor, default 16000.
+    """
+    receptive_field = _calculate_receptive_field(conv_kernel, conv_stride)
+
+    frames_per_chunk = int(chunk_size * sample_rate)
+    num_full_chunks = audio_frames // frames_per_chunk
+    remainder_frames = audio_frames % frames_per_chunk
+
+    # Calculate logits for full chunks
+    logits_per_full_chunk = _compute_logits(
+        frames_per_chunk,
+        receptive_field=receptive_field,
+        num_adapter_layers=num_adapter_layers,
+        adapter_stride=adapter_stride,
+    )
+    total_logits = num_full_chunks * logits_per_full_chunk
+
+    # Add logits for the remainder frames
+    if remainder_frames > 0:
+        total_logits += _compute_logits(
+            remainder_frames,
+            receptive_field=receptive_field,
+            num_adapter_layers=num_adapter_layers,
+            adapter_stride=adapter_stride,
+        )
+
+    return total_logits
 
 
 def calculate_w2v_output_length(
@@ -93,19 +193,15 @@ def calculate_w2v_output_length(
     drift over time for long audio files (when chunking the audio for batched inference).
 
     Args:
-        audio_frames:
-            Number of audio frames in the audio file, or part of audio file to be aligned.
-        chunk_size:
-            Number of seconds to chunk the audio by for batched inference.
-        conv_stride:
-            The convolutional stride of the wav2vec2 model (see model.config.conv_stride).
+        audio_frames: Number of audio frames in the audio file, or part of audio file to be
+            aligned.
+        chunk_size: Number of seconds to chunk the audio by for batched inference.
+        conv_stride: The convolutional stride of the wav2vec2 model (see model.config.conv_stride).
             The product sum of the list is the number of audio frames per output logit.
             Defaults to the conv_stride of wav2vec2-large.
-        sample_rate:
-            The sample rate of the w2v processor, default 16000.
-        frames_first_logit:
-            First logit consists of more frames than the rest. Wav2vec2-large outputs
-            the first logit after 400 frames.
+        sample_rate: The sample rate of the w2v processor, default 16000.
+        frames_first_logit: First logit consists of more frames than the rest. Wav2vec2-large
+            outputs the first logit after 400 frames.
 
     Returns:
         The number of logit outputs for the audio file.
@@ -199,19 +295,15 @@ def get_word_timing(
     Calculate the start and end time of a word span in the original audio file.
 
     Args:
-        word_span:
-            A list of TokenSpan objects that together represent the word span's
+        word_span: A list of TokenSpan objects that together represent the word span's
             timings in the aligned audio chunk.
-        frames_per_logit:
-            The number of audio frames per model output logit. This is the
+        frames_per_logit: The number of audio frames per model output logit. This is the
             total number of frames in our audio chunk divided by the number of
             (non-padding) logit outputs for the chunk.
-        start_segment:
-            The start time of the speech segment in the original audio file.
+        start_segment: The start time of the speech segment in the original audio file.
             We offset the start/end time of the word span by this value (in
             case chunking/slicing of the audio was performed).
-        sample_rate:
-            The sample rate of the audio file, default 16000.
+        sample_rate: The sample rate of the audio file, default 16000.
 
     """
     start = (word_span[0].start * frames_per_logit) / sample_rate + start_segment

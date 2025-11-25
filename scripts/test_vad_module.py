@@ -234,7 +234,6 @@ def align_speech(
     mapping = []
     for batch in tqdm(dataloader):
         for metadata in batch:
-            print(f"Metadata: {metadata}")
             for speech in metadata.speeches:
                 emissions_filepath = Path(emissions_dir) / speech.probs_path
                 emissions = np.load(emissions_filepath)

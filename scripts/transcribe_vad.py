@@ -114,38 +114,25 @@ def align_chunks(
     device="cuda",
 ):
     """
-    Perform alignment on VAD chunks using wav2vec2 emissions. Chunk based alignment is typically used to
-    align the output of ASR models such as Whisper.
+    Perform alignment on VAD chunks using wav2vec2 emissions. Chunk based alignment is typically
+    used to align the output of ASR models such as Whisper.
 
     Args:
-        dataloader:
-            DataLoader providing AudioMetadata objects with speech segments and chunks.
-        text_normalizer:
-            Function to normalize text according to regex rules.
-        processor:
-            Wav2Vec2Processor to preprocess the audio.
-        tokenizer:
-            Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+        dataloader: DataLoader providing AudioMetadata objects with speech segments and chunks.
+        text_normalizer: Function to normalize text according to regex rules.
+        processor: Wav2Vec2Processor to preprocess the audio.
+        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
             or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk,
             or ii) directly return a list of spans (start_char, end_char) when called on a string.
-        emissions_dir:
-            Directory where the wav2vec2 emissions are stored.
-        output_dir:
-            Directory to save alignment outputs.
-        start_wildcard:
-            Whether to add a wildcard token at the start of the segments.
-        end_wildcard:
-            Whether to add a wildcard token at the end of the segments.
-        blank_id:
-            ID of the blank token in the tokenizer.
-        word_boundary:
-            Token indicating word boundaries in the tokenizer.
-        chunk_size:
-            maximum chunk size in seconds.
-        delete_emissions:
-            Whether to delete the emissions files after alignment to save space.
-        device:
-            Device to run the alignment on (e.g. "cuda" or "cpu").
+        emissions_dir: Directory where the wav2vec2 emissions are stored.
+        output_dir: Directory to save alignment outputs.
+        start_wildcard: Whether to add a wildcard token at the start of the segments.
+        end_wildcard: Whether to add a wildcard token at the end of the segments.
+        blank_id: ID of the blank token in the tokenizer.
+        word_boundary: Token indicating word boundaries in the tokenizer.
+        chunk_size: maximum chunk size in seconds.
+        delete_emissions: Whether to delete the emissions files after alignment to save space.
+        device: Device to run the alignment on (e.g. "cuda" or "cpu").
 
     Returns:
         List of aligned segments with word-level timestamps.
@@ -219,7 +206,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["audio_38.wav"],
+        audio_paths=["statsminister.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,
@@ -292,7 +279,6 @@ if __name__ == "__main__":
         output_path = Path("output/transcriptions") / Path(metadata.audio_path).with_suffix(
             ".json"
         )
-        print(f"Metadata: {metadata}")
         output_path.parent.mkdir(parents=True, exist_ok=True)
         save_metadata_json(metadata, output_dir="output/transcriptions")
 
@@ -349,3 +335,9 @@ if __name__ == "__main__":
         delete_emissions=False,
         device="cuda",
     )
+
+    # Input random data to wav2vec2 model to verify it works
+    test_input = torch.randn(1, int(16000 * 30.005)).to("cuda").half()
+    with torch.inference_mode():
+        test_output = model(test_input).logits
+        print(f"Test output shape: {test_output.shape}")
