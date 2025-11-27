@@ -230,6 +230,7 @@ def emissions_pipeline_generator(
         chunk_size=file_dataset.chunk_size,
         conv_kernel=model.config.conv_kernel,
         conv_stride=model.config.conv_stride,
+        add_adapter=getattr(model.config, "add_adapter", False),
         num_adapter_layers=getattr(model.config, "num_adapter_layers", 0),
         adapter_stride=getattr(model.config, "adapter_stride", 2),
         sample_rate=file_dataset.sr,

@@ -106,6 +106,7 @@ def align_chunks(
     output_dir: str = "output/alignments",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
+    remove_wildcards: bool = True,
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
@@ -129,6 +130,7 @@ def align_chunks(
         output_dir: Directory to save alignment outputs.
         start_wildcard: Whether to add a wildcard token at the start of the segments.
         end_wildcard: Whether to add a wildcard token at the end of the segments.
+        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
         blank_id: ID of the blank token in the tokenizer.
         word_boundary: Token indicating word boundaries in the tokenizer.
         chunk_size: maximum chunk size in seconds.
@@ -148,6 +150,7 @@ def align_chunks(
                 for i, chunk in enumerate(speech.chunks):
                     normalized_tokens, mapping = text_normalizer(chunk.text)
                     emissions_chunk = emissions[i]
+                    emissions_chunk = emissions_chunk[: chunk.num_logits]
 
                     tokens, scores = align_pytorch(
                         normalized_tokens=normalized_tokens,
@@ -180,6 +183,9 @@ def align_chunks(
                     mapping = merge_multitoken_expressions(mapping)
                     mapping = add_deletions_to_mapping(mapping, chunk.text)
 
+                    if remove_wildcards:
+                        mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
+
                     mapping = get_segment_alignment(
                         mapping=mapping,
                         original_text=chunk.text,
@@ -189,6 +195,9 @@ def align_chunks(
 
                     chunk_mappings.extend(mapping)
                     speech.alignments.extend(encode_alignments(mapping))
+
+                if delete_emissions:
+                    Path(emissions_filepath.parent).unlink()
 
             if save_json:
                 save_metadata_json(metadata, output_dir=output_dir)
@@ -207,7 +216,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["audio_80.wav"],
+        audio_paths=["statsminister.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,
@@ -292,13 +301,6 @@ if __name__ == "__main__":
         json_paths=list(Path("output/transcriptions").rglob("*.json"))
     )
 
-    get_output_logits_length(
-        audio_frames=719,
-        chunk_size=30,
-        conv_kernel=model.config.conv_kernel,
-        conv_stride=model.config.conv_stride,
-    )
-
     emissions_output = emissions_pipeline(
         model=model,
         processor=processor,
@@ -337,15 +339,10 @@ if __name__ == "__main__":
         output_dir="output/alignments",
         start_wildcard=True,
         end_wildcard=True,
+        remove_wildcards=True,
         blank_id=0,
         word_boundary="|",
         chunk_size=30,
         delete_emissions=False,
         device="cuda",
     )
-
-    # Input random data to wav2vec2 model to verify it works
-    test_input = torch.randn(1, int(720)).to("cuda").half()
-    with torch.inference_mode():
-        test_output = model(test_input).logits
-        print(f"Test output shape: {test_output.shape}")

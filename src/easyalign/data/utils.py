@@ -19,7 +19,11 @@ def pad_probs(probs, maximum_nr_logits: int):
     `chunk_size` long. However, if the entire batch contains only observations shorter than
     `chunk_size`, `probs` needs to be padded accordingly.
     """
-    print(f"Maximum nr logits: {maximum_nr_logits}")
+    assert probs.shape[1] <= maximum_nr_logits, (
+        f"Number of logits in `probs` ({probs.shape[1]}) exceeds the maximum number of logits "
+        f"({maximum_nr_logits}). Did you use a consistent `chunk_size` and `sample_rate` "
+        "throughout your pipeline?"
+    )
     probs = np.pad(
         array=probs,
         pad_width=(

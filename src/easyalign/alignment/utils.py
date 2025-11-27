@@ -25,6 +25,7 @@ def _compute_logits(
     receptive_field: int,
     conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
     conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
+    add_adapter: bool = False,
     num_adapter_layers: int = 0,
     adapter_stride: int = 2,
 ) -> int:
@@ -44,8 +45,11 @@ def _compute_logits(
     for kernel_size, stride in zip(conv_kernel, conv_stride):
         current_logits = torch.div(current_logits - kernel_size, stride, rounding_mode="floor") + 1
 
-    for _ in range(num_adapter_layers):
-        current_logits = torch.div(current_logits - 1, adapter_stride, rounding_mode="floor") + 1
+    if add_adapter:
+        for _ in range(num_adapter_layers):
+            current_logits = (
+                torch.div(current_logits - 1, adapter_stride, rounding_mode="floor") + 1
+            )
 
     return int(current_logits.item())
 
@@ -55,6 +59,7 @@ def get_output_logits_length(
     chunk_size: float,
     conv_kernel: list[int] = [10, 3, 3, 3, 3, 2, 2],
     conv_stride: list[int] = [5, 2, 2, 2, 2, 2, 2],
+    add_adapter: bool = False,
     num_adapter_layers: int = 0,
     adapter_stride: int = 2,
     sample_rate: int = 16000,
@@ -71,8 +76,12 @@ def get_output_logits_length(
         chunk_size: Number of seconds the audio was chunked by for batched inference or VAD.
         conv_kernel: The convolutional kernel sizes of the emissions model
             (see `model.config.conv_kernel` for default values).
-        conv_stride: The convolutional stride of the emissions model (see `model.config.conv_stride`).
-        num_adapter_layers: Number of adapter layers in the model (`model.config.num_adapter_layers`).
+        conv_stride: The convolutional stride of the emissions model
+            (see `model.config.conv_stride`).
+        add_adapter: Whether a convolutional network should be stacked on top of the
+            wav2vec2 encoder.
+        num_adapter_layers: Number of adapter layers in the model
+            (`model.config.num_adapter_layers`).
         adapter_stride: The stride of each adapter layer (`model.config.adapter_stride`).
         sample_rate: The sample rate of the w2v processor, default 16000.
     """
@@ -86,6 +95,7 @@ def get_output_logits_length(
     logits_per_full_chunk = _compute_logits(
         frames_per_chunk,
         receptive_field=receptive_field,
+        add_adapter=add_adapter,
         num_adapter_layers=num_adapter_layers,
         adapter_stride=adapter_stride,
     )

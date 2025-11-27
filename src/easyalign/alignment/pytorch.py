@@ -224,6 +224,7 @@ def get_segment_alignment(
     Args:
         mapping: A list of dictionaries containing the original text tokens that
             have been aligned with the audio, together with character indices and timestamps.
+        original_text: The original unnormalized text that was aligned with the audio.
         tokenizer: A PunktSentenceTokenizer instance to tokenize the original text
             into sentences (if segment_spans are not provided). Alternatively, a callable
             function that takes the original text as input and returns a list of
