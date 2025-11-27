@@ -1,12 +1,8 @@
 import logging
-import multiprocessing as mp
-import os
 from pathlib import Path
 
-import numpy as np
 import torch
 from nltk.tokenize import PunktTokenizer
-from tqdm import tqdm
 from transformers import (
     AutoModelForCTC,
     Wav2Vec2Processor,
@@ -14,30 +10,20 @@ from transformers import (
     WhisperProcessor,
 )
 
-from easyalign.alignment.pytorch import (
-    align_pytorch,
-    get_segment_alignment,
-    get_word_spans,
-    join_word_timestamps,
-)
-from easyalign.alignment.utils import get_output_logits_length
 from easyalign.data.collators import (
     audiofile_collate_fn,
     metadata_collate_fn,
     transcribe_collate_fn,
 )
-from easyalign.data.datamodel import AlignmentSegment, AudioMetadata, SpeechSegment, WordSegment
 from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import (
+    align_chunks,
     emissions_pipeline,
     save_metadata_json,
-    save_metadata_msgpack,
     vad_pipeline,
 )
 from easyalign.text.normalization import (
     SpanMapNormalizer,
-    add_deletions_to_mapping,
-    merge_multitoken_expressions,
 )
 from easyalign.text.tokenizer import load_tokenizer
 from easyalign.vad.pyannote import load_vad_model
@@ -63,151 +49,6 @@ def text_normalizer(text: str) -> str:
     return normalized_tokens, mapping
 
 
-def encode_alignments(
-    mapping: list[dict],
-):
-    alignment_segments = []
-
-    for segment in mapping:
-        segment_words = []
-        word_scores = []
-
-        for token in segment["tokens"]:
-            segment_words.append(
-                WordSegment(
-                    text=token["text_span_full"],
-                    start=token["start_time"],
-                    end=token["end_time"],
-                    score=token["score"],
-                )
-            )
-            word_scores.append(token["score"])
-
-        alignment_segment = AlignmentSegment(
-            start=segment["start_segment"],
-            end=segment["end_segment"],
-            duration=segment["end_segment"] - segment["start_segment"],
-            words=segment_words,
-            text=segment["text_span_full"],
-            score=np.mean(word_scores) if word_scores else None,
-        )
-
-        alignment_segments.append(alignment_segment)
-
-    return alignment_segments
-
-
-def align_chunks(
-    dataloader: torch.utils.data.DataLoader,
-    text_normalizer: callable,
-    processor: Wav2Vec2Processor,
-    tokenizer=None,
-    emissions_dir: str = "output/emissions",
-    output_dir: str = "output/alignments",
-    start_wildcard: bool = False,
-    end_wildcard: bool = False,
-    remove_wildcards: bool = True,
-    blank_id: int = 0,
-    word_boundary: str = "|",
-    chunk_size: int = 30,
-    save_json: bool = True,
-    save_msgpack: bool = False,
-    delete_emissions: bool = False,
-    device="cuda",
-):
-    """
-    Perform alignment on VAD chunks using wav2vec2 emissions. Chunk based alignment is typically
-    used to align the output of ASR models such as Whisper.
-
-    Args:
-        dataloader: DataLoader providing AudioMetadata objects with speech segments and chunks.
-        text_normalizer: Function to normalize text according to regex rules.
-        processor: Wav2Vec2Processor to preprocess the audio.
-        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk,
-            or ii) directly return a list of spans (start_char, end_char) when called on a string.
-        emissions_dir: Directory where the wav2vec2 emissions are stored.
-        output_dir: Directory to save alignment outputs.
-        start_wildcard: Whether to add a wildcard token at the start of the segments.
-        end_wildcard: Whether to add a wildcard token at the end of the segments.
-        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
-        blank_id: ID of the blank token in the tokenizer.
-        word_boundary: Token indicating word boundaries in the tokenizer.
-        chunk_size: maximum chunk size in seconds.
-        delete_emissions: Whether to delete the emissions files after alignment to save space.
-        device: Device to run the alignment on (e.g. "cuda" or "cpu").
-
-    Returns:
-        List of aligned segments with word-level timestamps.
-    """
-    chunk_mappings = []
-    for batch in tqdm(dataloader):
-        for metadata in batch:
-            for speech in metadata.speeches:
-                emissions_filepath = Path(emissions_dir) / speech.probs_path
-                emissions = np.load(emissions_filepath)
-
-                for i, chunk in enumerate(speech.chunks):
-                    normalized_tokens, mapping = text_normalizer(chunk.text)
-                    emissions_chunk = emissions[i]
-                    emissions_chunk = emissions_chunk[: chunk.num_logits]
-
-                    tokens, scores = align_pytorch(
-                        normalized_tokens=normalized_tokens,
-                        processor=processor,
-                        emissions=torch.tensor(emissions_chunk).to(device).unsqueeze(0),
-                        start_wildcard=start_wildcard,
-                        end_wildcard=end_wildcard,
-                        device=device,
-                    )
-
-                    word_spans, mapping = get_word_spans(
-                        tokens=tokens,
-                        scores=scores,
-                        mapping=mapping,
-                        blank=blank_id,
-                        start_wildcard=start_wildcard,
-                        end_wildcard=end_wildcard,
-                        word_boundary=word_boundary,
-                        processor=processor,
-                    )
-
-                    mapping = join_word_timestamps(
-                        word_spans=word_spans,
-                        mapping=mapping,
-                        speech=speech,
-                        chunk_size=chunk_size,
-                        start_segment=chunk.start,
-                    )
-
-                    mapping = merge_multitoken_expressions(mapping)
-                    mapping = add_deletions_to_mapping(mapping, chunk.text)
-
-                    if remove_wildcards:
-                        mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
-
-                    mapping = get_segment_alignment(
-                        mapping=mapping,
-                        original_text=chunk.text,
-                        tokenizer=tokenizer,
-                        segment_spans=None,
-                    )
-
-                    chunk_mappings.extend(mapping)
-                    speech.alignments.extend(encode_alignments(mapping))
-
-                if delete_emissions:
-                    Path(emissions_filepath.parent).unlink()
-
-            if save_json:
-                save_metadata_json(metadata, output_dir=output_dir)
-
-            if save_msgpack:
-                save_metadata_msgpack(metadata, output_dir=output_dir)
-
-    return chunk_mappings
-
-
 if __name__ == "__main__":
     model = WhisperForConditionalGeneration.from_pretrained(
         "KBLab/kb-whisper-large", torch_dtype=torch.float16
@@ -216,7 +57,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["statsminister.wav"],
+        audio_paths=["audio_80.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,
@@ -339,10 +180,10 @@ if __name__ == "__main__":
         output_dir="output/alignments",
         start_wildcard=True,
         end_wildcard=True,
-        remove_wildcards=True,
         blank_id=0,
         word_boundary="|",
         chunk_size=30,
-        delete_emissions=False,
+        delete_emissions=True,
+        remove_wildcards=True,
         device="cuda",
     )

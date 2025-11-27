@@ -1,3 +1,6 @@
+import itertools
+
+import numpy as np
 import torch
 
 from easyalign.data.datamodel import AudioMetadata
@@ -144,3 +147,30 @@ def add_logits_to_metadata(
                 )
 
     return metadata
+
+
+def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str] | list[int]):
+    """
+    Divide the accumulated probs of audio file into the speeches they belong to.
+    (we can't assume that a batch maps to a single speech)
+
+    Args:
+        probs_list: List of np.ndarrays containing the probs
+            with shape (batch_size, seq_len, vocab_size).
+        speech_ids: List of speech ids that each chunk (observation)
+            in the probs_list belongs to.
+    """
+    # Count the number of chunks per speech id
+    speech_chunk_counts = [
+        (key, sum(1 for i in group)) for key, group in itertools.groupby(speech_ids)
+    ]
+    # Create a list of indices where each speech chunk starts
+    split_indices = list(itertools.accumulate([count for _, count in speech_chunk_counts]))[:-1]
+
+    probs_in_speech = np.concatenate(probs_list, axis=0)
+    probs_split = np.split(probs_in_speech, split_indices, axis=0)
+    unique_speech_ids = dict.fromkeys(speech_ids).keys()  # Preserves order
+
+    assert len(speech_chunk_counts) == len(probs_split) == len(set(unique_speech_ids))
+    for speech_id, probs in zip(unique_speech_ids, probs_split):
+        yield speech_id, probs

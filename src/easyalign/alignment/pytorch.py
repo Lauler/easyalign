@@ -9,7 +9,7 @@ from torchaudio.functional import TokenSpan
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
 from easyalign.alignment.utils import get_output_logits_length
-from easyalign.data.datamodel import SpeechSegment
+from easyalign.data.datamodel import AlignmentSegment, SpeechSegment, WordSegment
 
 logger = logging.getLogger(__name__)
 
@@ -72,33 +72,6 @@ def format_timestamp(timestamp):
     seconds = int(timestamp % 60)
     milliseconds = int((timestamp % 1) * 1000)
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
-
-
-def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str] | list[int]):
-    """
-    Divide the accumulated probs of audio file into the speeches they belong to.
-    (we can't assume that a batch maps to a single speech)
-
-    Args:
-        probs_list: List of np.ndarrays containing the probs
-            with shape (batch_size, seq_len, vocab_size).
-        speech_ids: List of speech ids that each chunk (observation)
-            in the probs_list belongs to.
-    """
-    # Count the number of chunks per speech id
-    speech_chunk_counts = [
-        (key, sum(1 for i in group)) for key, group in itertools.groupby(speech_ids)
-    ]
-    # Create a list of indices where each speech chunk starts
-    split_indices = list(itertools.accumulate([count for _, count in speech_chunk_counts]))[:-1]
-
-    probs_in_speech = np.concatenate(probs_list, axis=0)
-    probs_split = np.split(probs_in_speech, split_indices, axis=0)
-    unique_speech_ids = dict.fromkeys(speech_ids).keys()  # Preserves order
-
-    assert len(speech_chunk_counts) == len(probs_split) == len(set(unique_speech_ids))
-    for speech_id, probs in zip(unique_speech_ids, probs_split):
-        yield speech_id, probs
 
 
 def unflatten(char_list: list[TokenSpan], word_lengths: list[int]) -> list[list[TokenSpan]]:
@@ -413,3 +386,37 @@ def join_word_timestamps(
         normalized_token["score"] = score
 
     return mapping
+
+
+def encode_alignments(
+    mapping: list[dict],
+):
+    alignment_segments = []
+
+    for segment in mapping:
+        segment_words = []
+        word_scores = []
+
+        for token in segment["tokens"]:
+            segment_words.append(
+                WordSegment(
+                    text=token["text_span_full"],
+                    start=token["start_time"],
+                    end=token["end_time"],
+                    score=token["score"],
+                )
+            )
+            word_scores.append(token["score"])
+
+        alignment_segment = AlignmentSegment(
+            start=segment["start_segment"],
+            end=segment["end_segment"],
+            duration=segment["end_segment"] - segment["start_segment"],
+            words=segment_words,
+            text=segment["text_span_full"],
+            score=np.mean(word_scores) if word_scores else None,
+        )
+
+        alignment_segments.append(alignment_segment)
+
+    return alignment_segments
