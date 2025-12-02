@@ -19,13 +19,13 @@ from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import (
     align_chunks,
     emissions_pipeline,
-    save_metadata_json,
     vad_pipeline,
 )
 from easyalign.text.normalization import (
     SpanMapNormalizer,
 )
 from easyalign.text.tokenizer import load_tokenizer
+from easyalign.utils import save_metadata_json
 from easyalign.vad.pyannote import load_vad_model
 
 logging.basicConfig(
