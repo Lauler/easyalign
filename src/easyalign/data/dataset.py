@@ -9,7 +9,6 @@ import torch
 from torch.utils.data import Dataset
 from transformers import Wav2Vec2Processor, WhisperProcessor
 
-from easyalign.alignment.pytorch import get_output_logits_length
 from easyalign.data.datamodel import AudioMetadata
 from easyalign.utils import convert_audio_to_wav
 
@@ -42,7 +41,30 @@ class JSONMetadataDataset(Dataset):
 
     def __getitem__(self, idx) -> AudioMetadata:
         json_path = self.json_paths[idx]
+        logger.info(f"Loading metadata from {json_path}")
         with open(json_path, "r") as f:
+            return self.decoder.decode(f.read())
+
+
+class MsgpackMetadataDataset(Dataset):
+    """
+    Dataset for reading AudioMetadata Msgpack files.
+
+    Args:
+        msgpack_paths: List of paths to Msgpack files.
+    """
+
+    def __init__(self, msgpack_paths: list[str | Path]):
+        self.msgpack_paths = [Path(p) for p in msgpack_paths]
+        self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
+
+    def __len__(self):
+        return len(self.msgpack_paths)
+
+    def __getitem__(self, idx) -> AudioMetadata:
+        msgpack_path = self.msgpack_paths[idx]
+        logger.info(f"Loading metadata from {msgpack_path}")
+        with open(msgpack_path, "rb") as f:
             return self.decoder.decode(f.read())
 
 
@@ -84,6 +106,7 @@ class VADAudioDataset(Dataset):
         return len(self.audio_paths)
 
     def __getitem__(self, idx):
+        logger.info(f"Loading audio for VAD from {self.full_audio_paths[idx]}")
         audio, sr = self.read_audio(self.full_audio_paths[idx])
 
         return {
@@ -166,7 +189,6 @@ class AudioFileDataset(Dataset):
                 convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
                 audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
             except Exception as e:
-                print(f"Error reading audio file {audio_path}. \n\n {e}")
                 logging.error(f"Error reading audio file {audio_path}. \n\n {e}")
                 return None, None
         return audio, sr
@@ -176,8 +198,8 @@ class AudioFileDataset(Dataset):
 
     def get_speech_features(self, audio_path, metadata, sr=16000):
         """
-        Extract features for each speech segment in the metadata. When VAD is not used,
-        the speech segments are naively split into `chunk_size` sized chunks for wav2vec2
+        Extract features for each speech segment in the metadata. When `alignment_strategy`
+        is `speech`, the speech segments are split into `chunk_size` sized chunks for wav2vec2
         inference.
         """
         audio, sr = self.read_audio(audio_path)
@@ -198,7 +220,8 @@ class AudioFileDataset(Dataset):
                 )
                 feature = getattr(inputs, self.processor_attribute)
 
-                # Create tuple with feature and speech_id so we can link back to the speech
+                # Create tuple with feature and speech_id so we can link back to the speech.
+                # Insert dummy start_time_global for data collator compatibility with `get_vad_features`.
                 features.append(
                     {"feature": feature, "start_time_global": -100, "speech_id": speech.speech_id}
                 )
@@ -206,8 +229,9 @@ class AudioFileDataset(Dataset):
 
     def get_vad_features(self, audio_path, metadata, sr=16000):
         """
-        Extract features for each VAD chunk in the metadata. To keep alignment timestamps
-        in sync, we also return the global start time of each chunk.
+        Extract features for each VAD chunk in the metadata. The global start time of
+        each chunk is also returned for debugging purposes. This method is used when
+        `alignment_strategy` is set to `chunk`.
         """
         audio, sr = self.read_audio(audio_path)
         features = []
@@ -252,6 +276,7 @@ class AudioFileDataset(Dataset):
             if speech.speech_id is None:
                 speech.speech_id = i  # Assign ID if missing
 
+        logger.info(f"Loading audio for alignment from {full_audio_path}")
         if self.alignment_strategy == "chunk":
             features = self.get_vad_features(full_audio_path, metadata)
         else:

@@ -30,14 +30,25 @@ class WordSegment(msgspec.Struct):
 class AudioChunk(msgspec.Struct):
     """
     Segment of audio, usually created by VAD.
+
+    Attributes:
+        start: Start time of the chunk in seconds.
+        end: End time of the chunk in seconds.
+        text: Optional text transcription for the chunk.
+        duration: Duration of the chunk in seconds.
+        audio_frames: Number of audio frames a chunk spans.
+        num_logits: Number of model output logits for the chunk.
+        language: Optional language code for the chunk (used for routing chunks to
+            language-specific models when doing ASR).
     """
 
-    start: float  # in seconds
-    end: float  # in seconds
-    text: str | None = None  # Optional text transcription for the chunk
-    duration: float | None = None  # in seconds
-    audio_frames: int | None = None  # Number of audio frames chunk spans
-    num_logits: int | None = None  # Number of model output logits for the chunk
+    start: float
+    end: float
+    text: str | None = None
+    duration: float | None = None
+    audio_frames: int | None = None
+    num_logits: int | None = None
+    language: str | None = None
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
@@ -158,9 +169,7 @@ class SpeechSegment(msgspec.Struct):
             self.calculate_duration()
 
         if isinstance(self.text, list) and self.text_spans is None:
-            # Create (start_char, end_char) spans for each text segment we want to align
-            # and extract timestamps for (in the case where a user has supplied a list of strings
-            # without spans).
+            # Create (start_char, end_char) spans for each text segment if not provided by user.
 
             start_char_match = re.search(r"\S", self.text[0])  # Find first non-space character
             start_char = start_char_match.start() if start_char_match else 0
