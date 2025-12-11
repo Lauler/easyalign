@@ -33,11 +33,14 @@ def numpy_encoder(obj):
     return obj
 
 
-def save_metadata_json(metadata: AudioMetadata, output_dir: str = "output/emissions"):
+def save_metadata_json(
+    metadata: AudioMetadata, output_dir: str = "output/emissions", indent: int = 2
+):
     audio_path = metadata.audio_path
     json_encoder = msgspec.json.Encoder(enc_hook=numpy_encoder)
     json_msgspec = json_encoder.encode(metadata)
-    json_msgspec = msgspec.json.format(json_msgspec, indent=2)
+    if indent is not None:
+        json_msgspec = msgspec.json.format(json_msgspec, indent=indent)
     json_path = Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
     Path(json_path).parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, "wb") as f:
@@ -60,6 +63,7 @@ def save_emissions_and_metadata(
     metadata: AudioMetadata,
     probs_list: list[np.ndarray],
     speech_ids: list[str],
+    indent: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
@@ -82,7 +86,7 @@ def save_emissions_and_metadata(
             np.save(probs_path, probs)
 
     if save_json:
-        save_metadata_json(metadata, output_dir=output_dir)
+        save_metadata_json(metadata, output_dir=output_dir, indent=indent)
     if save_msgpack:
         save_metadata_msgpack(metadata, output_dir=output_dir)
 
@@ -102,6 +106,7 @@ def save_alignments(
     save_json: bool = True,
     save_msgpack: bool = False,
     output_dir: str = "output/alignments",
+    indent: int = 2,
 ):
     audio_path = metadata.audio_path
     base_path = Path(audio_path).parent / Path(audio_path).stem
@@ -118,7 +123,8 @@ def save_alignments(
 
         if save_json:
             alignment_msgspec = json_encoder.encode(alignment)
-            alignment_msgspec = msgspec.json.format(alignment_msgspec, indent=2)
+            if indent is not None:
+                alignment_msgspec = msgspec.json.format(alignment_msgspec, indent=indent)
             with open(alignment_path, "wb") as f:
                 f.write(alignment_msgspec)
 

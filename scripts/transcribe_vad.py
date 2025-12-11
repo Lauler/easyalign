@@ -17,7 +17,7 @@ from easyalign.data.collators import (
 )
 from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import (
-    align_chunks,
+    alignment_pipeline,
     emissions_pipeline,
     vad_pipeline,
 )
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["audio_80.wav"],
+        audio_paths=["statsminister.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,
@@ -171,19 +171,25 @@ if __name__ == "__main__":
         collate_fn=metadata_collate_fn,
     )
 
-    mapping = align_chunks(
+    alignments = alignment_pipeline(
         dataloader=audiometa_loader,
         text_normalizer=text_normalizer,
         processor=processor,
         tokenizer=None,
         emissions_dir="output/emissions",
         output_dir="output/alignments",
+        alignment_strategy="chunk",
         start_wildcard=True,
         end_wildcard=True,
         blank_id=0,
         word_boundary="|",
         chunk_size=30,
-        delete_emissions=True,
+        ndigits=5,
+        indent=2,
+        save_json=True,
+        save_msgpack=False,
+        return_alignments=True,
+        delete_emissions=False,
         remove_wildcards=True,
         device="cuda",
     )

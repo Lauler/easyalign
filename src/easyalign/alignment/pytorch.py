@@ -37,14 +37,15 @@ def align_pytorch(
     Args:
         normalized_tokens: List of normalized text that has been tokenized.
         processor: Wav2Vec2Processor instance for tokenization.
-        emissions: Tensor of audio emissions (logits) with shape (batch, sequence (time), vocab_size).
+        emissions: Tensor of audio emissions (logits) with shape
+            (batch, sequence (time), vocab_size).
         start_unknown: If True, adds a star wildcard token at the start of the transcript
             to allow better alignment if the audio starts with other irrelevant speech.
         end_unknown: If True, adds a star wildcard token at the end of the transcript.
         device: Device to run the alignment on (e.g., "cpu" or "cuda").
 
     Returns:
-        alignments: Aligned token indices for the emissions.
+        alignments: Aligned indices of character tokens (their logit indices in the emissions).
         scores: Alignment scores (probabilities) for the tokens.
     """
     transcript = " ".join(normalized_tokens)
@@ -55,6 +56,7 @@ def align_pytorch(
     if end_wildcard:
         transcript = transcript + " *"
 
+    # Further tokenization using the model's tokenizer (usually character-level)
     targets = processor.tokenizer(transcript, return_tensors="pt")["input_ids"]
     targets = targets.to(device)
 
@@ -84,8 +86,11 @@ def align_chunks(
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
+    ndigits: int = 5,
+    indent: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
+    return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
     device="cuda",
@@ -99,8 +104,9 @@ def align_chunks(
         text_normalizer: Function to normalize text according to regex rules.
         processor: Wav2Vec2Processor to preprocess the audio.
         tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk,
-            or ii) directly return a list of spans (start_char, end_char) when called on a string.
+            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+            string.
         emissions_dir: Directory where the wav2vec2 emissions are stored.
         output_dir: Directory to save alignment outputs.
         start_wildcard: Whether to add a wildcard token at the start of the segments.
@@ -108,6 +114,11 @@ def align_chunks(
         blank_id: ID of the blank token in the tokenizer.
         word_boundary: Token indicating word boundaries in the tokenizer.
         chunk_size: maximum chunk size in seconds.
+        ndigits: Number of decimal digits to round the alignment times and scores to.
+        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
+        save_json: Whether to save alignment metadata in JSON format.
+        save_msgpack: Whether to save alignment metadata in Msgpack format.
+        return_alignments: Whether to yield the alignment mappings.
         delete_emissions: Whether to delete the emissions files after alignment to save space.
         remove_wildcards: Whether to remove wildcard tokens from the final alignment.
         device: Device to run the alignment on (e.g. "cuda" or "cpu").
@@ -115,9 +126,9 @@ def align_chunks(
     Returns:
         List of aligned segments with word-level timestamps.
     """
-    chunk_mappings = []
     for batch in tqdm(dataloader):
         for metadata in batch:
+            chunk_mappings = []
             for speech in metadata.speeches:
                 emissions_filepath = Path(emissions_dir) / speech.probs_path
                 emissions = np.load(emissions_filepath)
@@ -168,48 +179,22 @@ def align_chunks(
                         segment_spans=None,
                     )
 
-                    chunk_mappings.extend(mapping)
-                    speech.alignments.extend(encode_alignments(mapping))
+                    alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+
+                    chunk_mappings.extend(alignment_mapping)
+                    speech.alignments.extend(alignment_mapping)
 
                 if delete_emissions:
-                    Path(emissions_filepath.parent).unlink()
+                    Path(emissions_filepath).unlink()
 
             if save_json:
-                save_metadata_json(metadata, output_dir=output_dir)
+                save_metadata_json(metadata, output_dir=output_dir, indent=indent)
 
             if save_msgpack:
                 save_metadata_msgpack(metadata, output_dir=output_dir)
 
-    return chunk_mappings
-
-
-def format_speech_text(speech: SpeechSegment, add_leading_space: bool = False) -> str:
-    if len(speech.text) == 1:
-        original_text = speech.text[0]
-    elif len(speech.text) > 1:
-        # If the user tokenized the text into multiple segments, concatenate them
-        # for alignment
-        if add_leading_space:
-            # Add leading space for all except the first segment
-            original_text = "".join([speech.text[0]] + [" " + t for t in speech.text[1:]])
-
-            # Modify the text_spans accordingly
-            offset = 1
-            for i, text_span in enumerate(speech.text_spans):
-                if i == 0:
-                    continue
-                start, end = text_span
-                speech.text_spans[i] = (
-                    start + offset - 1,
-                    end + offset,
-                )  # Add offset to both start and end
-                offset += 1  # Increment offset for next segment
-        else:
-            original_text = "".join(speech.text)
-    else:
-        logger.warning((f"No text found for speech id {speech.speech_id} Skipping alignment."))
-        original_text = ""
-    return original_text
+            if return_alignments:
+                yield chunk_mappings
 
 
 def align_speech(
@@ -224,11 +209,13 @@ def align_speech(
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
+    ndigits: int = 5,
+    indent: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
+    return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
-    add_leading_space: bool = False,
     device="cuda",
 ):
     mapping = []
@@ -239,7 +226,16 @@ def align_speech(
                 emissions = np.load(emissions_filepath)
                 emissions = np.vstack(emissions)
 
-                original_text = format_speech_text(speech, add_leading_space=add_leading_space)
+                if speech.text:
+                    original_text = speech.text
+                else:
+                    logger.warning(
+                        (
+                            f"No text found for speech id {speech.speech_id}. \n\n"
+                            f"Skipping alignment for file: {metadata.audio_path}.\n"
+                        )
+                    )
+                    continue
 
                 normalized_tokens, mapping = text_normalizer(original_text)
                 tokens, scores = align_pytorch(
@@ -283,19 +279,22 @@ def align_speech(
                     segment_spans=speech.text_spans,
                 )
 
-                speech.alignments.extend(encode_alignments(mapping))
+                alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+                speech.alignments.extend(alignment_mapping)
+
                 if delete_emissions:
-                    Path(emissions_filepath.parent).unlink()
+                    Path(emissions_filepath).unlink()
 
             # Add info to metadata and save
 
             if save_json:
-                save_metadata_json(metadata, output_dir=output_dir)
+                save_metadata_json(metadata, output_dir=output_dir, indent=indent)
 
             if save_msgpack:
                 save_metadata_msgpack(metadata, output_dir=output_dir)
 
-    return mapping
+            if return_alignments:
+                yield alignment_mapping
 
 
 def format_timestamp(timestamp):
@@ -625,7 +624,15 @@ def join_word_timestamps(
 
 def encode_alignments(
     mapping: list[dict],
+    ndigits: int = 5,
 ):
+    def round_floats(obj, ndigits=ndigits):
+        if isinstance(obj, float):
+            return round(obj, ndigits)
+        elif isinstance(obj, np.floating):
+            return round(float(obj), ndigits)
+        return obj
+
     alignment_segments = []
 
     for segment in mapping:
@@ -636,20 +643,20 @@ def encode_alignments(
             segment_words.append(
                 WordSegment(
                     text=token["text_span_full"],
-                    start=token["start_time"],
-                    end=token["end_time"],
-                    score=token["score"],
+                    start=round_floats(token["start_time"]),
+                    end=round_floats(token["end_time"]),
+                    score=round_floats(token["score"]),
                 )
             )
             word_scores.append(token["score"])
 
         alignment_segment = AlignmentSegment(
-            start=segment["start_segment"],
-            end=segment["end_segment"],
-            duration=segment["end_segment"] - segment["start_segment"],
+            start=round_floats(segment["start_segment"]),
+            end=round_floats(segment["end_segment"]),
+            duration=round_floats(segment["end_segment"] - segment["start_segment"]),
             words=segment_words,
             text=segment["text_span_full"],
-            score=np.mean(word_scores) if word_scores else None,
+            score=round_floats(np.mean(word_scores)) if word_scores else None,
         )
 
         alignment_segments.append(alignment_segment)

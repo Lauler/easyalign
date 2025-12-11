@@ -93,12 +93,14 @@ class AlignmentSegment(msgspec.Struct):
 
 class SpeechSegment(msgspec.Struct):
     """
-    A speech slice composed of multiple aligned audio segments.
+    A slice of the audio that contains speech of interest to be aligned.
 
-    May be a speech given by a single speaker, or a dialogue between multiple speakers.
-    Whatever unit of abstraction the user prefers.
+    A `SpeechSegment` may be a speech given by a single speaker, a dialogue between
+    multiple speakers, a book chapter, or whatever unit of organisational abstraction
+    the user prefers.
 
-    If no SpeechSegment is defined, the entire audio is treated as a single speech.
+    If no SpeechSegment is defined, one will automatically be added, treating the entire
+    audio as a single speech.
 
     Attributes:
         start:
@@ -108,12 +110,13 @@ class SpeechSegment(msgspec.Struct):
         text:
             Optional text transcription (manual, or created by ASR).
         text_spans:
-            If `text_spans` is supplied, custom segments of the text will be aligned to
-            audio. Each tuple is (start_char, end_char) in the `text`.
+            Optional (start_char, end_char) indices in the `text` that allows for a custom
+            segmentation of the text to be aligned to audio. Can for example be used to
+            perform alignment on paragraph, sentence, or other optional levels of granularity.
         chunks:
-            Audio chunks from which we create w2v2 logits.
-            If ASR is used, these chunks will contain the ASR text of the chunk, which will be used
-            for forced alignment within the chunk.
+            Audio chunks from which we create w2v2 logits (if `alignment_strategy` is 'chunk').
+            When ASR is used, these chunks will additionally contain the transcribed text of
+            the chunk. The ASR output will be used for forced alignment within the chunk.
         alignments:
             Aligned text segments.
         duration:
@@ -131,7 +134,7 @@ class SpeechSegment(msgspec.Struct):
     speech_id: str | int | None = None
     start: float | None = None  # in seconds
     end: float | None = None  # in seconds
-    text: list[str] | None = None
+    text: str | None = None
     text_spans: list[tuple[int, int]] | None = None
     chunks: list[AudioChunk] = []
     alignments: list[AlignmentSegment] = []  # Aligned text segments

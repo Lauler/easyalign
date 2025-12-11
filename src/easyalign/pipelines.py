@@ -32,6 +32,7 @@ def vad_pipeline_generator(
     prefetch_factor: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
+    return_vad: bool = False,
     output_dir: str = "output/vad",
 ):
     """
@@ -52,6 +53,9 @@ def vad_pipeline_generator(
         prefetch_factor: The prefetch factor for the DataLoader.
         save_json: Whether to save the VAD output as JSON files.
         json_dir: Directory to save the JSON files if save_json is True.
+
+    Yields:
+        If `return_vad` is True, yields AudioMetadata objects for each audio file.
     """
 
     vad_dataset = VADAudioDataset(
@@ -106,7 +110,8 @@ def vad_pipeline_generator(
             with open(msgpack_path, "wb") as f:
                 f.write(vad_msgpack)
 
-        yield vad_output
+        if return_vad:
+            yield vad_output
 
 
 def vad_pipeline(
@@ -122,6 +127,7 @@ def vad_pipeline(
     prefetch_factor: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
+    return_vad: bool = False,
     output_dir: str = "output/vad",
 ):
     """
@@ -142,28 +148,39 @@ def vad_pipeline(
         prefetch_factor: The prefetch factor for the DataLoader.
         save_json: Whether to save the VAD output as JSON files.
         save_msgpack: Whether to save the VAD output as Msgpack files.
+        return_vad: Whether to return the VAD output as a list of AudioMetadata objects.
         output_dir: Directory to save the JSON/Msgpack files if save_json/save_msgpack is True.
+
+    Returns:
+        If `return_vad` is True, returns a list of AudioMetadata objects for each audio file.
+        Otherwise, returns `None`.
     """
 
-    results = list(
-        vad_pipeline_generator(
-            model=model,
-            audio_paths=audio_paths,
-            audio_dir=audio_dir,
-            speeches=speeches,
-            chunk_size=chunk_size,
-            sample_rate=sample_rate,
-            metadata=metadata,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            prefetch_factor=prefetch_factor,
-            save_json=save_json,
-            save_msgpack=save_msgpack,
-            output_dir=output_dir,
-        )
+    vad_generator = vad_pipeline_generator(
+        model=model,
+        audio_paths=audio_paths,
+        audio_dir=audio_dir,
+        speeches=speeches,
+        chunk_size=chunk_size,
+        sample_rate=sample_rate,
+        metadata=metadata,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        prefetch_factor=prefetch_factor,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        return_vad=return_vad,
+        output_dir=output_dir,
     )
 
-    return results
+    if return_vad:
+        return list(vad_generator)
+    else:
+        # Consume the generator without returning anything, saving files to disk only
+        for _ in vad_generator:
+            pass
+
+    return None
 
 
 def emissions_pipeline_generator(
@@ -186,8 +203,9 @@ def emissions_pipeline_generator(
     output_dir: str = "output/emissions",
 ):
     """
-    Run emissions extraction pipeline on the given audio files and save results to file. If `return_emissions`
-    is True, function becomes a generator that yields tuples of (metadata, emissions) for each audio file.
+    Run emissions extraction pipeline on the given audio files and save results to file. If
+    `return_emissions` is True, function becomes a generator that yields tuples of
+    (metadata, emissions) for each audio file.
 
     Args:
         model: The loaded ASR model.
@@ -210,6 +228,8 @@ def emissions_pipeline_generator(
         return_emissions: Whether to return the emissions as a list of numpy arrays.
         output_dir: Directory to save the output files if saving is enabled.
 
+    Yields:
+        If `return_emissions` is True, yields tuples of (metadata, emissions) for each audio file.
     """
     file_dataset = AudioFileDataset(
         metadata=metadata,
@@ -337,28 +357,34 @@ def emissions_pipeline(
         for each audio file. Otherwise, returns None.
     """
 
-    emissions_output = list(
-        emissions_pipeline_generator(
-            model=model,
-            processor=processor,
-            metadata=metadata,
-            audio_dir=audio_dir,
-            sample_rate=sample_rate,
-            chunk_size=chunk_size,
-            alignment_strategy=alignment_strategy,
-            batch_size_files=batch_size_files,
-            num_workers_files=num_workers_files,
-            prefetch_factor_files=prefetch_factor_files,
-            batch_size_features=batch_size_features,
-            num_workers_features=num_workers_features,
-            save_json=save_json,
-            save_msgpack=save_msgpack,
-            save_emissions=save_emissions,
-            return_emissions=return_emissions,
-            output_dir=output_dir,
-        )
+    emissions_generator = emissions_pipeline_generator(
+        model=model,
+        processor=processor,
+        metadata=metadata,
+        audio_dir=audio_dir,
+        sample_rate=sample_rate,
+        chunk_size=chunk_size,
+        alignment_strategy=alignment_strategy,
+        batch_size_files=batch_size_files,
+        num_workers_files=num_workers_files,
+        prefetch_factor_files=prefetch_factor_files,
+        batch_size_features=batch_size_features,
+        num_workers_features=num_workers_features,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        save_emissions=save_emissions,
+        return_emissions=return_emissions,
+        output_dir=output_dir,
     )
-    return emissions_output
+
+    if return_emissions:
+        return list(emissions_generator)
+    else:
+        # Consume the generator without returning anything, saving files only
+        for _ in emissions_generator:
+            pass
+
+    return None
 
 
 def alignment_pipeline_generator(
@@ -374,11 +400,13 @@ def alignment_pipeline_generator(
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
+    ndigits: int = 5,
+    indent: int = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
+    return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
-    add_leading_space: bool = False,
     device="cuda",
 ):
     """
@@ -405,6 +433,11 @@ def alignment_pipeline_generator(
         blank_id: ID of the blank token in the tokenizer.
         word_boundary: Token indicating word boundaries in the tokenizer.
         chunk_size: maximum chunk size in seconds.
+        ndigits: Number of decimal digits to round the alignment times and scores to.
+        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
+        save_json: Whether to save alignment metadata in JSON format.
+        save_msgpack: Whether to save alignment metadata in Msgpack format.
+        return_alignments: Whether to yield the alignment mappings.
         delete_emissions: Whether to delete the emissions files after alignment to save space.
         remove_wildcards: Whether to remove wildcard tokens from the final alignment.
         add_leading_space: Whether to add a leading space to the text segments (only used
@@ -412,7 +445,7 @@ def alignment_pipeline_generator(
         device: Device to run the alignment on (e.g. "cuda" or "cpu").
 
     Yields:
-        List of aligned segments with word-level timestamps for each audio file.
+        List of aligned speech segments for each audio file.
     """
 
     if alignment_strategy == "speech":
@@ -420,7 +453,7 @@ def alignment_pipeline_generator(
     elif alignment_strategy == "chunk":
         align_func = align_chunks
 
-    mapping = align_func(
+    yield from align_func(
         dataloader=dataloader,
         text_normalizer=text_normalizer,
         processor=processor,
@@ -432,11 +465,103 @@ def alignment_pipeline_generator(
         blank_id=blank_id,
         word_boundary=word_boundary,
         chunk_size=chunk_size,
+        ndigits=ndigits,
+        indent=indent,
         save_json=save_json,
         save_msgpack=save_msgpack,
+        return_alignments=return_alignments,
         delete_emissions=delete_emissions,
         remove_wildcards=remove_wildcards,
         device=device,
     )
 
-    yield from mapping
+
+def alignment_pipeline(
+    dataloader: torch.utils.data.DataLoader,
+    text_normalizer: callable,
+    processor: Wav2Vec2Processor,
+    tokenizer=None,
+    emissions_dir: str = "output/emissions",
+    output_dir: str = "output/alignments",
+    alignment_strategy: str = "speech",
+    start_wildcard: bool = False,
+    end_wildcard: bool = False,
+    blank_id: int = 0,
+    word_boundary: str = "|",
+    chunk_size: int = 30,
+    ndigits: int = 5,
+    indent: int = 2,
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    return_alignments: bool = False,
+    delete_emissions: bool = False,
+    remove_wildcards: bool = True,
+    device="cuda",
+):
+    """
+    Perform alignment on speech segments or VAD chunks using emissions.
+
+    Speech based alignment is typically used when aligning human transcriptions,
+    while chunk based alignment is typically used to align the output of ASR models.
+    Args:
+        dataloader: DataLoader loading AudioMetadata objects from JSON or Msgpack files.
+        text_normalizer: Function to normalize text according to regex rules.
+        processor: Wav2Vec2Processor to preprocess the audio.
+        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+            string.
+        emissions_dir: Directory where the emissions are stored.
+        output_dir: Directory to save alignment outputs.
+        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
+            If `speech`, alignments are performed on SpeechSegments.
+            If `chunk`, alignments are performed on VAD chunks.
+        start_wildcard: Whether to add a wildcard token at the start of the segments.
+        end_wildcard: Whether to add a wildcard token at the end of the segments.
+        blank_id: ID of the blank token in the tokenizer.
+        word_boundary: Token indicating word boundaries in the tokenizer.
+        chunk_size: maximum chunk size in seconds.
+        ndigits: Number of decimal digits to round the alignment times and scores to.
+        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
+        save_json: Whether to save alignment metadata in JSON format.
+        save_msgpack: Whether to save alignment metadata in Msgpack format.
+        return_alignments: Whether to return the alignment mappings.
+        delete_emissions: Whether to delete the emissions files after alignment to save space.
+        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
+        device: Device to run the alignment on (e.g. "cuda" or "cpu").
+
+    Returns:
+        If `return_alignments` is True, returns a list of alignment mappings for each audio file.
+        Otherwise, returns `None`.
+    """
+    align_generator = alignment_pipeline_generator(
+        dataloader=dataloader,
+        text_normalizer=text_normalizer,
+        processor=processor,
+        tokenizer=tokenizer,
+        emissions_dir=emissions_dir,
+        output_dir=output_dir,
+        alignment_strategy=alignment_strategy,
+        start_wildcard=start_wildcard,
+        end_wildcard=end_wildcard,
+        blank_id=blank_id,
+        word_boundary=word_boundary,
+        chunk_size=chunk_size,
+        ndigits=ndigits,
+        indent=indent,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        return_alignments=return_alignments,
+        delete_emissions=delete_emissions,
+        remove_wildcards=remove_wildcards,
+        device=device,
+    )
+
+    if return_alignments:
+        return list(align_generator)
+    else:
+        # Consume the generator without returning anything, saving files to disk only
+        for _ in align_generator:
+            pass
+
+    return None
