@@ -17,11 +17,7 @@ from easyalign.alignment.pytorch import (
 from easyalign.data.collators import metadata_collate_fn
 from easyalign.data.datamodel import SpeechSegment
 from easyalign.data.dataset import JSONMetadataDataset
-from easyalign.pipelines import (
-    align_speech,
-    emissions_pipeline,
-    vad_pipeline,
-)
+from easyalign.pipelines import align_speech, alignment_pipeline, emissions_pipeline, vad_pipeline
 from easyalign.text.normalization import (
     SpanMapNormalizer,
     add_deletions_to_mapping,
@@ -76,13 +72,14 @@ skrivit tusen sidor, men nu det blev kompakt. Jag är inte så bra på att beskr
 
 tokenizer = load_tokenizer(language="swedish")
 sentence_list = tokenizer.tokenize(text)
+text = text.strip()
 span_list = list(tokenizer.span_tokenize(text))
 
 speeches = [[SpeechSegment(speech_id=0, text=text, text_spans=span_list, start=None, end=None)]]
 
 vad_outputs = vad_pipeline(
     model=model_vad,
-    audio_paths=["audio_80.wav"],
+    audio_paths=["statsminister.wav"],
     audio_dir="data",
     speeches=speeches,
     chunk_size=30,
@@ -111,6 +108,7 @@ emissions_output = emissions_pipeline(
     prefetch_factor_files=2,
     batch_size_features=8,
     num_workers_features=4,
+    streaming=True,
     save_json=True,
     save_msgpack=False,
     save_emissions=True,
@@ -142,6 +140,30 @@ def text_normalizer(text: str) -> str:
     return normalized_tokens, mapping
 
 
+alignments = alignment_pipeline(
+    dataloader=audiometa_loader,
+    text_normalizer=text_normalizer,
+    processor=processor,
+    tokenizer=None,
+    emissions_dir="output/emissions",
+    output_dir="output/alignments",
+    alignment_strategy="speech",
+    start_wildcard=True,
+    end_wildcard=True,
+    blank_id=0,
+    word_boundary="|",
+    chunk_size=30,
+    ndigits=5,
+    indent=2,
+    save_json=True,
+    save_msgpack=False,
+    return_alignments=True,
+    delete_emissions=False,
+    remove_wildcards=True,
+    device="cuda",
+)
+
+
 mapping = align_speech(
     dataloader=audiometa_loader,
     text_normalizer=text_normalizer,
@@ -155,7 +177,6 @@ mapping = align_speech(
     word_boundary="|",
     chunk_size=30,
     delete_emissions=False,
-    add_leading_space=False,
     device="cuda",
 )
 

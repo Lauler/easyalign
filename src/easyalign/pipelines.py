@@ -11,11 +11,22 @@ from easyalign.alignment.pytorch import (
     align_speech,
 )
 from easyalign.alignment.utils import add_logits_to_metadata, get_output_logits_length
-from easyalign.data.collators import alignment_collate_fn, audiofile_collate_fn, vad_collate_fn
+from easyalign.data import (
+    AudioFileDataset,
+    JSONMetadataDataset,
+    StreamingAudioFileDataset,
+    VADAudioDataset,
+)
+from easyalign.data.collators import (
+    alignment_collate_fn,
+    audiofile_collate_fn,
+    metadata_collate_fn,
+    vad_collate_fn,
+)
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset, VADAudioDataset
 from easyalign.data.utils import pad_probs
-from easyalign.utils import save_emissions_and_metadata
+from easyalign.text.normalization import default_text_normalize
+from easyalign.utils import save_emissions_and_metadata, save_metadata_json, save_metadata_msgpack
 from easyalign.vad.vad import run_vad
 
 
@@ -99,6 +110,7 @@ def vad_pipeline_generator(
             json_path = (
                 Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".json")
             )
+            json_path.parent.mkdir(parents=True, exist_ok=True)
             with open(json_path, "wb") as f:
                 f.write(vad_msgspec)
 
@@ -107,6 +119,7 @@ def vad_pipeline_generator(
             msgpack_path = (
                 Path(output_dir) / Path(audio_path).parent / (Path(audio_path).stem + ".msgpack")
             )
+            msgpack_path.parent.mkdir(parents=True, exist_ok=True)
             with open(msgpack_path, "wb") as f:
                 f.write(vad_msgpack)
 
@@ -117,7 +130,7 @@ def vad_pipeline_generator(
 def vad_pipeline(
     model,
     audio_paths: list,
-    audio_dir: str,
+    audio_dir: str | None = None,
     speeches: list[list[SpeechSegment]] | None = None,
     chunk_size: int = 30,
     sample_rate: int = 16000,
@@ -196,11 +209,13 @@ def emissions_pipeline_generator(
     prefetch_factor_files: int = 2,
     batch_size_features: int = 8,
     num_workers_features: int = 4,
+    streaming: bool = False,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
     return_emissions: bool = False,
     output_dir: str = "output/emissions",
+    device: str = "cuda",
 ):
     """
     Run emissions extraction pipeline on the given audio files and save results to file. If
@@ -222,16 +237,23 @@ def emissions_pipeline_generator(
         prefetch_factor_files: Prefetch factor for the file DataLoader.
         batch_size_features: Batch size for the feature DataLoader.
         num_workers_features: Number of workers for the feature DataLoader.
+        streaming: Whether to use streaming audio files.
         save_json: Whether to save the emissions output as JSON files.
         save_msgpack: Whether to save the emissions output as Msgpack files.
         save_emissions: Whether to save the raw emissions as .npy files.
         return_emissions: Whether to return the emissions as a list of numpy arrays.
         output_dir: Directory to save the output files if saving is enabled.
+        device: Device to run the model on (e.g. "cuda" or "cpu").
 
     Yields:
         If `return_emissions` is True, yields tuples of (metadata, emissions) for each audio file.
     """
-    file_dataset = AudioFileDataset(
+    if streaming:
+        DatasetClass = StreamingAudioFileDataset
+    else:
+        DatasetClass = AudioFileDataset
+
+    file_dataset = DatasetClass(
         metadata=metadata,
         audio_dir=audio_dir,
         sample_rate=sample_rate,
@@ -276,7 +298,7 @@ def emissions_pipeline_generator(
         speech_ids = []
 
         for batch in feature_dataloader:
-            features = batch["features"].half().to("cuda")
+            features = batch["features"].half().to(device)
 
             with torch.inference_mode():
                 logits = model(features).logits
@@ -322,11 +344,13 @@ def emissions_pipeline(
     prefetch_factor_files: int = 2,
     batch_size_features: int = 8,
     num_workers_features: int = 4,
+    streaming: bool = False,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
     return_emissions: bool = False,
     output_dir: str = "output/emissions",
+    device: str = "cuda",
 ):
     """
     Run emissions extraction pipeline on the given audio files and save results to file.
@@ -346,11 +370,13 @@ def emissions_pipeline(
         prefetch_factor_files: Prefetch factor for the file DataLoader.
         batch_size_features: Batch size for the feature DataLoader.
         num_workers_features: Number of workers for the feature DataLoader.
+        streaming: Whether to use streaming audio files.
         save_json: Whether to save the emissions output as JSON files.
         save_msgpack: Whether to save the emissions output as Msgpack files.
         save_emissions: Whether to save the raw emissions as .npy files.
         return_emissions: Whether to return the emissions as a list of numpy arrays.
         output_dir: Directory to save the output files if saving is enabled.
+        device: Device to run the model on (e.g. "cuda" or "cpu").
 
     Returns:
         If `return_emissions` is True, returns a list of tuples (metadata, emissions)
@@ -370,11 +396,13 @@ def emissions_pipeline(
         prefetch_factor_files=prefetch_factor_files,
         batch_size_features=batch_size_features,
         num_workers_features=num_workers_features,
+        streaming=streaming,
         save_json=save_json,
         save_msgpack=save_msgpack,
         save_emissions=save_emissions,
         return_emissions=return_emissions,
         output_dir=output_dir,
+        device=device,
     )
 
     if return_emissions:
@@ -393,7 +421,6 @@ def alignment_pipeline_generator(
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
-    output_dir: str = "output/alignments",
     alignment_strategy: str = "speech",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
@@ -407,7 +434,8 @@ def alignment_pipeline_generator(
     return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
-    device="cuda",
+    output_dir: str = "output/alignments",
+    device: str = "cuda",
 ):
     """
     Perform alignment on speech segments or VAD chunks using emissions.
@@ -424,7 +452,6 @@ def alignment_pipeline_generator(
             nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
             string.
         emissions_dir: Directory where the emissions are stored.
-        output_dir: Directory to save alignment outputs.
         alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
             If `speech`, alignments are performed on SpeechSegments.
             If `chunk`, alignments are performed on VAD chunks.
@@ -442,6 +469,7 @@ def alignment_pipeline_generator(
         remove_wildcards: Whether to remove wildcard tokens from the final alignment.
         add_leading_space: Whether to add a leading space to the text segments (only used
             for speech based alignment when speech text is supplied as lists).
+        output_dir: Directory to save alignment outputs.
         device: Device to run the alignment on (e.g. "cuda" or "cpu").
 
     Yields:
@@ -453,27 +481,33 @@ def alignment_pipeline_generator(
     elif alignment_strategy == "chunk":
         align_func = align_chunks
 
-    yield from align_func(
-        dataloader=dataloader,
-        text_normalizer=text_normalizer,
-        processor=processor,
-        tokenizer=tokenizer,
-        emissions_dir=emissions_dir,
-        output_dir=output_dir,
-        start_wildcard=start_wildcard,
-        end_wildcard=end_wildcard,
-        blank_id=blank_id,
-        word_boundary=word_boundary,
-        chunk_size=chunk_size,
-        ndigits=ndigits,
-        indent=indent,
-        save_json=save_json,
-        save_msgpack=save_msgpack,
-        return_alignments=return_alignments,
-        delete_emissions=delete_emissions,
-        remove_wildcards=remove_wildcards,
-        device=device,
-    )
+    for batch in tqdm(dataloader):
+        for metadata in batch:
+            alignment_mapping = align_func(
+                metadata=metadata,
+                text_normalizer=text_normalizer,
+                processor=processor,
+                tokenizer=tokenizer,
+                emissions_dir=emissions_dir,
+                start_wildcard=start_wildcard,
+                end_wildcard=end_wildcard,
+                blank_id=blank_id,
+                word_boundary=word_boundary,
+                chunk_size=chunk_size,
+                ndigits=ndigits,
+                delete_emissions=delete_emissions,
+                remove_wildcards=remove_wildcards,
+                device=device,
+            )
+
+            if save_json:
+                save_metadata_json(metadata, output_dir=output_dir, indent=indent)
+
+            if save_msgpack:
+                save_metadata_msgpack(metadata, output_dir=output_dir)
+
+            if return_alignments:
+                yield alignment_mapping
 
 
 def alignment_pipeline(
@@ -481,8 +515,6 @@ def alignment_pipeline(
     text_normalizer: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
-    emissions_dir: str = "output/emissions",
-    output_dir: str = "output/alignments",
     alignment_strategy: str = "speech",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
@@ -496,7 +528,9 @@ def alignment_pipeline(
     return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
-    device="cuda",
+    emissions_dir: str = "output/emissions",
+    output_dir: str = "output/alignments",
+    device: str = "cuda",
 ):
     """
     Perform alignment on speech segments or VAD chunks using emissions.
@@ -511,8 +545,6 @@ def alignment_pipeline(
             or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
             nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
             string.
-        emissions_dir: Directory where the emissions are stored.
-        output_dir: Directory to save alignment outputs.
         alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
             If `speech`, alignments are performed on SpeechSegments.
             If `chunk`, alignments are performed on VAD chunks.
@@ -528,6 +560,8 @@ def alignment_pipeline(
         return_alignments: Whether to return the alignment mappings.
         delete_emissions: Whether to delete the emissions files after alignment to save space.
         remove_wildcards: Whether to remove wildcard tokens from the final alignment.
+        emissions_dir: Directory where the emissions are stored.
+        output_dir: Directory to save alignment outputs.
         device: Device to run the alignment on (e.g. "cuda" or "cpu").
 
     Returns:
@@ -565,3 +599,168 @@ def alignment_pipeline(
             pass
 
     return None
+
+
+def pipeline(
+    vad_model,
+    emissions_model,
+    processor: Wav2Vec2Processor,
+    audio_paths: list,
+    audio_dir: str,
+    speeches: list[list[SpeechSegment]] | None = None,
+    sample_rate: int = 16000,
+    chunk_size: int = 30,
+    alignment_strategy: str = "speech",
+    text_normalizer: callable = default_text_normalize,
+    tokenizer=None,
+    start_wildcard: bool = False,
+    end_wildcard: bool = False,
+    blank_id: int = 0,
+    word_boundary: str = "|",
+    indent: int = 2,
+    ndigits: int = 5,
+    batch_size_files: int = 1,
+    num_workers_files: int = 2,
+    prefetch_factor_files: int = 1,
+    batch_size_features: int = 8,
+    num_workers_features: int = 4,
+    streaming: bool = False,
+    save_json: bool = True,
+    save_msgpack: bool = False,
+    save_emissions: bool = True,
+    return_alignments: bool = False,
+    delete_emissions: bool = False,
+    output_vad_dir: str = "output/vad",
+    output_emissions_dir: str = "output/emissions",
+    output_alignments_dir: str = "output/alignments",
+    device="cuda",
+):
+    """
+    Complete pipeline to run VAD, extract emissions, and perform alignment.
+
+    Args:
+        vad_model: The loaded VAD model.
+        asr_model: The loaded ASR model.
+        processor: Wav2Vec2Processor to preprocess the audio.
+        audio_paths: List of paths to audio files (relative to `audio_dir`).
+        audio_dir: Base directory with audio files relative to `audio_paths`.
+        speeches: List of SpeechSegment objects to run VAD and alignment only on specific
+            segments of the audio. If `alignment_strategy` is 'speech', the text needs to be
+            supplied in the SpeechSegment objects. If `alignment_strategy` is 'chunk' and ASR
+            transcriptions are used, there is no need to supply text in the SpeechSegment objects.
+        sample_rate: Sample rate to resample audio to. Default 16000.
+        chunk_size: When `alignment_strategy` is set to `speech`, SpeechSegments are split into
+            `chunk_size` sized chunks for feature extraction.
+        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
+            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
+            If `chunk`, VAD chunks are used as basis for feature extraction and alignment.
+            NOTE: `chunk` currently only works with ASR. The individual VAD chunks won't
+            contain the relevant text information for alignment.
+        text_normalizer: Function to normalize text according to regex rules.
+        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+            string.
+        batch_size_files: Batch size for the file DataLoader.
+        num_workers_files: Number of workers for the file DataLoader.
+        prefetch_factor_files: Prefetch factor for the file DataLoader.
+        batch_size_features: Batch size for the feature DataLoader.
+        num_workers_features: Number of workers for the feature DataLoader.
+        streaming: Whether to use streaming loading of audio files.
+        save_json: Whether to save the output files as JSON.
+        save_msgpack: Whether to save the output files as Msgpack.
+        save_emissions: Whether to save the raw emissions as .npy files.
+        return_alignments: Whether to return the alignment mappings.
+        delete_emissions: Whether to delete the emissions files after alignment to save space.
+        output_vad_dir: Directory to save the VAD output files.
+        output_emissions_dir: Directory to save the emissions output files.
+        output_alignments_dir: Directory to save alignment output files.
+        device: Device to run the alignment on (e.g. "cuda" or "cpu").
+
+    Returns:
+        If `return_alignments` is True, returns a list of alignment mappings for each audio file.
+        Otherwise, returns `None` (the alignments are saved to disk only).
+    """
+
+    json_paths = [Path(p).with_suffix(".json") for p in audio_paths]
+
+    # Step 1: Run VAD
+    vad_pipeline(
+        model=vad_model,
+        audio_paths=audio_paths,
+        audio_dir=audio_dir,
+        speeches=speeches,
+        chunk_size=chunk_size,
+        sample_rate=sample_rate,
+        batch_size=batch_size_files,
+        num_workers=num_workers_files,
+        prefetch_factor=prefetch_factor_files,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        return_vad=False,
+        output_dir=output_vad_dir,
+    )
+
+    # Step 2: Extract Emissions
+    json_dataset = JSONMetadataDataset(
+        json_paths=[str(Path(output_vad_dir) / p) for p in json_paths]
+    )
+
+    emissions_pipeline(
+        model=emissions_model,
+        processor=processor,
+        metadata=json_dataset,
+        audio_dir=audio_dir,
+        sample_rate=sample_rate,
+        chunk_size=chunk_size,
+        alignment_strategy=alignment_strategy,
+        batch_size_files=batch_size_files,
+        num_workers_files=num_workers_files,
+        prefetch_factor_files=prefetch_factor_files,
+        batch_size_features=batch_size_features,
+        num_workers_features=num_workers_features,
+        streaming=streaming,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        save_emissions=save_emissions,
+        return_emissions=False,
+        output_dir=output_emissions_dir,
+    )
+
+    # Step 3: Perform Alignment
+    json_dataset = JSONMetadataDataset(
+        json_paths=[str(Path(output_emissions_dir) / p) for p in json_paths]
+    )
+    json_dataloader = torch.utils.data.DataLoader(
+        json_dataset,
+        batch_size=batch_size_files,
+        shuffle=False,
+        collate_fn=metadata_collate_fn,
+        num_workers=num_workers_files,
+        prefetch_factor=prefetch_factor_files,
+    )
+
+    alignments = alignment_pipeline(
+        dataloader=json_dataloader,
+        text_normalizer=text_normalizer,
+        processor=processor,
+        tokenizer=tokenizer,
+        emissions_dir=output_emissions_dir,
+        output_dir=output_alignments_dir,
+        alignment_strategy=alignment_strategy,
+        start_wildcard=start_wildcard,
+        end_wildcard=end_wildcard,
+        blank_id=blank_id,
+        word_boundary=word_boundary,
+        chunk_size=chunk_size,
+        ndigits=ndigits,
+        indent=indent,
+        save_json=save_json,
+        save_msgpack=save_msgpack,
+        return_alignments=return_alignments,
+        delete_emissions=delete_emissions,
+        remove_wildcards=True,
+        device=device,
+    )
+
+    return alignments

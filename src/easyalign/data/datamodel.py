@@ -38,8 +38,8 @@ class AudioChunk(msgspec.Struct):
         duration: Duration of the chunk in seconds.
         audio_frames: Number of audio frames a chunk spans.
         num_logits: Number of model output logits for the chunk.
-        language: Optional language code for the chunk (used for routing chunks to
-            language-specific models when doing ASR).
+        language: Language code for the chunk.
+        language_prob: Probability/confidence of the detected language.
     """
 
     start: float
@@ -49,6 +49,7 @@ class AudioChunk(msgspec.Struct):
     audio_frames: int | None = None
     num_logits: int | None = None
     language: str | None = None
+    language_prob: float | None = None
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
@@ -162,26 +163,15 @@ class SpeechSegment(msgspec.Struct):
         return self.duration
 
     def __post_init__(self):
-        if isinstance(self.text, str) and self.text is not None:
-            self.text = [self.text]
-
         if self.duration is None and self.start is not None and self.end is not None:
             self.calculate_duration()
 
-        if isinstance(self.text, list) and self.text_spans is None:
-            # Create (start_char, end_char) spans for each text segment if not provided by user.
-
-            start_char_match = re.search(r"\S", self.text[0])  # Find first non-space character
-            start_char = start_char_match.start() if start_char_match else 0
-            if len(self.text) == 1:
-                end_char = len(self.text[0])
-                self.text_spans = [(start_char, end_char)]
-            else:
-                self.text_spans = []
-                current_begin = start_char
-                for t in self.text:
-                    self.text_spans.append((current_begin, current_begin + len(t)))
-                    current_begin += len(t)
+        # Assert text doesn't contain leading whitespace
+        if self.text is not None:
+            assert re.match(r"^\s+", self.text) is None, (
+                "Text contains leading whitespace. Please .strip() the text before calculating "
+                "text spans and before passing it to SpeechSegment."
+            )
 
 
 class AudioMetadata(msgspec.Struct):

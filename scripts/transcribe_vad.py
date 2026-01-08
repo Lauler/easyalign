@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     vad_outputs = vad_pipeline(
         model=model_vad,
-        audio_paths=["statsminister.wav"],
+        audio_paths=["audio/statsminister.wav"],
         audio_dir="data",
         speeches=None,
         chunk_size=30,

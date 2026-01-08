@@ -34,7 +34,7 @@ def numpy_encoder(obj):
 
 
 def save_metadata_json(
-    metadata: AudioMetadata, output_dir: str = "output/emissions", indent: int = 2
+    metadata: AudioMetadata, output_dir: str = "output/emissions", indent: int | None = 2
 ):
     audio_path = metadata.audio_path
     json_encoder = msgspec.json.Encoder(enc_hook=numpy_encoder)
@@ -63,7 +63,7 @@ def save_emissions_and_metadata(
     metadata: AudioMetadata,
     probs_list: list[np.ndarray],
     speech_ids: list[str],
-    indent: int = 2,
+    indent: int | None = 2,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
@@ -106,7 +106,7 @@ def save_alignments(
     save_json: bool = True,
     save_msgpack: bool = False,
     output_dir: str = "output/alignments",
-    indent: int = 2,
+    indent: int | None = 2,
 ):
     audio_path = metadata.audio_path
     base_path = Path(audio_path).parent / Path(audio_path).stem

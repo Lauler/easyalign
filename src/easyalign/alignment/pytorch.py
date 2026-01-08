@@ -15,10 +15,6 @@ from easyalign.alignment.utils import (
 )
 from easyalign.data.datamodel import AlignmentSegment, SpeechSegment, WordSegment
 from easyalign.text.normalization import add_deletions_to_mapping, merge_multitoken_expressions
-from easyalign.utils import (
-    save_metadata_json,
-    save_metadata_msgpack,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -75,32 +71,27 @@ def align_pytorch(
 
 
 def align_chunks(
-    dataloader: torch.utils.data.DataLoader,
+    metadata,
     text_normalizer: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
-    output_dir: str = "output/alignments",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
     ndigits: int = 5,
-    indent: int = 2,
-    save_json: bool = True,
-    save_msgpack: bool = False,
-    return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
     device="cuda",
-):
+) -> list:
     """
-    Perform alignment on VAD chunks using wav2vec2 emissions. Chunk based alignment is typically
-    used to align the output of ASR models such as Whisper.
+    Perform alignment on VAD chunks for a single AudioMetadata using wav2vec2 emissions.
+    Chunk based alignment is typically used to align the output of ASR models such as Whisper.
 
     Args:
-        dataloader: DataLoader providing AudioMetadata objects with speech segments and chunks.
+        metadata: AudioMetadata object containing speech segments and chunks.
         text_normalizer: Function to normalize text according to regex rules.
         processor: Wav2Vec2Processor to preprocess the audio.
         tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
@@ -108,17 +99,12 @@ def align_chunks(
             nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
             string.
         emissions_dir: Directory where the wav2vec2 emissions are stored.
-        output_dir: Directory to save alignment outputs.
         start_wildcard: Whether to add a wildcard token at the start of the segments.
         end_wildcard: Whether to add a wildcard token at the end of the segments.
         blank_id: ID of the blank token in the tokenizer.
         word_boundary: Token indicating word boundaries in the tokenizer.
         chunk_size: maximum chunk size in seconds.
         ndigits: Number of decimal digits to round the alignment times and scores to.
-        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
-        save_json: Whether to save alignment metadata in JSON format.
-        save_msgpack: Whether to save alignment metadata in Msgpack format.
-        return_alignments: Whether to yield the alignment mappings.
         delete_emissions: Whether to delete the emissions files after alignment to save space.
         remove_wildcards: Whether to remove wildcard tokens from the final alignment.
         device: Device to run the alignment on (e.g. "cuda" or "cpu").
@@ -126,175 +112,315 @@ def align_chunks(
     Returns:
         List of aligned segments with word-level timestamps.
     """
-    for batch in tqdm(dataloader):
-        for metadata in batch:
-            chunk_mappings = []
-            for speech in metadata.speeches:
-                emissions_filepath = Path(emissions_dir) / speech.probs_path
-                emissions = np.load(emissions_filepath)
+    chunk_mappings = []
+    for speech in metadata.speeches:
+        emissions_filepath = Path(emissions_dir) / speech.probs_path
+        emissions = np.load(emissions_filepath)
 
-                for i, chunk in enumerate(speech.chunks):
-                    normalized_tokens, mapping = text_normalizer(chunk.text)
-                    emissions_chunk = emissions[i]
-                    emissions_chunk = emissions_chunk[: chunk.num_logits]
+        for i, chunk in enumerate(speech.chunks):
+            normalized_tokens, mapping = text_normalizer(chunk.text)
+            emissions_chunk = emissions[i]
+            emissions_chunk = emissions_chunk[: chunk.num_logits]
 
-                    tokens, scores = align_pytorch(
-                        normalized_tokens=normalized_tokens,
-                        processor=processor,
-                        emissions=torch.tensor(emissions_chunk).to(device).unsqueeze(0),
-                        start_wildcard=start_wildcard,
-                        end_wildcard=end_wildcard,
-                        device=device,
-                    )
+            # Check CTC constraint before alignment
+            can_align, T, L, R = is_alignable(
+                normalized_tokens, processor, emissions_chunk.shape[0]
+            )
 
-                    word_spans, mapping = get_word_spans(
-                        tokens=tokens,
-                        scores=scores,
-                        mapping=mapping,
-                        blank=blank_id,
-                        start_wildcard=start_wildcard,
-                        end_wildcard=end_wildcard,
-                        word_boundary=word_boundary,
-                        processor=processor,
-                    )
+            if not can_align:
+                logger.warning(
+                    f"Alignment infeasible for chunk {i} in file: {metadata.audio_path}, "
+                    f"starting at: {chunk.start} and ending at: {chunk.end}.\n\n"
+                    f"emission_frames (T={T}) < target_length (L={L}) + repeats (R={R})."
+                    f"\n\n (Whisper probably hallucinated a too long text).\n\n"
+                    f"Using fallback linear interpolation for timestamps.\n\n"
+                )
+                alignment_mapping = process_fallback_alignment(
+                    mapping, chunk.start, chunk.end, chunk.text, tokenizer, None, ndigits
+                )
+                chunk_mappings.extend(alignment_mapping)
+                speech.alignments.extend(alignment_mapping)
+                continue
 
-                    mapping = join_word_timestamps(
-                        word_spans=word_spans,
-                        mapping=mapping,
-                        speech=speech,
-                        chunk_size=chunk_size,
-                        start_segment=chunk.start,
-                    )
+            tokens, scores = align_pytorch(
+                normalized_tokens=normalized_tokens,
+                processor=processor,
+                emissions=torch.tensor(emissions_chunk).to(device).unsqueeze(0),
+                start_wildcard=start_wildcard,
+                end_wildcard=end_wildcard,
+                device=device,
+            )
 
-                    mapping = merge_multitoken_expressions(mapping)
-                    mapping = add_deletions_to_mapping(mapping, chunk.text)
+            word_spans, mapping = get_word_spans(
+                tokens=tokens,
+                scores=scores,
+                mapping=mapping,
+                blank=blank_id,
+                start_wildcard=start_wildcard,
+                end_wildcard=end_wildcard,
+                word_boundary=word_boundary,
+                processor=processor,
+            )
 
-                    if remove_wildcards:
-                        mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
+            mapping = join_word_timestamps(
+                word_spans=word_spans,
+                mapping=mapping,
+                speech=speech,
+                chunk_size=chunk_size,
+                start_segment=chunk.start,
+            )
 
-                    mapping = get_segment_alignment(
-                        mapping=mapping,
-                        original_text=chunk.text,
-                        tokenizer=tokenizer,
-                        segment_spans=None,
-                    )
+            mapping = merge_multitoken_expressions(mapping)
+            mapping = add_deletions_to_mapping(mapping, chunk.text)
 
-                    alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+            if remove_wildcards:
+                mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
 
-                    chunk_mappings.extend(alignment_mapping)
-                    speech.alignments.extend(alignment_mapping)
+            mapping = get_segment_alignment(
+                mapping=mapping,
+                original_text=chunk.text,
+                tokenizer=tokenizer,
+                segment_spans=None,
+            )
 
-                if delete_emissions:
-                    Path(emissions_filepath).unlink()
+            alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
 
-            if save_json:
-                save_metadata_json(metadata, output_dir=output_dir, indent=indent)
+            chunk_mappings.extend(alignment_mapping)
+            speech.alignments.extend(alignment_mapping)
 
-            if save_msgpack:
-                save_metadata_msgpack(metadata, output_dir=output_dir)
+        if delete_emissions:
+            Path(emissions_filepath).unlink()
 
-            if return_alignments:
-                yield chunk_mappings
+    return chunk_mappings
 
 
 def align_speech(
-    dataloader,
+    metadata,
     text_normalizer: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
-    output_dir: str = "output/alignments",
     start_wildcard: bool = False,
     end_wildcard: bool = False,
     blank_id: int = 0,
     word_boundary: str = "|",
     chunk_size: int = 30,
     ndigits: int = 5,
-    indent: int = 2,
-    save_json: bool = True,
-    save_msgpack: bool = False,
-    return_alignments: bool = False,
     delete_emissions: bool = False,
     remove_wildcards: bool = True,
     device="cuda",
-):
-    mapping = []
-    for batch in tqdm(dataloader):
-        for metadata in batch:
-            for speech in metadata.speeches:
-                emissions_filepath = Path(emissions_dir) / speech.probs_path
-                emissions = np.load(emissions_filepath)
-                emissions = np.vstack(emissions)
+) -> list:
+    speech_mappings = []
+    for speech in metadata.speeches:
+        emissions_filepath = Path(emissions_dir) / speech.probs_path
+        emissions = np.load(emissions_filepath)
+        emissions = np.vstack(emissions)
 
-                if speech.text:
-                    original_text = speech.text
-                else:
-                    logger.warning(
-                        (
-                            f"No text found for speech id {speech.speech_id}. \n\n"
-                            f"Skipping alignment for file: {metadata.audio_path}.\n"
-                        )
-                    )
-                    continue
-
-                normalized_tokens, mapping = text_normalizer(original_text)
-                tokens, scores = align_pytorch(
-                    normalized_tokens=normalized_tokens,
-                    processor=processor,
-                    emissions=torch.tensor(emissions).to(device).unsqueeze(0),
-                    start_wildcard=start_wildcard,
-                    end_wildcard=end_wildcard,
-                    device=device,
+        if speech.text:
+            original_text = speech.text
+        else:
+            logger.warning(
+                (
+                    f"No text found for speech id {speech.speech_id} \n\n"
+                    f"Skipping alignment for file: {metadata.audio_path}.\n"
                 )
+            )
+            continue
 
-                word_spans, mapping = get_word_spans(
-                    tokens=tokens,
-                    scores=scores,
-                    mapping=mapping,
-                    blank=blank_id,
-                    start_wildcard=start_wildcard,
-                    end_wildcard=end_wildcard,
-                    word_boundary=word_boundary,
-                    processor=processor,
+        normalized_tokens, mapping = text_normalizer(original_text)
+
+        # Check CTC constraint before alignment
+        can_align, T, L, R = is_alignable(normalized_tokens, processor, emissions.shape[0])
+
+        if not can_align:
+            logger.warning(
+                (
+                    f"Alignment infeasible for speech {speech.speech_id} in file: "
+                    f"{metadata.audio_path}, starting at: {speech.start} and ending at: "
+                    f"{speech.end}.\n\n"
+                    f"emission_frames (T={T}) < target_length (L={L}) + repeats (R={R})."
+                    f"\n\n (Text is probably too long for the given audio).\n\n"
+                    f"Using fallback linear interpolation for timestamps.\n\n"
                 )
+            )
+            alignment_mapping = process_fallback_alignment(
+                mapping,
+                speech.start,
+                speech.end,
+                original_text,
+                tokenizer,
+                speech.text_spans,
+                ndigits,
+            )
+            speech.alignments.extend(alignment_mapping)
+            speech_mappings.extend(alignment_mapping)
+            if delete_emissions:
+                Path(emissions_filepath).unlink()
+            continue
 
-                mapping = join_word_timestamps(
-                    word_spans=word_spans,
-                    mapping=mapping,
-                    speech=speech,
-                    chunk_size=chunk_size,
-                    start_segment=speech.start,
-                )
+        tokens, scores = align_pytorch(
+            normalized_tokens=normalized_tokens,
+            processor=processor,
+            emissions=torch.tensor(emissions).to(device).unsqueeze(0),
+            start_wildcard=start_wildcard,
+            end_wildcard=end_wildcard,
+            device=device,
+        )
 
-                mapping = merge_multitoken_expressions(mapping)
-                mapping = add_deletions_to_mapping(mapping, original_text)
+        word_spans, mapping = get_word_spans(
+            tokens=tokens,
+            scores=scores,
+            mapping=mapping,
+            blank=blank_id,
+            start_wildcard=start_wildcard,
+            end_wildcard=end_wildcard,
+            word_boundary=word_boundary,
+            processor=processor,
+        )
 
-                if remove_wildcards:
-                    mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
+        mapping = join_word_timestamps(
+            word_spans=word_spans,
+            mapping=mapping,
+            speech=speech,
+            chunk_size=chunk_size,
+            start_segment=speech.start,
+        )
 
-                mapping = get_segment_alignment(
-                    mapping=mapping,
-                    original_text=original_text,
-                    tokenizer=tokenizer,
-                    segment_spans=speech.text_spans,
-                )
+        mapping = merge_multitoken_expressions(mapping)
+        mapping = add_deletions_to_mapping(mapping, original_text)
 
-                alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
-                speech.alignments.extend(alignment_mapping)
+        if remove_wildcards:
+            mapping = [m for m in mapping if m["normalized_tokens"] != "*"]
 
-                if delete_emissions:
-                    Path(emissions_filepath).unlink()
+        mapping = get_segment_alignment(
+            mapping=mapping,
+            original_text=original_text,
+            tokenizer=tokenizer,
+            segment_spans=speech.text_spans,
+        )
 
-            # Add info to metadata and save
+        alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+        speech.alignments.extend(alignment_mapping)
+        speech_mappings.extend(alignment_mapping)
 
-            if save_json:
-                save_metadata_json(metadata, output_dir=output_dir, indent=indent)
+        if delete_emissions:
+            Path(emissions_filepath).unlink()
 
-            if save_msgpack:
-                save_metadata_msgpack(metadata, output_dir=output_dir)
+    return speech_mappings
 
-            if return_alignments:
-                yield alignment_mapping
+
+def count_target_repeats(targets: torch.Tensor) -> int:
+    """
+    Count consecutive repeated tokens in target sequence.
+
+    This corresponds to R in PyTorch's CTC constraint: T >= L + R.
+    """
+    if targets.numel() <= 1:
+        return 0
+    targets_flat = targets.flatten()
+    return int((targets_flat[1:] == targets_flat[:-1]).sum().item())
+
+
+def is_alignable(
+    normalized_tokens: list[str],
+    processor: Wav2Vec2Processor,
+    num_emission_frames: int,
+) -> tuple[bool, int, int, int]:
+    """
+    Check if alignment is feasible given PyTorch's CTC constraint: T >= L + R.
+
+    Args:
+        normalized_tokens: List of normalized text tokens.
+        processor: Wav2Vec2Processor instance for tokenization.
+        num_emission_frames: Number of emission frames (T) from wav2vec2.
+
+    Returns:
+        Tuple of (can_align, T, L, R) where:
+            - can_align: Whether alignment is feasible
+            - T: Number of emission frames
+            - L: Target label length
+            - R: Number of consecutive repeated tokens
+    """
+    transcript = " ".join(normalized_tokens).replace("\n", " ").upper()
+    targets = processor.tokenizer(transcript, return_tensors="pt")["input_ids"]
+    L = targets.size(1)
+    R = count_target_repeats(targets)
+    T = num_emission_frames
+    return (T >= L + R, T, L, R)
+
+
+def create_fallback_alignment(
+    mapping: list[dict],
+    chunk_start: float,
+    chunk_end: float,
+) -> list[dict]:
+    """
+    Create fallback alignment with linearly interpolated timestamps.
+
+    Used when forced alignment is infeasible (e.g. due to Whisper hallucination).
+    Adds start_time, end_time, and score to each token in the mapping.
+    The mapping already contains: normalized_token, text, start_char, end_char.
+
+    Args:
+        mapping: Token mapping from text normalizer.
+        chunk_start: Start time of the chunk in seconds.
+        chunk_end: End time of the chunk in seconds.
+
+    Returns:
+        Updated mapping with linearly interpolated timestamps and score=0.0.
+    """
+    n_tokens = len(mapping)
+    if n_tokens == 0:
+        return mapping
+
+    duration = chunk_end - chunk_start
+    step = duration / n_tokens
+
+    for i, token in enumerate(mapping):
+        token["start_time"] = chunk_start + i * step
+        token["end_time"] = chunk_start + (i + 1) * step
+        token["score"] = 0.0  # Zero score indicates fallback/low confidence
+
+    return mapping
+
+
+def process_fallback_alignment(
+    mapping: list[dict],
+    start: float,
+    end: float,
+    original_text: str,
+    tokenizer,
+    segment_spans: list | None,
+    ndigits: int,
+) -> list[AlignmentSegment]:
+    """
+    Process alignment using fallback linear interpolation.
+
+    Used when forced alignment is infeasible (e.g. due to Whisper hallucination).
+    Applies the full post-processing pipeline to the fallback timestamps.
+
+    Args:
+        mapping: Token mapping from text normalizer.
+        start: Start time of the segment in seconds.
+        end: End time of the segment in seconds.
+        original_text: Original unnormalized text.
+        tokenizer: Tokenizer for segment alignment.
+        segment_spans: Optional custom segment spans.
+        ndigits: Number of decimal digits for rounding.
+
+    Returns:
+        List of AlignmentSegment objects with fallback timestamps.
+    """
+    mapping = create_fallback_alignment(mapping, start, end)
+    mapping = merge_multitoken_expressions(mapping)
+    mapping = add_deletions_to_mapping(mapping, original_text)
+    mapping = get_segment_alignment(
+        mapping=mapping,
+        original_text=original_text,
+        tokenizer=tokenizer,
+        segment_spans=segment_spans,
+    )
+    return encode_alignments(mapping, ndigits=ndigits)
 
 
 def format_timestamp(timestamp):
@@ -471,6 +597,16 @@ def get_segment_alignment(
         start_segment_time = None
         end_segment_time = None
         segment_tokens = []
+
+        if start_segment_index < remaining_tokens[0]["start_char"]:
+            # Warn the user they probably need to strip leading whitespace from the original text
+            logger.warning(
+                (
+                    "Segment indices start before the first token index. This may be due to "
+                    "leading whitespace in the original text. Consider stripping leading/trailing "
+                    "whitespace from the original text before creating SpeechSegment objects.\n",
+                )
+            )
 
         while remaining_tokens:
             token = remaining_tokens[0]
