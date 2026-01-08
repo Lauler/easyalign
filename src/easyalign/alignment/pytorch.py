@@ -583,9 +583,12 @@ def get_segment_alignment(
             # Use a user supplied custom tokenizer to get custom (start_char, end_char) spans
             segment_spans = tokenizer(original_text)
         else:
-            start_char = mapping[0]["start_char"]
-            end_char = mapping[-1]["end_char"]
-            segment_spans = [(start_char, end_char)]  # Single segment with entire text
+            try:
+                start_char = mapping[0]["start_char"]
+                end_char = mapping[-1]["end_char"]
+                segment_spans = [(start_char, end_char)]  # Single segment with entire text
+            except IndexError:
+                segment_spans = []  # No segments if mapping/text is empty
 
     segment_mapping = []
     remaining_tokens = mapping.copy()

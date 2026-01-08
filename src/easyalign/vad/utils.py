@@ -20,6 +20,34 @@ def read_audio(audio_path):
     return audio, sr
 
 
+def get_video_length(video_path):
+    """Get the length of an audio file embedded in video containers using ffprobe."""
+    import json
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "json",
+                video_path,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        ffprobe_output = json.loads(result.stdout)
+        duration = float(ffprobe_output["format"]["duration"])
+        return duration
+    except Exception:
+        print(f"Error getting audio length for {video_path}")
+
+
 def encode_metadata(
     audio_path,
     audio_dir: str | None = None,
@@ -32,8 +60,14 @@ def encode_metadata(
         full_audio_path = os.path.join(audio_dir, audio_path)
 
     # Get length of audio file
-    f = sf.SoundFile(full_audio_path)
-    audio_length = len(f) / f.samplerate
+    try:
+        f = sf.SoundFile(full_audio_path)
+        audio_length = len(f) / f.samplerate
+    except Exception as e:
+        audio_length = get_video_length(full_audio_path)
+        if audio_length is None:
+            print(f"Could not get length of audio file {full_audio_path}. ")
+            raise e
 
     audio_metadata = AudioMetadata(
         audio_path=audio_path,
