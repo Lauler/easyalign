@@ -82,7 +82,7 @@ def align_pytorch(
 
 def align_chunks(
     metadata,
-    text_normalizer: callable,
+    text_normalizer_fn: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
@@ -105,7 +105,7 @@ def align_chunks(
     ----------
     metadata : AudioMetadata
         AudioMetadata object containing speech segments and chunks.
-    text_normalizer : callable
+    text_normalizer_fn : callable
         Function to normalize text according to regex rules.
     processor : Wav2Vec2Processor
         Wav2Vec2Processor to preprocess the audio.
@@ -146,7 +146,7 @@ def align_chunks(
         emissions = np.load(emissions_filepath)
 
         for i, chunk in enumerate(speech.chunks):
-            normalized_tokens, mapping = text_normalizer(chunk.text)
+            normalized_tokens, mapping = text_normalizer_fn(chunk.text)
             emissions_chunk = emissions[i]
             emissions_chunk = emissions_chunk[: chunk.num_logits]
 
@@ -224,7 +224,7 @@ def align_chunks(
 
 def align_speech(
     metadata,
-    text_normalizer: callable,
+    text_normalizer_fn: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
@@ -255,7 +255,7 @@ def align_speech(
             )
             continue
 
-        normalized_tokens, mapping = text_normalizer(original_text)
+        normalized_tokens, mapping = text_normalizer_fn(original_text)
 
         # Check CTC constraint before alignment
         can_align, T, L, R = is_alignable(normalized_tokens, processor, emissions.shape[0])

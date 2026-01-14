@@ -80,7 +80,7 @@ speeches = [[SpeechSegment(speech_id=0, text=text, text_spans=span_list, start=N
 vad_outputs = vad_pipeline(
     model=model_vad,
     audio_paths=["statsminister.wav"],
-    audio_dir="data",
+    audio_dir="data/sv",
     speeches=speeches,
     chunk_size=30,
     sample_rate=16000,
@@ -99,7 +99,7 @@ emissions_output = emissions_pipeline(
     model=model,
     processor=processor,
     metadata=json_dataset,
-    audio_dir="data",
+    audio_dir="data/sv",
     sample_rate=16000,
     chunk_size=30,
     alignment_strategy="speech",
@@ -142,7 +142,7 @@ def text_normalizer(text: str) -> str:
 
 alignments = alignment_pipeline(
     dataloader=audiometa_loader,
-    text_normalizer=text_normalizer,
+    text_normalizer_fn=text_normalizer,
     processor=processor,
     tokenizer=None,
     emissions_dir="output/emissions",
@@ -166,7 +166,7 @@ alignments = alignment_pipeline(
 
 mapping = align_speech(
     dataloader=audiometa_loader,
-    text_normalizer=text_normalizer,
+    text_normalizer_fn=text_normalizer,
     processor=processor,
     tokenizer=None,
     emissions_dir="output/emissions",
@@ -183,7 +183,7 @@ mapping = align_speech(
 
 def align_chunks(
     dataloader,
-    text_normalizer: callable,
+    text_normalizer_fn: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
@@ -206,7 +206,7 @@ def align_chunks(
                 print("Emissions shape:", emissions.shape)
 
                 for i, chunk in enumerate(speech.chunks):
-                    normalized_tokens, mapping = text_normalizer(original_text)
+                    normalized_tokens, mapping = text_normalizer_fn(original_text)
                     emissions_chunk = emissions[i]
                     print("Emissions chunk shape:", emissions_chunk.shape)
 
@@ -254,7 +254,7 @@ def align_chunks(
 
 chunk_mappings = align_chunks(
     dataloader=audiometa_loader,
-    text_normalizer=text_normalizer,
+    text_normalizer_fn=text_normalizer,
     processor=processor,
     tokenizer=None,
     emissions_dir="output/emissions",

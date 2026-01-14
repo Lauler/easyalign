@@ -1,28 +1,16 @@
 import logging
-from pathlib import Path
 
-import torch
-from nltk.tokenize import PunktTokenizer
 from transformers import (
     AutoModelForCTC,
     Wav2Vec2Processor,
-    WhisperForConditionalGeneration,
-    WhisperProcessor,
 )
 
-from easyalign.data.collators import (
-    audiofile_collate_fn,
-    metadata_collate_fn,
-    transcribe_collate_fn,
-)
 from easyalign.data.datamodel import SpeechSegment
-from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
 from easyalign.pipelines import pipeline
 from easyalign.text.normalization import (
     SpanMapNormalizer,
 )
 from easyalign.text.tokenizer import load_tokenizer
-from easyalign.utils import save_metadata_json
 from easyalign.vad.pyannote import load_vad_model
 
 logging.basicConfig(
@@ -85,7 +73,7 @@ if __name__ == "__main__":
         audio_dir="data",
         speeches=speeches,
         alignment_strategy="speech",
-        text_normalizer=text_normalizer,
+        text_normalizer_fn=text_normalizer,
         tokenizer=tokenizer,
         start_wildcard=True,
         end_wildcard=True,

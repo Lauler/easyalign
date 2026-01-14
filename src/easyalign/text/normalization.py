@@ -9,7 +9,7 @@ import numpy as np
 from easyalign.text.languages.sv import abbreviations, ocr_corrections, symbols
 
 
-def default_text_normalize(text: str) -> str:
+def text_normalizer(text: str) -> str:
     """
     Default text normalization function.
 

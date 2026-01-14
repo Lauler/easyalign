@@ -3,6 +3,7 @@ from pathlib import Path
 import msgspec
 import numpy as np
 import torch
+import transformers.models.audio_spectrogram_transformer.feature_extraction_audio_spectrogram_transformer
 from tqdm import tqdm
 from transformers import Wav2Vec2Processor
 
@@ -25,7 +26,7 @@ from easyalign.data.dataset import (
     VADAudioDataset,
 )
 from easyalign.data.utils import pad_probs
-from easyalign.text.normalization import default_text_normalize
+from easyalign.text.normalization import text_normalizer
 from easyalign.utils import save_emissions_and_metadata, save_metadata_json, save_metadata_msgpack
 from easyalign.vad.vad import run_vad
 
@@ -500,7 +501,7 @@ def emissions_pipeline(
 
 def alignment_pipeline_generator(
     dataloader: torch.utils.data.DataLoader,
-    text_normalizer: callable,
+    text_normalizer_fn: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     emissions_dir: str = "output/emissions",
@@ -530,7 +531,7 @@ def alignment_pipeline_generator(
     ----------
     dataloader : torch.utils.data.DataLoader
         DataLoader loading AudioMetadata objects from JSON or Msgpack files.
-    text_normalizer : callable
+    text_normalizer_fn : callable
         Function to normalize text according to regex rules.
     processor : Wav2Vec2Processor
         Wav2Vec2Processor to preprocess the audio.
@@ -589,7 +590,7 @@ def alignment_pipeline_generator(
         for metadata in batch:
             alignment_mapping = align_func(
                 metadata=metadata,
-                text_normalizer=text_normalizer,
+                text_normalizer_fn=text_normalizer,
                 processor=processor,
                 tokenizer=tokenizer,
                 emissions_dir=emissions_dir,
@@ -616,7 +617,7 @@ def alignment_pipeline_generator(
 
 def alignment_pipeline(
     dataloader: torch.utils.data.DataLoader,
-    text_normalizer: callable,
+    text_normalizer_fn: callable,
     processor: Wav2Vec2Processor,
     tokenizer=None,
     alignment_strategy: str = "speech",
@@ -646,7 +647,7 @@ def alignment_pipeline(
     ----------
     dataloader : torch.utils.data.DataLoader
         DataLoader loading AudioMetadata objects from JSON or Msgpack files.
-    text_normalizer : callable
+    text_normalizer_fn : callable
         Function to normalize text according to regex rules.
     processor : Wav2Vec2Processor
         Wav2Vec2Processor to preprocess the audio.
@@ -698,7 +699,7 @@ def alignment_pipeline(
     """
     align_generator = alignment_pipeline_generator(
         dataloader=dataloader,
-        text_normalizer=text_normalizer,
+        text_normalizer_fn=text_normalizer_fn,
         processor=processor,
         tokenizer=tokenizer,
         emissions_dir=emissions_dir,
@@ -739,7 +740,7 @@ def pipeline(
     sample_rate: int = 16000,
     chunk_size: int = 30,
     alignment_strategy: str = "speech",
-    text_normalizer: callable = default_text_normalize,
+    text_normalizer_fn: callable = text_normalizer,
     tokenizer=None,
     start_wildcard: bool = False,
     end_wildcard: bool = False,
@@ -794,7 +795,7 @@ def pipeline(
         If `chunk`, VAD chunks are used as basis for feature extraction and alignment.
         NOTE: `chunk` currently only works with ASR. The individual VAD chunks won't
         contain the relevant text information for alignment.
-    text_normalizer : callable, default default_text_normalize
+    text_normalizer_fn : callable, default text_normalizer
         Function to normalize text according to regex rules.
     tokenizer : object, optional
         Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
@@ -911,7 +912,7 @@ def pipeline(
 
     alignments = alignment_pipeline(
         dataloader=json_dataloader,
-        text_normalizer=text_normalizer,
+        text_normalizer_fn=text_normalizer,
         processor=processor,
         tokenizer=tokenizer,
         emissions_dir=output_emissions_dir,
