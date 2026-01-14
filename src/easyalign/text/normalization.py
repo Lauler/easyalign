@@ -12,12 +12,24 @@ from easyalign.text.languages.sv import abbreviations, ocr_corrections, symbols
 def default_text_normalize(text: str) -> str:
     """
     Default text normalization function.
+
     Applies
         - Unicode normalization (NFKC)
         - Lowercasing
         - Normalization of whitespace
         - Remove parentheses and special characters
 
+    Parameters
+    ----------
+    text : str
+        Input text.
+
+    Returns
+    -------
+    list of str
+        List of normalized tokens.
+    list of dict
+        Mapping between tokens and original text spans.
     """
     # Unicode normalization
     normalizer = SpanMapNormalizer(text)
@@ -43,6 +55,11 @@ def format_symbols_abbreviations():
     and replacement (expansion).
 
     Follows the same logic as the user-supplied patterns in collect_regex_patterns.
+
+    Returns
+    -------
+    list of dict
+        List of abbreviation patterns.
     """
     abbreviation_patterns = []
     for abbreviation, expansion in abbreviations.items():
@@ -87,10 +104,13 @@ class SpanMapNormalizer:
         new_text: "I am sorry"
         new_span_map: [(0, 3), (0, 3), (0, 3), (0, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]
 
-        Args:
-            pattern: The regex pattern to match.
-            replacement: The replacement string or a function that takes a
-                match object and returns a replacement string.
+        Parameters
+        ----------
+        pattern : str
+            The regex pattern to match.
+        replacement : str or callable
+            The replacement string or a function that takes a
+            match object and returns a replacement string.
         """
 
         new_text, new_span_map, last_end = "", [], 0
@@ -102,7 +122,7 @@ class SpanMapNormalizer:
             if start < end:
                 source_span = (self.span_map[start][0], self.span_map[end - 1][1])
             else:
-                # if zero-width match, use the start position for both start and end
+                # if zero-width match, use the start position
                 source_pos = (
                     self.span_map[start][0]
                     if start < len(self.span_map)
@@ -120,6 +140,16 @@ class SpanMapNormalizer:
         """
         Tokenize the current text and create a mapping of normalized tokens to the
         original text spans they were normalized from.
+
+        Parameters
+        ----------
+        tokenization_level : str, default "word"
+            Tokenization level ('word' or 'char').
+
+        Returns
+        -------
+        list of dict
+            Token mapping.
         """
         if tokenization_level == "word":
             # Match any sequence of non-whitespace characters
@@ -160,13 +190,16 @@ def merge_multitoken_expressions(timestamp_mapping: list[dict]) -> list[dict]:
     Converts the input mapping from having one entry per normalized token
     to having one entry per "token" (span) in the original text.
 
-    Args:
-        timestamp_mapping: Normalized tokens, their original text, start and
+    Parameters
+    ----------
+    timestamp_mapping : list of dict
+        Normalized tokens, their original text, start and
         end character indices, and their timestamps.
 
-    Returns:
+    Returns
+    -------
+    list of dict
         A list of dictionaries with merged multi-token entries.
-
     """
 
     if not timestamp_mapping:
@@ -210,12 +243,17 @@ def add_deletions_to_mapping(merged_map: list[dict], original_text: str) -> list
     Deleted text spans are assigned the start and end times of the previous
     adjacent token in the mapping.
 
-    Args:
-        merged_map: A list of dictionaries with the mapping of normalized tokens
-            to their original text spans and timestamps.
-        original_text: The original text from which the mapping was created.
+    Parameters
+    ----------
+    merged_map : list of dict
+        A list of dictionaries with the mapping of normalized tokens
+        to their original text spans and timestamps.
+    original_text : str
+        The original text from which the mapping was created.
 
-    Returns:
+    Returns
+    -------
+    list of dict
         A list of updated dictionaries with an entry that includes deleted
         text spans (e.g. punctuation). Allows reconstructing the original text.
     """

@@ -33,6 +33,25 @@ def load_vad_model(
     min_duration_on: float = 0.1,
     min_duration_off: float = 0.1,
 ):
+    """
+    Load the pyannote VAD model and instantiate a pipeline.
+
+    Parameters
+    ----------
+    model_name_or_path : str, default "pyannote/segmentation-3.0"
+        The name or path of the pyannote segmentation model.
+    device : torch.device, default torch.device("cuda")
+        The device to load the model on.
+    min_duration_on : float, default 0.1
+        Remove active regions shorter than that many seconds.
+    min_duration_off : float, default 0.1
+        Fill inactive regions shorter than that many seconds.
+
+    Returns
+    -------
+    VoiceActivitySegmentation
+        The instantiated VAD pipeline.
+    """
     vad_model = Model.from_pretrained(model_name_or_path).to(device)
     hyperparameters = {
         "min_duration_on": min_duration_on,
@@ -44,8 +63,10 @@ def load_vad_model(
 
 
 class Binarize:
-    """Binarize detection scores using hysteresis thresholding, with min-cut operation
-    to ensure not segments are longer than max_duration.
+    """
+    Binarize detection scores using hysteresis thresholding.
+
+    Includes a min-cut operation to ensure no segments are longer than `max_duration`.
 
     Parameters
     ----------
@@ -63,10 +84,12 @@ class Binarize:
     pad_offset : float, optional
         Extend active regions by moving their end time by that many seconds.
         Defaults to 0s.
-    max_duration: float
+    max_duration : float
         The maximum length of an active segment, divides segment at timestamp with lowest score.
-    Reference
-    ---------
+
+    Notes
+    -----
+    Reference:
     Gregory Gelly and Jean-Luc Gauvain. "Minimum Word Error Training of
     RNN-based Voice Activity Detection", InterSpeech 2015.
 
@@ -100,11 +123,14 @@ class Binarize:
         self.max_duration = max_duration
 
     def __call__(self, scores: SlidingWindowFeature) -> Annotation:
-        """Binarize detection scores
+        """
+        Binarize detection scores.
+
         Parameters
         ----------
         scores : SlidingWindowFeature
             Detection scores.
+
         Returns
         -------
         active : Annotation
@@ -179,22 +205,38 @@ class Binarize:
 
 
 class VoiceActivitySegmentation(VoiceActivityDetection):
+    """
+    Voice Activity Segmentation pipeline.
+
+    Parameters
+    ----------
+    segmentation : PipelineModel, default "pyannote/segmentation"
+        The pyannote segmentation model.
+    fscore : bool, default False
+        Whether to optimize for F-score.
+    token : str or None, optional
+        Hugging Face token for gated models.
+    **inference_kwargs
+        Additional keyword arguments for inference.
+    """
+
     def __init__(
         self,
         segmentation: PipelineModel = "pyannote/segmentation",
         fscore: bool = False,
-        use_auth_token: Union[Text, None] = None,
+        token: Union[Text, None] = None,
         **inference_kwargs,
     ):
         super().__init__(
             segmentation=segmentation,
             fscore=fscore,
-            use_auth_token=use_auth_token,
+            token=token,
             **inference_kwargs,
         )
 
     def apply(self, file: AudioFile, hook: Optional[Callable] = None) -> Annotation:
-        """Apply voice activity detection
+        """
+        Apply voice activity detection.
 
         Parameters
         ----------
@@ -228,6 +270,27 @@ class VoiceActivitySegmentation(VoiceActivityDetection):
 
 
 def merge_vad(vad_arr, pad_onset=0.0, pad_offset=0.0, min_duration_off=0.0, min_duration_on=0.0):
+    """
+    Merge over-lapping VAD segments and remove short ones.
+
+    Parameters
+    ----------
+    vad_arr : list of list or np.ndarray
+        List of [start, end] VAD segments.
+    pad_onset : float, default 0.0
+        Extend active regions by moving their start time by that many seconds.
+    pad_offset : float, default 0.0
+        Extend active regions by moving their end time by that many seconds.
+    min_duration_off : float, default 0.0
+        Fill inactive regions shorter than that many seconds.
+    min_duration_on : float, default 0.0
+        Remove active regions shorter than that many seconds.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with "start" and "end" columns of merged segments.
+    """
     active = Annotation()
     for k, vad_t in enumerate(vad_arr):
         region = Segment(vad_t[0] - pad_onset, vad_t[1] + pad_offset)
@@ -254,7 +317,24 @@ def merge_chunks(
     offset: Optional[float] = None,
 ):
     """
-    Merge operation described in paper
+    Merge operation desribed in paper
+
+    Parameters
+    ----------
+    segments : Annotation
+        The VAD segments to merge.
+    chunk_size : float
+        The maximum duration for each chunk in seconds.
+    onset : float, default 0.5
+        Onset threshold for binarization.
+    offset : float, optional
+        Offset threshold for binarization.
+
+    Returns
+    -------
+    list of dict
+        List of merged chunks, where each chunk is a dictionary with
+        "start", "end", and "segments" keys.
     """
     curr_end = 0
     merged_segments = []
@@ -305,10 +385,23 @@ def run_vad_pipeline(metadata: AudioMetadata, model, audio, sample_rate=16000, c
     """
     Run VAD pipeline on the given audio metadata.
 
-    Args:
-        metadata (AudioMetadata): The audio metadata object.
-        model: The loaded VAD model.
-        chunk_size (int): The maximum chunk size in seconds.
+    Parameters
+    ----------
+    metadata : AudioMetadata
+        The audio metadata object to update with VAD results.
+    model : VoiceActivitySegmentation
+        The loaded VAD model/pipeline.
+    audio : np.ndarray
+        The audio signal.
+    sample_rate : int, default 16000
+        The sample rate of the audio.
+    chunk_size : int, default 30
+        The maximum chunk size in seconds.
+
+    Returns
+    -------
+    AudioMetadata
+        The updated metadata object.
     """
 
     if audio is None:

@@ -6,8 +6,15 @@ def load_tokenizer(language: str = "swedish") -> PunktTokenizer:
     """
     Loads a PunktTokenizer for the specified language that can be used to sentence tokenize text.
 
-    Args:
-        language (str): Language to use for the tokenizer, e.g. "swedish", "english".
+    Parameters
+    ----------
+    language : str, default "swedish"
+        Language to use for the tokenizer, e.g. "swedish", "english".
+
+    Returns
+    -------
+    PunktTokenizer
+        Loaded tokenizer.
     """
     try:
         tokenizer = PunktTokenizer(lang=language)

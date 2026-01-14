@@ -11,12 +11,6 @@ from easyalign.alignment.pytorch import (
     align_speech,
 )
 from easyalign.alignment.utils import add_logits_to_metadata, get_output_logits_length
-from easyalign.data import (
-    AudioFileDataset,
-    JSONMetadataDataset,
-    StreamingAudioFileDataset,
-    VADAudioDataset,
-)
 from easyalign.data.collators import (
     alignment_collate_fn,
     audiofile_collate_fn,
@@ -24,6 +18,12 @@ from easyalign.data.collators import (
     vad_collate_fn,
 )
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
+from easyalign.data.dataset import (
+    AudioFileDataset,
+    JSONMetadataDataset,
+    StreamingAudioFileDataset,
+    VADAudioDataset,
+)
 from easyalign.data.utils import pad_probs
 from easyalign.text.normalization import default_text_normalize
 from easyalign.utils import save_emissions_and_metadata, save_metadata_json, save_metadata_msgpack
@@ -49,23 +49,42 @@ def vad_pipeline_generator(
     """
     Run VAD on a list of audio files.
 
-    Args:
-        model: The loaded VAD model.
-        audio_paths: List of paths to audio files.
-        audio_dir: Directory where the audio files/dirs are located (if audio_paths are relative).
-        speeches: Optional list of SpeechSegment objects to run VAD only on specific
-            segments of the audio. Alignment can generally be improved if VAD/alignment is only
-            performed on the segments of the audio that overlap with text transcripts.
-        chunk_size: The maximum length chunks VAD will create (seconds).
-        sample_rate: The sample rate to resample the audio to before running VAD.
-        metadata: Optional dictionary of additional file level metadata to include.
-        batch_size: The batch size for the DataLoader.
-        num_workers: The number of workers for the DataLoader.
-        prefetch_factor: The prefetch factor for the DataLoader.
-        save_json: Whether to save the VAD output as JSON files.
-        json_dir: Directory to save the JSON files if save_json is True.
+    Parameters
+    ----------
+    model : object
+        The loaded VAD model.
+    audio_paths : list
+        List of paths to audio files.
+    audio_dir : str
+        Directory where the audio files/dirs are located (if audio_paths are relative).
+    speeches : list[list[SpeechSegment]] or None, optional
+        Optional list of SpeechSegment objects to run VAD only on specific
+        segments of the audio. Alignment can generally be improved if VAD/alignment is only
+        performed on the segments of the audio that overlap with text transcripts.
+    chunk_size : int, default 30
+        The maximum length chunks VAD will create (seconds).
+    sample_rate : int, default 16000
+        The sample rate to resample the audio to before running VAD.
+    metadata : list[dict] or None, optional
+        Optional list of additional file level metadata to include.
+    batch_size : int, default 1
+        The batch size for the DataLoader.
+    num_workers : int, default 1
+        The number of workers for the DataLoader.
+    prefetch_factor : int, default 2
+        The prefetch factor for the DataLoader.
+    save_json : bool, default True
+        Whether to save the VAD output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the VAD output as Msgpack files.
+    return_vad : bool, default False
+        Whether to yield the VAD output.
+    output_dir : str, default "output/vad"
+        Directory to save the VAD output files.
 
-    Yields:
+    Yields
+    ------
+    AudioMetadata
         If `return_vad` is True, yields AudioMetadata objects for each audio file.
     """
 
@@ -146,25 +165,42 @@ def vad_pipeline(
     """
     Run VAD on a list of audio files.
 
-    Args:
-        model: The loaded VAD model.
-        audio_paths: List of paths to audio files.
-        audio_dir: Directory where the audio files/dirs are located (if `audio_paths` are relative).
-        speeches (list): Optional list of SpeechSegment objects to run VAD and alignment only on
-            specific segments of the audio. Alignment can generally be improved if VAD/alignment is
-            only performed on the segments of the audio that overlap with text transcripts.
-        chunk_size: The maximum length chunks VAD will create (seconds).
-        sample_rate: The sample rate to resample the audio to before running VAD.
-        metadata: Optional dictionary of additional file level metadata to include.
-        batch_size: The batch size for the DataLoader.
-        num_workers: The number of workers for the DataLoader.
-        prefetch_factor: The prefetch factor for the DataLoader.
-        save_json: Whether to save the VAD output as JSON files.
-        save_msgpack: Whether to save the VAD output as Msgpack files.
-        return_vad: Whether to return the VAD output as a list of AudioMetadata objects.
-        output_dir: Directory to save the JSON/Msgpack files if save_json/save_msgpack is True.
+    Parameters
+    ----------
+    model : object
+        The loaded VAD model.
+    audio_paths : list
+        List of paths to audio files.
+    audio_dir : str or None, optional
+        Directory where audio files/dirs are located (if `audio_paths` are relative).
+    speeches : list[list[SpeechSegment]] or None, optional
+        Optional list of SpeechSegment objects to run VAD and alignment only on
+        specific segments of the audio. Alignment can generally be improved if VAD/alignment is
+        only performed on the segments of the audio that overlap with text transcripts.
+    chunk_size : int, default 30
+        The maximum length chunks VAD will create (seconds).
+    sample_rate : int, default 16000
+        The sample rate to resample the audio to before running VAD.
+    metadata : list[dict] or None, optional
+        Optional list of additional file level metadata to include.
+    batch_size : int, default 1
+        The batch size for the DataLoader.
+    num_workers : int, default 1
+        The number of workers for the DataLoader.
+    prefetch_factor : int, default 2
+        The prefetch factor for the DataLoader.
+    save_json : bool, default True
+        Whether to save the VAD output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the VAD output as Msgpack files.
+    return_vad : bool, default False
+        Whether to return the VAD output.
+    output_dir : str, default "output/vad"
+        Directory to save the JSON/Msgpack files if save_json/save_msgpack is True.
 
-    Returns:
+    Returns
+    -------
+    list[AudioMetadata] or None
         If `return_vad` is True, returns a list of AudioMetadata objects for each audio file.
         Otherwise, returns `None`.
     """
@@ -209,7 +245,7 @@ def emissions_pipeline_generator(
     prefetch_factor_files: int = 2,
     batch_size_features: int = 8,
     num_workers_features: int = 4,
-    streaming: bool = False,
+    streaming: bool = True,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
@@ -218,34 +254,58 @@ def emissions_pipeline_generator(
     device: str = "cuda",
 ):
     """
-    Run emissions extraction pipeline on the given audio files and save results to file. If
-    `return_emissions` is True, function becomes a generator that yields tuples of
+    Run emissions extraction pipeline on the given audio files and save results to file.
+
+    If `return_emissions` is True, function becomes a generator that yields tuples of
     (metadata, emissions) for each audio file.
 
-    Args:
-        model: The loaded ASR model.
-        metadata: List of AudioMetadata objects or paths to JSON files.
-        audio_dir: Directory with audio files
-        sample_rate: Sample rate to resample audio to. Default 16000.
-        chunk_size: When VAD is not used, SpeechSegments are naively split into
-            `chunk_size` sized chunks for feature extraction.
-        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
-            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments
-            If `chunk`, audio is taken from existing VAD chunks.
-        batch_size_files: Batch size for the file DataLoader.
-        num_workers_files: Number of workers for the file DataLoader.
-        prefetch_factor_files: Prefetch factor for the file DataLoader.
-        batch_size_features: Batch size for the feature DataLoader.
-        num_workers_features: Number of workers for the feature DataLoader.
-        streaming: Whether to use streaming audio files.
-        save_json: Whether to save the emissions output as JSON files.
-        save_msgpack: Whether to save the emissions output as Msgpack files.
-        save_emissions: Whether to save the raw emissions as .npy files.
-        return_emissions: Whether to return the emissions as a list of numpy arrays.
-        output_dir: Directory to save the output files if saving is enabled.
-        device: Device to run the model on (e.g. "cuda" or "cpu").
+    Parameters
+    ----------
+    model : object
+        The loaded ASR model.
+    processor : Wav2Vec2Processor
+        The processor to use for audio.
+    metadata : JSONMetadataDataset or list[AudioMetadata] or AudioMetadata
+        List of AudioMetadata objects or paths to JSON files.
+    audio_dir : str
+        Directory with audio files.
+    sample_rate : int, default 16000
+        Sample rate to resample audio to.
+    chunk_size : int, default 30
+        When VAD is not used, SpeechSegments are naively split into
+        `chunk_size` sized chunks for feature extraction.
+    alignment_strategy : str, default "speech"
+        Strategy for aligning features to text. One of 'speech' or 'chunk'.
+        If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
+        If `chunk`, audio is taken from existing VAD chunks.
+    batch_size_files : int, default 1
+        Batch size for the file DataLoader.
+    num_workers_files : int, default 1
+        Number of workers for the file DataLoader.
+    prefetch_factor_files : int, default 2
+        Prefetch factor for the file DataLoader.
+    batch_size_features : int, default 8
+        Batch size for the feature DataLoader.
+    num_workers_features : int, default 4
+        Number of workers for the feature DataLoader.
+    streaming : bool, default False
+        Whether to use streaming audio files.
+    save_json : bool, default True
+        Whether to save the emissions output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the emissions output as Msgpack files.
+    save_emissions : bool, default True
+        Whether to save the raw emissions as .npy files.
+    return_emissions : bool, default False
+        Whether to return the emissions as a list of numpy arrays.
+    output_dir : str, default "output/emissions"
+        Directory to save the output files if saving is enabled.
+    device : str, default "cuda"
+        Device to run the model on (e.g. "cuda" or "cpu").
 
-    Yields:
+    Yields
+    ------
+    tuple(AudioMetadata, np.ndarray)
         If `return_emissions` is True, yields tuples of (metadata, emissions) for each audio file.
     """
     if streaming:
@@ -282,7 +342,7 @@ def emissions_pipeline_generator(
         sample_rate=file_dataset.sr,
     )
 
-    for features in file_dataloader:
+    for features in tqdm(file_dataloader, desc="Extracting emissions from audio files"):
         slice_dataset = features[0]["dataset"]
         metadata = slice_dataset.metadata
 
@@ -344,7 +404,7 @@ def emissions_pipeline(
     prefetch_factor_files: int = 2,
     batch_size_features: int = 8,
     num_workers_features: int = 4,
-    streaming: bool = False,
+    streaming: bool = True,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
@@ -355,30 +415,53 @@ def emissions_pipeline(
     """
     Run emissions extraction pipeline on the given audio files and save results to file.
 
-    Args:
-        model: The loaded ASR model.
-        metadata: List of AudioMetadata objects or paths to JSON files.
-        audio_dir: Directory with audio files
-        sample_rate: Sample rate to resample audio to. Default 16000.
-        chunk_size: When `alignment_strategy` is set to `speech`, SpeechSegments are split into
-            `chunk_size` sized chunks for feature extraction.
-        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
-            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
-            If `chunk`, audio is taken from existing VAD chunks.
-        batch_size_files: Batch size for the file DataLoader.
-        num_workers_files: Number of workers for the file DataLoader.
-        prefetch_factor_files: Prefetch factor for the file DataLoader.
-        batch_size_features: Batch size for the feature DataLoader.
-        num_workers_features: Number of workers for the feature DataLoader.
-        streaming: Whether to use streaming audio files.
-        save_json: Whether to save the emissions output as JSON files.
-        save_msgpack: Whether to save the emissions output as Msgpack files.
-        save_emissions: Whether to save the raw emissions as .npy files.
-        return_emissions: Whether to return the emissions as a list of numpy arrays.
-        output_dir: Directory to save the output files if saving is enabled.
-        device: Device to run the model on (e.g. "cuda" or "cpu").
+    Parameters
+    ----------
+    model : object
+        The loaded ASR model.
+    processor : Wav2Vec2Processor
+        The processor to use for audio.
+    metadata : JSONMetadataDataset or list[AudioMetadata] or AudioMetadata
+        List of AudioMetadata objects or paths to JSON files.
+    audio_dir : str
+        Directory with audio files.
+    sample_rate : int, default 16000
+        Sample rate to resample audio to.
+    chunk_size : int, default 30
+        When `alignment_strategy` is set to `speech`, SpeechSegments are split into
+        `chunk_size` sized chunks for feature extraction.
+    alignment_strategy : str, default "speech"
+        Strategy for aligning features to text. One of 'speech' or 'chunk'.
+        If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
+        If `chunk`, audio is taken from existing VAD chunks.
+    batch_size_files : int, default 1
+        Batch size for the file DataLoader.
+    num_workers_files : int, default 1
+        Number of workers for the file DataLoader.
+    prefetch_factor_files : int, default 2
+        Prefetch factor for the file DataLoader.
+    batch_size_features : int, default 8
+        Batch size for the feature DataLoader.
+    num_workers_features : int, default 4
+        Number of workers for the feature DataLoader.
+    streaming : bool, default False
+        Whether to use streaming audio files.
+    save_json : bool, default True
+        Whether to save the emissions output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the emissions output as Msgpack files.
+    save_emissions : bool, default True
+        Whether to save the raw emissions as .npy files.
+    return_emissions : bool, default False
+        Whether to return the emissions as a list of numpy arrays.
+    output_dir : str, default "output/emissions"
+        Directory to save the output files if saving is enabled.
+    device : str, default "cuda"
+        Device to run the model on (e.g. "cuda" or "cpu").
 
-    Returns:
+    Returns
+    -------
+    list[tuple(AudioMetadata, np.ndarray)] or None
         If `return_emissions` is True, returns a list of tuples (metadata, emissions)
         for each audio file. Otherwise, returns None.
     """
@@ -443,36 +526,57 @@ def alignment_pipeline_generator(
     Speech based alignment is typically used when aligning human transcriptions,
     while chunk based alignment is typically used to align the output of ASR models.
 
-    Args:
-        dataloader: DataLoader loading AudioMetadata objects from JSON or Msgpack files.
-        text_normalizer: Function to normalize text according to regex rules.
-        processor: Wav2Vec2Processor to preprocess the audio.
-        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
-            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
-            string.
-        emissions_dir: Directory where the emissions are stored.
-        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
-            If `speech`, alignments are performed on SpeechSegments.
-            If `chunk`, alignments are performed on VAD chunks.
-        start_wildcard: Whether to add a wildcard token at the start of the segments.
-        end_wildcard: Whether to add a wildcard token at the end of the segments.
-        blank_id: ID of the blank token in the tokenizer.
-        word_boundary: Token indicating word boundaries in the tokenizer.
-        chunk_size: maximum chunk size in seconds.
-        ndigits: Number of decimal digits to round the alignment times and scores to.
-        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
-        save_json: Whether to save alignment metadata in JSON format.
-        save_msgpack: Whether to save alignment metadata in Msgpack format.
-        return_alignments: Whether to yield the alignment mappings.
-        delete_emissions: Whether to delete the emissions files after alignment to save space.
-        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
-        add_leading_space: Whether to add a leading space to the text segments (only used
-            for speech based alignment when speech text is supplied as lists).
-        output_dir: Directory to save alignment outputs.
-        device: Device to run the alignment on (e.g. "cuda" or "cpu").
+    Parameters
+    ----------
+    dataloader : torch.utils.data.DataLoader
+        DataLoader loading AudioMetadata objects from JSON or Msgpack files.
+    text_normalizer : callable
+        Function to normalize text according to regex rules.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor to preprocess the audio.
+    tokenizer : object, optional
+        Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+        or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+        nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+        string.
+    emissions_dir : str, default "output/emissions"
+        Directory where the emissions are stored.
+    alignment_strategy : str, default "speech"
+        Strategy for aligning features to text. One of 'speech' or 'chunk'.
+        If `speech`, alignments are performed on SpeechSegments.
+        If `chunk`, alignments are performed on VAD chunks.
+    start_wildcard : bool, default False
+        Whether to add a wildcard token at the start of the segments.
+    end_wildcard : bool, default False
+        Whether to add a wildcard token at the end of the segments.
+    blank_id : int, default 0
+        ID of the blank token in the tokenizer.
+    word_boundary : str, default "|"
+        Token indicating word boundaries in the tokenizer.
+    chunk_size : int, default 30
+        Maximum chunk size in seconds.
+    ndigits : int, default 5
+        Number of decimal digits to round the alignment times and scores to.
+    indent : int, default 2
+        Indentation level for saved JSON files. `None` to disable pretty formatting.
+    save_json : bool, default True
+        Whether to save alignment metadata in JSON format.
+    save_msgpack : bool, default False
+        Whether to save alignment metadata in Msgpack format.
+    return_alignments : bool, default False
+        Whether to yield the alignment mappings.
+    delete_emissions : bool, default False
+        Whether to delete the emissions files after alignment to save space.
+    remove_wildcards : bool, default True
+        Whether to remove wildcard tokens from the final alignment.
+    output_dir : str, default "output/alignments"
+        Directory to save alignment outputs.
+    device : str, default "cuda"
+        Device to run the alignment on (e.g. "cuda" or "cpu").
 
-    Yields:
+    Yields
+    ------
+    list[SpeechSegment]
         List of aligned speech segments for each audio file.
     """
 
@@ -537,34 +641,58 @@ def alignment_pipeline(
 
     Speech based alignment is typically used when aligning human transcriptions,
     while chunk based alignment is typically used to align the output of ASR models.
-    Args:
-        dataloader: DataLoader loading AudioMetadata objects from JSON or Msgpack files.
-        text_normalizer: Function to normalize text according to regex rules.
-        processor: Wav2Vec2Processor to preprocess the audio.
-        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
-            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
-            string.
-        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
-            If `speech`, alignments are performed on SpeechSegments.
-            If `chunk`, alignments are performed on VAD chunks.
-        start_wildcard: Whether to add a wildcard token at the start of the segments.
-        end_wildcard: Whether to add a wildcard token at the end of the segments.
-        blank_id: ID of the blank token in the tokenizer.
-        word_boundary: Token indicating word boundaries in the tokenizer.
-        chunk_size: maximum chunk size in seconds.
-        ndigits: Number of decimal digits to round the alignment times and scores to.
-        indent: Indentation level for saved JSON files. `None` to disable pretty formatting.
-        save_json: Whether to save alignment metadata in JSON format.
-        save_msgpack: Whether to save alignment metadata in Msgpack format.
-        return_alignments: Whether to return the alignment mappings.
-        delete_emissions: Whether to delete the emissions files after alignment to save space.
-        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
-        emissions_dir: Directory where the emissions are stored.
-        output_dir: Directory to save alignment outputs.
-        device: Device to run the alignment on (e.g. "cuda" or "cpu").
 
-    Returns:
+    Parameters
+    ----------
+    dataloader : torch.utils.data.DataLoader
+        DataLoader loading AudioMetadata objects from JSON or Msgpack files.
+    text_normalizer : callable
+        Function to normalize text according to regex rules.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor to preprocess the audio.
+    tokenizer : object, optional
+        Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+        or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+        nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+        string.
+    alignment_strategy : str, default "speech"
+        Strategy for aligning features to text. One of 'speech' or 'chunk'.
+        If `speech`, alignments are performed on SpeechSegments.
+        If `chunk`, alignments are performed on VAD chunks.
+    start_wildcard : bool, default False
+        Whether to add a wildcard token at the start of the segments.
+    end_wildcard : bool, default False
+        Whether to add a wildcard token at the end of the segments.
+    blank_id : int, default 0
+        ID of the blank token in the tokenizer.
+    word_boundary : str, default "|"
+        Token indicating word boundaries in the tokenizer.
+    chunk_size : int, default 30
+        Maximum chunk size in seconds.
+    ndigits : int, default 5
+        Number of decimal digits to round the alignment times and scores to.
+    indent : int, default 2
+        Indentation level for saved JSON files. `None` to disable pretty formatting.
+    save_json : bool, default True
+        Whether to save alignment metadata in JSON format.
+    save_msgpack : bool, default False
+        Whether to save alignment metadata in Msgpack format.
+    return_alignments : bool, default False
+        Whether to return the alignment mappings.
+    delete_emissions : bool, default False
+        Whether to delete the emissions files after alignment to save space.
+    remove_wildcards : bool, default True
+        Whether to remove wildcard tokens from the final alignment.
+    emissions_dir : str, default "output/emissions"
+        Directory where the emissions are stored.
+    output_dir : str, default "output/alignments"
+        Directory to save alignment outputs.
+    device : str, default "cuda"
+        Device to run the alignment on (e.g. "cuda" or "cpu").
+
+    Returns
+    -------
+    list[list[SpeechSegment]] or None
         If `return_alignments` is True, returns a list of alignment mappings for each audio file.
         Otherwise, returns `None`.
     """
@@ -624,7 +752,7 @@ def pipeline(
     prefetch_factor_files: int = 1,
     batch_size_features: int = 8,
     num_workers_features: int = 4,
-    streaming: bool = False,
+    streaming: bool = True,
     save_json: bool = True,
     save_msgpack: bool = False,
     save_emissions: bool = True,
@@ -638,46 +766,87 @@ def pipeline(
     """
     Complete pipeline to run VAD, extract emissions, and perform alignment.
 
-    Args:
-        vad_model: The loaded VAD model.
-        asr_model: The loaded ASR model.
-        processor: Wav2Vec2Processor to preprocess the audio.
-        audio_paths: List of paths to audio files (relative to `audio_dir`).
-        audio_dir: Base directory with audio files relative to `audio_paths`.
-        speeches: List of SpeechSegment objects to run VAD and alignment only on specific
-            segments of the audio. If `alignment_strategy` is 'speech', the text needs to be
-            supplied in the SpeechSegment objects. If `alignment_strategy` is 'chunk' and ASR
-            transcriptions are used, there is no need to supply text in the SpeechSegment objects.
-        sample_rate: Sample rate to resample audio to. Default 16000.
-        chunk_size: When `alignment_strategy` is set to `speech`, SpeechSegments are split into
-            `chunk_size` sized chunks for feature extraction.
-        alignment_strategy: Strategy for aligning features to text. One of 'speech' or 'chunk'.
-            If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
-            If `chunk`, VAD chunks are used as basis for feature extraction and alignment.
-            NOTE: `chunk` currently only works with ASR. The individual VAD chunks won't
-            contain the relevant text information for alignment.
-        text_normalizer: Function to normalize text according to regex rules.
-        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
-            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
-            string.
-        batch_size_files: Batch size for the file DataLoader.
-        num_workers_files: Number of workers for the file DataLoader.
-        prefetch_factor_files: Prefetch factor for the file DataLoader.
-        batch_size_features: Batch size for the feature DataLoader.
-        num_workers_features: Number of workers for the feature DataLoader.
-        streaming: Whether to use streaming loading of audio files.
-        save_json: Whether to save the output files as JSON.
-        save_msgpack: Whether to save the output files as Msgpack.
-        save_emissions: Whether to save the raw emissions as .npy files.
-        return_alignments: Whether to return the alignment mappings.
-        delete_emissions: Whether to delete the emissions files after alignment to save space.
-        output_vad_dir: Directory to save the VAD output files.
-        output_emissions_dir: Directory to save the emissions output files.
-        output_alignments_dir: Directory to save alignment output files.
-        device: Device to run the alignment on (e.g. "cuda" or "cpu").
+    Parameters
+    ----------
+    vad_model : object
+        The loaded VAD model.
+    emissions_model : object
+        The loaded ASR model.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor to preprocess the audio.
+    audio_paths : list
+        List of paths to audio files (relative to `audio_dir`).
+    audio_dir : str
+        Base directory with audio files relative to `audio_paths`.
+    speeches : list[list[SpeechSegment]] or None, optional
+        List of SpeechSegment objects to run VAD and alignment only on specific
+        segments of the audio. If `alignment_strategy` is 'speech', the text needs to be
+        supplied in the SpeechSegment objects. If `alignment_strategy` is 'chunk' and ASR
+        transcriptions are used, there is no need to supply text in the SpeechSegment objects.
+    sample_rate : int, default 16000
+        Sample rate to resample audio to.
+    chunk_size : int, default 30
+        When `alignment_strategy` is set to `speech`, SpeechSegments are split into
+        `chunk_size` sized chunks for feature extraction.
+    alignment_strategy : str, default "speech"
+        Strategy for aligning features to text. One of 'speech' or 'chunk'.
+        If `speech`, audio is split into `chunk_size` sized chunks based on SpeechSegments.
+        If `chunk`, VAD chunks are used as basis for feature extraction and alignment.
+        NOTE: `chunk` currently only works with ASR. The individual VAD chunks won't
+        contain the relevant text information for alignment.
+    text_normalizer : callable, default default_text_normalize
+        Function to normalize text according to regex rules.
+    tokenizer : object, optional
+        Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+        or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+        nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+        string.
+    start_wildcard : bool, default False
+        Whether to add a wildcard token at the start of the segments.
+    end_wildcard : bool, default False
+        Whether to add a wildcard token at the end of the segments.
+    blank_id : int, default 0
+        ID of the blank token in the tokenizer.
+    word_boundary : str, default "|"
+        Token indicating word boundaries in the tokenizer.
+    indent : int, default 2
+        Indentation level for saved JSON files. `None` to disable pretty formatting.
+    ndigits : int, default 5
+        Number of decimal digits to round the alignment times and scores to.
+    batch_size_files : int, default 1
+        Batch size for the file DataLoader.
+    num_workers_files : int, default 2
+        Number of workers for the file DataLoader.
+    prefetch_factor_files : int, default 1
+        Prefetch factor for the file DataLoader.
+    batch_size_features : int, default 8
+        Batch size for the feature DataLoader.
+    num_workers_features : int, default 4
+        Number of workers for the feature DataLoader.
+    streaming : bool, default False
+        Whether to use streaming loading of audio files.
+    save_json : bool, default True
+        Whether to save the output files as JSON.
+    save_msgpack : bool, default False
+        Whether to save the output files as Msgpack.
+    save_emissions : bool, default True
+        Whether to save the raw emissions as .npy files.
+    return_alignments : bool, default False
+        Whether to return the alignment mappings.
+    delete_emissions : bool, default False
+        Whether to delete the emissions files after alignment to save space.
+    output_vad_dir : str, default "output/vad"
+        Directory to save the VAD output files.
+    output_emissions_dir : str, default "output/emissions"
+        Directory to save the emissions output files.
+    output_alignments_dir : str, default "output/alignments"
+        Directory to save alignment output files.
+    device : str, default "cuda"
+        Device to run the alignment on (e.g. "cuda" or "cpu").
 
-    Returns:
+    Returns
+    -------
+    list[list[SpeechSegment]] or None
         If `return_alignments` is True, returns a list of alignment mappings for each audio file.
         Otherwise, returns `None` (the alignments are saved to disk only).
     """

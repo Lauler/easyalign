@@ -7,10 +7,41 @@ from easyalign.vad.utils import encode_vad_segments
 
 
 def load_vad_model(onnx=False, opset_version=16):
+    """
+    Load the Silero VAD model.
+
+    Parameters
+    ----------
+    onnx : bool, default False
+        Whether to load the ONNX version of the model.
+    opset_version : int, default 16
+        The opset version for the ONNX model.
+
+    Returns
+    -------
+    object
+        The loaded Silero VAD model.
+    """
     return load_silero_vad(onnx=onnx, opset_version=opset_version)
 
 
 def merge_chunks(segments, chunk_size=30):
+    """
+    Merge Silero VAD segments into larger chunks of a maximum size.
+
+    Parameters
+    ----------
+    segments : list of dict
+        List of dictionaries with 'start' and 'end' keys for each speech segment.
+    chunk_size : int, default 30
+        The maximum duration for each chunk in seconds.
+
+    Returns
+    -------
+    list of dict
+        List of merged chunks, where each chunk is a dictionary with
+        "start", "end", and "segments" keys.
+    """
     current_start = segments[0]["start"]
     current_end = 0
     merged_segments = []
@@ -38,10 +69,23 @@ def run_vad_pipeline(
     """
     Run VAD pipeline on the given audio metadata.
 
-    Args:
-        metadata (AudioMetadata): The audio metadata object.
-        model: The loaded VAD model.
-        chunk_size (int): The maximum chunk size in seconds.
+    Parameters
+    ----------
+    metadata : AudioMetadata
+        The audio metadata object to update with VAD results.
+    model : object
+        The loaded Silero VAD model.
+    audio : torch.Tensor
+        The audio signal.
+    sample_rate : int, default 16000
+        The sample rate of the audio.
+    chunk_size : int, default 30
+        The maximum chunk size in seconds.
+
+    Returns
+    -------
+    AudioMetadata
+        The updated metadata object.
     """
 
     if audio is None:

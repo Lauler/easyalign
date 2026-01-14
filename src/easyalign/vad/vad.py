@@ -25,15 +25,28 @@ def run_vad(
     """
     Run VAD on the given audio file.
 
-    Args:
-        audio_path: Path to the audio file, that acts as a unique identifier.
-        model: The loaded VAD model.
-        audio: The audio tensor.
-        audio_dir: Directory where the audio files/dirs are located (if audio_path is relative).
-        chunk_size: The maximum length chunks VAD will create (seconds).
-        speeches (list): Optional list of SpeechSegment objects to run VAD on specific
-            segments of the audio.
-        metadata (dict): Optional dictionary of additional file level metadata to include.
+    Parameters
+    ----------
+    audio_path : str
+        Path to the audio file, that acts as a unique identifier.
+    model : object
+        The loaded VAD model.
+    audio : torch.Tensor
+        The audio tensor.
+    audio_dir : str, optional
+        Directory where the audio files/dirs are located (if audio_path is relative).
+    chunk_size : int, default 30
+        The maximum length chunks VAD will create (seconds).
+    speeches : list, optional
+        Optional list of SpeechSegment objects to run VAD on specific
+        segments of the audio.
+    metadata : dict, optional
+        Optional dictionary of additional file level metadata to include.
+
+    Returns
+    -------
+    AudioMetadata
+        The metadata for the audio file, including identified speech segments.
     """
 
     file_metadata = encode_metadata(
@@ -68,21 +81,41 @@ def vad_pipeline(
     """
     Run VAD on a list of audio files.
 
-    Args:
-        model: The loaded VAD model.
-        audio_paths: List of paths to audio files.
-        audio_dir: Directory where the audio files/dirs are located (if audio_paths are relative).
-        speeches (list): Optional list of SpeechSegment objects to run VAD only on specific
-            segments of the audio. Alignment can generally be improved if VAD/alignment is only
-            performed on the segments of the audio that overlap with text transcripts.
-        chunk_size: The maximum chunk size in seconds.
-        sample_rate: The sample rate to resample the audio to before running VAD.
-        metadata: Optional dictionary of additional file level metadata to include.
-        batch_size: The batch size for the DataLoader.
-        num_workers: The number of workers for the DataLoader.
-        prefetch_factor: The prefetch factor for the DataLoader.
-        save_json: Whether to save the VAD output as JSON files.
-        json_dir: Directory to save the JSON files if save_json is True.
+    Parameters
+    ----------
+    model : object
+        The loaded VAD model.
+    audio_paths : list of str
+        List of paths to audio files.
+    audio_dir : str
+        Directory where the audio files/dirs are located (if audio_paths are relative).
+    speeches : list or list of SpeechSegment, optional
+        Optional list of SpeechSegment objects to run VAD only on specific
+        segments of the audio. Alignment can generally be improved if VAD/alignment is only
+        performed on the segments of the audio that overlap with text transcripts.
+    chunk_size : int, default 30
+        The maximum chunk size in seconds.
+    sample_rate : int, default 16000
+        The sample rate to resample the audio to before running VAD.
+    metadata : list of dict, optional
+        Optional list of additional file level metadata to include.
+    batch_size : int, default 1
+        The batch size for the DataLoader.
+    num_workers : int, default 1
+        The number of workers for the DataLoader.
+    prefetch_factor : int, default 2
+        The prefetch factor for the DataLoader.
+    save_json : bool, default True
+        Whether to save the VAD output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the VAD output as Msgpack files.
+    output_dir : str, default "output/vad"
+        Directory to save the VAD output files.
+
+    Returns
+    -------
+    list of AudioMetadata
+        List of results for each audio file.
     """
 
     vad_dataset = VADAudioDataset(
@@ -150,21 +183,41 @@ def vad_pipeline_generator(
     """
     Run VAD on a list of audio files.
 
-    Args:
-        model: The loaded VAD model.
-        audio_paths: List of paths to audio files.
-        audio_dir: Directory where the audio files/dirs are located (if audio_paths are relative).
-        speeches (list): Optional list of SpeechSegment objects to run VAD only on specific
-            segments of the audio. Alignment can generally be improved if VAD/alignment is only
-            performed on the segments of the audio that overlap with text transcripts.
-        chunk_size: The maximum chunk size in seconds.
-        sample_rate: The sample rate to resample the audio to before running VAD.
-        metadata: Optional dictionary of additional file level metadata to include.
-        batch_size: The batch size for the DataLoader.
-        num_workers: The number of workers for the DataLoader.
-        prefetch_factor: The prefetch factor for the DataLoader.
-        save_json: Whether to save the VAD output as JSON files.
-        json_dir: Directory to save the JSON files if save_json is True.
+    Parameters
+    ----------
+    model : object
+        The loaded VAD model.
+    audio_paths : list of str
+        List of paths to audio files.
+    audio_dir : str
+        Directory where the audio files/dirs are located (if audio_paths are relative).
+    speeches : list or list of SpeechSegment, optional
+        Optional list of SpeechSegment objects to run VAD only on specific
+        segments of the audio. Alignment can generally be improved if VAD/alignment is only
+        performed on the segments of the audio that overlap with text transcripts.
+    chunk_size : int, default 30
+        The maximum chunk size in seconds.
+    sample_rate : int, default 16000
+        The sample rate to resample the audio to before running VAD.
+    metadata : list of dict, optional
+        Optional list of additional file level metadata to include.
+    batch_size : int, default 1
+        The batch size for the DataLoader.
+    num_workers : int, default 1
+        The number of workers for the DataLoader.
+    prefetch_factor : int, default 2
+        The prefetch factor for the DataLoader.
+    save_json : bool, default True
+        Whether to save the VAD output as JSON files.
+    save_msgpack : bool, default False
+        Whether to save the VAD output as Msgpack files.
+    output_dir : str, default "output/vad"
+        Directory to save the VAD output files.
+
+    Yields
+    ------
+    AudioMetadata
+        Results for each audio file.
     """
 
     vad_dataset = VADAudioDataset(

@@ -12,7 +12,20 @@ def _calculate_receptive_field(
 ) -> int:
     """
     Calculate the receptive field of the model based on convolutional kernel sizes and strides.
+
     Formula: RF_next = RF_prev + (kernel - 1) * accumulated_stride
+
+    Parameters
+    ----------
+    conv_kernel : list of int
+        List of kernel sizes.
+    conv_stride : list of int
+        List of strides.
+
+    Returns
+    -------
+    int
+        Receptive field size.
     """
     receptive_field = 1
     accumulated_stride = 1
@@ -34,11 +47,34 @@ def _compute_logits(
 ) -> int:
     """
     Compute the number of output logits for a given number of input frames.
+
     Mimics Hugging Face's `_get_feat_extract_output_lengths` logic. This implementation
     however always pads the input to at least the receptive field size. Our calculation
     will therefore always output 1 logit for inputs smaller than the receptive field.
 
     See: https://github.com/huggingface/transformers/blob/v4.57.1/src/transformers/models/wav2vec2/modeling_wav2vec2.py#L1073
+
+    Parameters
+    ----------
+    frames : int
+        Number of input frames.
+    receptive_field : int
+        Receptive field size.
+    conv_kernel : list of int, default [10, 3, 3, 3, 3, 2, 2]
+        List of kernel sizes.
+    conv_stride : list of int, default [5, 2, 2, 2, 2, 2, 2]
+        List of strides.
+    add_adapter : bool, default False
+        Whether an adapter is added.
+    num_adapter_layers : int, default 0
+        Number of adapter layers.
+    adapter_stride : int, default 2
+        Stride of the adapter.
+
+    Returns
+    -------
+    int
+        Number of output logits.
     """
 
     # Pad input frames to at least the receptive field (see `pad_` easyalign/data/collators.py)
@@ -73,20 +109,34 @@ def get_output_logits_length(
     Flexibly handles different models and configurations with varying convolutional kernel sizes,
     strides, numbers of adapter layers, as well as possible chunking of the audio input.
 
-    Args:
-        audio_frames: Number of audio frames in the audio file, or part of audio file to be
-            aligned.
-        chunk_size: Number of seconds the audio was chunked by for batched inference or VAD.
-        conv_kernel: The convolutional kernel sizes of the emissions model
-            (see `model.config.conv_kernel` for default values).
-        conv_stride: The convolutional stride of the emissions model
-            (see `model.config.conv_stride`).
-        add_adapter: Whether a convolutional network should be stacked on top of the
-            wav2vec2 encoder.
-        num_adapter_layers: Number of adapter layers in the model
-            (`model.config.num_adapter_layers`).
-        adapter_stride: The stride of each adapter layer (`model.config.adapter_stride`).
-        sample_rate: The sample rate of the w2v processor, default 16000.
+    Parameters
+    ----------
+    audio_frames : int
+        Number of audio frames in the audio file, or part of audio file to be
+        aligned.
+    chunk_size : float
+        Number of seconds the audio was chunked by for batched inference or VAD.
+    conv_kernel : list of int, default [10, 3, 3, 3, 3, 2, 2]
+        The convolutional kernel sizes of the emissions model
+        (see `model.config.conv_kernel` for default values).
+    conv_stride : list of int, default [5, 2, 2, 2, 2, 2, 2]
+        The convolutional stride of the emissions model
+        (see `model.config.conv_stride`).
+    add_adapter : bool, default False
+        Whether a convolutional network should be stacked on top of the
+        wav2vec2 encoder.
+    num_adapter_layers : int, default 0
+        Number of adapter layers in the model
+        (`model.config.num_adapter_layers`).
+    adapter_stride : int, default 2
+        The stride of each adapter layer (`model.config.adapter_stride`).
+    sample_rate : int, default 16000
+        The sample rate of the w2v processor, default 16000.
+
+    Returns
+    -------
+    int
+        Total number of output logits.
     """
     receptive_field = _calculate_receptive_field(conv_kernel, conv_stride)
 
@@ -120,13 +170,24 @@ def add_logits_to_metadata(
     model, metadata: AudioMetadata, chunk_size: float, sample_rate: int = 16000
 ):
     """
-    Adds the number of output logits to each chunk in the metadata based on the model configuration.
+    Adds the number of output logits to each chunk in the metadata based on the
+    model configuration.
 
-    Args:
-        model: The emissions model (e.g., Wav2Vec2ForCTC) used for alignment.
-        metadata: List of AudioMetadata objects containing SpeechSegments.
-        chunk_size: Number of seconds the audio was chunked by for batched inference or VAD.
-        sample_rate: The sample rate of the w2v processor, default 16000.
+    Parameters
+    ----------
+    model : object
+        The emissions model (e.g., Wav2Vec2ForCTC) used for alignment.
+    metadata : AudioMetadata
+        List of AudioMetadata objects containing SpeechSegments.
+    chunk_size : float
+        Number of seconds the audio was chunked by for batched inference or VAD.
+    sample_rate : int, default 16000
+        The sample rate of the w2v processor.
+
+    Returns
+    -------
+    AudioMetadata
+        Updated metadata object.
     """
     conv_kernel = model.config.conv_kernel
     conv_stride = model.config.conv_stride
@@ -154,11 +215,21 @@ def segment_speech_probs(probs_list: list[np.ndarray], speech_ids: list[str] | l
     Divide the accumulated probs of audio file into the speeches they belong to.
     (we can't assume that a batch maps to a single speech)
 
-    Args:
-        probs_list: List of np.ndarrays containing the probs
-            with shape (batch_size, seq_len, vocab_size).
-        speech_ids: List of speech ids that each chunk (observation)
-            in the probs_list belongs to.
+    Parameters
+    ----------
+    probs_list : list of np.ndarray
+        List of np.ndarrays containing the probs
+        with shape (batch_size, seq_len, vocab_size).
+    speech_ids : list of str or list of int
+        List of speech ids that each chunk (observation)
+        in the probs_list belongs to.
+
+    Yields
+    ------
+    str or int
+        Speech ID.
+    np.ndarray
+        Probabilities for the speech segment.
     """
     # Count the number of chunks per speech id
     speech_chunk_counts = [

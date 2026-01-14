@@ -4,8 +4,20 @@ import torch
 
 def pad_to_min_length(vec: np.ndarray | torch.Tensor) -> torch.Tensor:
     """
+    Pad a vector to a minimum length.
+
     Wav2Vec2 models require a minimum input length of 400 frames.
     We pad to 640 frames to be safe, so other models with larger receptive fields also work.
+
+    Parameters
+    ----------
+    vec : np.ndarray or torch.Tensor
+        Input vector.
+
+    Returns
+    -------
+    torch.Tensor
+        Padded vector.
     """
     audio_frames = torch.as_tensor(vec.shape[-1]).to(vec.device)
     if audio_frames < 640:
@@ -16,9 +28,21 @@ def pad_to_min_length(vec: np.ndarray | torch.Tensor) -> torch.Tensor:
 
 def alignment_collate_fn(batch: list[dict]) -> dict:
     """
+    Collate function for alignment.
+
     We need to pad the input_values to the longest sequence,
     since wav2vec2 doesn't do this by default.
     The individual elements in the batch are tuples: (feature, speech_id)
+
+    Parameters
+    ----------
+    batch : list of dict
+        Batch of features.
+
+    Returns
+    -------
+    dict
+        Collated batch.
     """
     # Remove None values
     speech_ids = []
@@ -45,6 +69,19 @@ def alignment_collate_fn(batch: list[dict]) -> dict:
 
 
 def vad_collate_fn(batch: list[dict]) -> dict:
+    """
+    Collate function for VAD.
+
+    Parameters
+    ----------
+    batch : list of dict
+        Batch of audio data.
+
+    Returns
+    -------
+    dict
+        Collated batch.
+    """
     audios = [item["audio"] for item in batch]
     sample_rates = [item["sample_rate"] for item in batch]
     audio_paths = [item["audio_path"] for item in batch]
@@ -61,6 +98,19 @@ def vad_collate_fn(batch: list[dict]) -> dict:
 
 
 def transcribe_collate_fn(batch: list[dict]) -> dict:
+    """
+    Collate function for transcription.
+
+    Parameters
+    ----------
+    batch : list of dict
+        Batch of features.
+
+    Returns
+    -------
+    dict
+        Collated batch.
+    """
     # Remove None values
     speech_ids = [b["speech_id"] for b in batch if b is not None]
     start_times = [b["start_time_global"] for b in batch if b is not None]
@@ -79,6 +129,16 @@ def transcribe_collate_fn(batch: list[dict]) -> dict:
 def audiofile_collate_fn(batch: list[dict]) -> list:
     """
     Collate function to allow dictionaries with Datasets in the batch.
+
+    Parameters
+    ----------
+    batch : list of dict
+        Batch of datasets.
+
+    Returns
+    -------
+    list of dict
+        Collated batch.
     """
     # Remove None values
     batch = [b for b in batch if b is not None]
@@ -94,6 +154,16 @@ def audiofile_collate_fn(batch: list[dict]) -> list:
 def metadata_collate_fn(batch: list) -> list:
     """
     Collate function to allow dictionaries with AudioMetadata objects in the batch.
+
+    Parameters
+    ----------
+    batch : list
+        Batch of metadata.
+
+    Returns
+    -------
+    list
+        Collated batch.
     """
     batch = [b for b in batch if b is not None]
 

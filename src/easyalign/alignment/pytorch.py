@@ -30,19 +30,29 @@ def align_pytorch(
     """
     Align audio emissions with text transcripts.
 
-    Args:
-        normalized_tokens: List of normalized text that has been tokenized.
-        processor: Wav2Vec2Processor instance for tokenization.
-        emissions: Tensor of audio emissions (logits) with shape
-            (batch, sequence (time), vocab_size).
-        start_unknown: If True, adds a star wildcard token at the start of the transcript
-            to allow better alignment if the audio starts with other irrelevant speech.
-        end_unknown: If True, adds a star wildcard token at the end of the transcript.
-        device: Device to run the alignment on (e.g., "cpu" or "cuda").
+    Parameters
+    ----------
+    normalized_tokens : list of str
+        List of normalized text that has been tokenized.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor instance for tokenization.
+    emissions : torch.Tensor
+        Tensor of audio emissions (logits) with shape
+        (batch, sequence (time), vocab_size).
+    start_wildcard : bool
+        If True, adds a star wildcard token at the start of the transcript
+        to allow better alignment if the audio starts with other irrelevant speech.
+    end_wildcard : bool
+        If True, adds a star wildcard token at the end of the transcript.
+    device : str
+        Device to run the alignment on (e.g., "cpu" or "cuda").
 
-    Returns:
-        alignments: Aligned indices of character tokens (their logit indices in the emissions).
-        scores: Alignment scores (probabilities) for the tokens.
+    Returns
+    -------
+    torch.Tensor
+        Aligned indices of character tokens (their logit indices in the emissions).
+    torch.Tensor
+        Alignment scores (probabilities) for the tokens.
     """
     transcript = " ".join(normalized_tokens)
     transcript = transcript.replace("\n", " ").upper()
@@ -88,28 +98,46 @@ def align_chunks(
 ) -> list:
     """
     Perform alignment on VAD chunks for a single AudioMetadata using wav2vec2 emissions.
+
     Chunk based alignment is typically used to align the output of ASR models such as Whisper.
 
-    Args:
-        metadata: AudioMetadata object containing speech segments and chunks.
-        text_normalizer: Function to normalize text according to regex rules.
-        processor: Wav2Vec2Processor to preprocess the audio.
-        tokenizer: Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
-            or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
-            nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
-            string.
-        emissions_dir: Directory where the wav2vec2 emissions are stored.
-        start_wildcard: Whether to add a wildcard token at the start of the segments.
-        end_wildcard: Whether to add a wildcard token at the end of the segments.
-        blank_id: ID of the blank token in the tokenizer.
-        word_boundary: Token indicating word boundaries in the tokenizer.
-        chunk_size: maximum chunk size in seconds.
-        ndigits: Number of decimal digits to round the alignment times and scores to.
-        delete_emissions: Whether to delete the emissions files after alignment to save space.
-        remove_wildcards: Whether to remove wildcard tokens from the final alignment.
-        device: Device to run the alignment on (e.g. "cuda" or "cpu").
+    Parameters
+    ----------
+    metadata : AudioMetadata
+        AudioMetadata object containing speech segments and chunks.
+    text_normalizer : callable
+        Function to normalize text according to regex rules.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor to preprocess the audio.
+    tokenizer : object, optional
+        Optional tokenizer for custom segmentation of text (e.g. sentence segmentation,
+        or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from
+        nltk, or ii) directly return a list of spans (start_char, end_char) when called on a
+        string.
+    emissions_dir : str, default "output/emissions"
+        Directory where the wav2vec2 emissions are stored.
+    start_wildcard : bool, default False
+        Whether to add a wildcard token at the start of the segments.
+    end_wildcard : bool, default False
+        Whether to add a wildcard token at the end of the segments.
+    blank_id : int, default 0
+        ID of the blank token in the tokenizer.
+    word_boundary : str, default "|"
+        Token indicating word boundaries in the tokenizer.
+    chunk_size : int, default 30
+        maximum chunk size in seconds.
+    ndigits : int, default 5
+        Number of decimal digits to round the alignment times and scores to.
+    delete_emissions : bool, default False
+        Whether to delete the emissions files after alignment to save space.
+    remove_wildcards : bool, default True
+        Whether to remove wildcard tokens from the final alignment.
+    device : str, default "cuda"
+        Device to run the alignment on (e.g. "cuda" or "cpu").
 
-    Returns:
+    Returns
+    -------
+    list of AlignmentSegment
         List of aligned segments with word-level timestamps.
     """
     chunk_mappings = []
@@ -314,6 +342,16 @@ def count_target_repeats(targets: torch.Tensor) -> int:
     Count consecutive repeated tokens in target sequence.
 
     This corresponds to R in PyTorch's CTC constraint: T >= L + R.
+
+    Parameters
+    ----------
+    targets : torch.Tensor
+        Target token indices.
+
+    Returns
+    -------
+    int
+        Number of consecutive repeats.
     """
     if targets.numel() <= 1:
         return 0
@@ -329,12 +367,18 @@ def is_alignable(
     """
     Check if alignment is feasible given PyTorch's CTC constraint: T >= L + R.
 
-    Args:
-        normalized_tokens: List of normalized text tokens.
-        processor: Wav2Vec2Processor instance for tokenization.
-        num_emission_frames: Number of emission frames (T) from wav2vec2.
+    Parameters
+    ----------
+    normalized_tokens : list of str
+        List of normalized text tokens.
+    processor : Wav2Vec2Processor
+        Wav2Vec2Processor instance for tokenization.
+    num_emission_frames : int
+        Number of emission frames (T) from wav2vec2.
 
-    Returns:
+    Returns
+    -------
+    tuple
         Tuple of (can_align, T, L, R) where:
             - can_align: Whether alignment is feasible
             - T: Number of emission frames
@@ -361,12 +405,18 @@ def create_fallback_alignment(
     Adds start_time, end_time, and score to each token in the mapping.
     The mapping already contains: normalized_token, text, start_char, end_char.
 
-    Args:
-        mapping: Token mapping from text normalizer.
-        chunk_start: Start time of the chunk in seconds.
-        chunk_end: End time of the chunk in seconds.
+    Parameters
+    ----------
+    mapping : list of dict
+        Token mapping from text normalizer.
+    chunk_start : float
+        Start time of the chunk in seconds.
+    chunk_end : float
+        End time of the chunk in seconds.
 
-    Returns:
+    Returns
+    -------
+    list of dict
         Updated mapping with linearly interpolated timestamps and score=0.0.
     """
     n_tokens = len(mapping)
@@ -399,17 +449,27 @@ def process_fallback_alignment(
     Used when forced alignment is infeasible (e.g. due to Whisper hallucination).
     Applies the full post-processing pipeline to the fallback timestamps.
 
-    Args:
-        mapping: Token mapping from text normalizer.
-        start: Start time of the segment in seconds.
-        end: End time of the segment in seconds.
-        original_text: Original unnormalized text.
-        tokenizer: Tokenizer for segment alignment.
-        segment_spans: Optional custom segment spans.
-        ndigits: Number of decimal digits for rounding.
+    Parameters
+    ----------
+    mapping : list of dict
+        Token mapping from text normalizer.
+    start : float
+        Start time of the segment/chunk.
+    end : float
+        End time of the segment/chunk.
+    original_text : str
+        The original text of the segment/chunk.
+    tokenizer : object
+         Optional tokenizer for custom segmentation.
+    segment_spans : list, optional
+        Optional list of segment spans.
+    ndigits : int
+        Number of decimal digits to round the timestamps.
 
-    Returns:
-        List of AlignmentSegment objects with fallback timestamps.
+    Returns
+    -------
+    list of AlignmentSegment
+        List of aligned segments.
     """
     mapping = create_fallback_alignment(mapping, start, end)
     mapping = merge_multitoken_expressions(mapping)
@@ -426,6 +486,16 @@ def process_fallback_alignment(
 def format_timestamp(timestamp):
     """
     Convert timestamp in seconds to "hh:mm:ss,ms" format.
+
+    Parameters
+    ----------
+    timestamp : float
+        Timestamp in seconds.
+
+    Returns
+    -------
+    str
+        Formatted timestamp.
     """
     hours = int(timestamp // 3600)
     minutes = int((timestamp % 3600) // 60)
@@ -439,11 +509,17 @@ def unflatten(char_list: list[TokenSpan], word_lengths: list[int]) -> list[list[
     Unflatten a list of character output tokens (TokenSpans) from wav2vec2 into words
     (lists of TokenSpans) based on provided normalized word lengths.
 
-    Args:
-        char_list:
-            A list of character tokens.
-        lengths:
-            A list of character lengths of the words (normalized tokens).
+    Parameters
+    ----------
+    char_list : list of TokenSpan
+        A list of character tokens.
+    word_lengths : list of int
+        A list of character lengths of the words (normalized tokens).
+
+    Returns
+    -------
+    list of list of TokenSpan
+        List of words, where each word is a list of characters.
     """
     assert len(char_list) == sum(word_lengths)
     word_start = 0
@@ -463,17 +539,26 @@ def get_word_timing(
     """
     Calculate the start and end time of a word span in the original audio file.
 
-    Args:
-        word_span: A list of TokenSpan objects that together represent the word span's
-            timings in the aligned audio chunk.
-        frames_per_logit: The number of audio frames per model output logit. This is the
-            total number of frames in our audio chunk divided by the number of
-            (non-padding) logit outputs for the chunk.
-        start_segment: The start time of the speech segment in the original audio file.
-            We offset the start/end time of the word span by this value (in
-            case chunking/slicing of the audio was performed).
-        sample_rate: The sample rate of the audio file, default 16000.
+    Parameters
+    ----------
+    word_span : list of TokenSpan
+        A list of TokenSpan objects that together represent the word span's
+        timings in the aligned audio chunk.
+    frames_per_logit : float
+        The number of audio frames per model output logit. This is the
+        total number of frames in our audio chunk divided by the number of
+        (non-padding) logit outputs for the chunk.
+    start_segment : float, default 0.0
+        The start time of the speech segment in the original audio file.
+        We offset the start/end time of the word span by this value (in
+        case chunking/slicing of the audio was performed).
+    sample_rate : int, default 16000
+        The sample rate of the audio file, default 16000.
 
+    Returns
+    -------
+    tuple
+        Tuple containing (start_time, end_time, score).
     """
     start = (word_span[0].start * frames_per_logit) / sample_rate + start_segment
     end = (word_span[-1].end * frames_per_logit) / sample_rate + start_segment
@@ -498,20 +583,31 @@ def get_word_spans(
     """
     Merge wav2vec2 token (character level) predictions and get their word spans.
 
-    Args:
-        tokens: Tokens predicted by the model.
-        scores: Scores for each token.
-        mapping: Token mapping information.
-        blank: The token ID for the blank (padding) token.
-        start_wildcard: Whether to add a start wildcard token, to better account for
-            speech in the audio that is not covered by the text.
-        end_wildcard: Whether to add an end wildcard token.
-        word_boundary: The token used to indicate word boundaries. Usually, this is
-            the "|" token. Sometimes, the model is trained without word boundary tokens
-            (Pytorch native Wav2Vec2 models).
-        processor: The Wav2Vec2Processor used for tokenization.
+    Parameters
+    ----------
+    tokens : torch.Tensor
+        Tokens predicted by the model.
+    scores : torch.Tensor
+        Scores for each token.
+    mapping : list of dict
+        Token mapping information.
+    blank : int, default 0
+        The token ID for the blank (padding) token.
+    start_wildcard : bool, default True
+        Whether to add a start wildcard token, to better account for
+        speech in the audio that is not covered by the text.
+    end_wildcard : bool, default True
+        Whether to add an end wildcard token.
+    word_boundary : str, optional
+        The token used to indicate word boundaries. Usually, this is
+        the "|" token. Sometimes, the model is trained without word boundary tokens
+        (Pytorch native Wav2Vec2 models).
+    processor : Wav2Vec2Processor, optional
+        The Wav2Vec2Processor used for tokenization.
 
-    Returns:
+    Returns
+    -------
+    tuple
         A tuple containing (word_spans, updated_mapping).
     """
     if start_wildcard:
@@ -551,21 +647,29 @@ def get_segment_alignment(
 ):
     """
     Get alignment timestamps for any arbitrary segmentation of the original text.
+
     By default, this function performs a sentence span tokenization if user does
     not provide custom segment spans.
 
-    Args:
-        mapping: A list of dictionaries containing the original text tokens that
-            have been aligned with the audio, together with character indices and timestamps.
-        original_text: The original unnormalized text that was aligned with the audio.
-        tokenizer: A PunktSentenceTokenizer instance to tokenize the original text
-            into sentences (if segment_spans are not provided). Alternatively, a callable
-            function that takes the original text as input and returns a list of
-            (start_char, end_char) tuples for each segment.
-        segment_spans: Optional list of tuples containing the start and end character
-            indices of custom segments in the original text.
+    Parameters
+    ----------
+    mapping : list of dict
+        A list of dictionaries containing the original text tokens that
+        have been aligned with the audio, together with character indices and timestamps.
+    original_text : str
+        The original unnormalized text that was aligned with the audio.
+    tokenizer : object, optional
+        A PunktSentenceTokenizer instance to tokenize the original text
+        into sentences (if segment_spans are not provided). Alternatively, a callable
+        function that takes the original text as input and returns a list of
+        (start_char, end_char) tuples for each segment.
+    segment_spans : list of tuple, optional
+        Optional list of tuples containing the start and end character
+        indices of custom segments in the original text.
 
-    Returns:
+    Returns
+    -------
+    list of dict
         A list of dictionaries containing the start and end timestamps for each segment,
         along with the original text of the segment.
         dict keys:
@@ -674,13 +778,20 @@ def assign_segment_time(
     closest available token that has a timestamp (either among future tokens in
     the `segment_mapping`, or the previous tokens in the `previous_removed` list).
 
-    Args:
-        current_token: The current token dictionary containing the token's metadata.
-        token_list: A list of token alignments (dictionaries) that acts as fallback
-            when the current token has no timestamp.
-        fallback_direction: The direction to search for a timestamp ("next" or "previous"
-            tokens) as a fallback when the current token has no timestamp.
-    Returns:
+    Parameters
+    ----------
+    current_token : dict
+        The current token dictionary containing the token's metadata.
+    token_list : list of dict
+        A list of token alignments (dictionaries) that acts as fallback
+        when the current token has no timestamp.
+    fallback_direction : str, default "next"
+        The direction to search for a timestamp ("next" or "previous"
+        tokens) as a fallback when the current token has no timestamp.
+
+    Returns
+    -------
+    float or None
         The start or end time of the segment. If no timestamp is found, returns None.
     """
     time = (
@@ -718,16 +829,24 @@ def join_word_timestamps(
     Join word spans from the alignment with the normalized token mapping, adding timestamps
     to the mapping.
 
-    Args:
-        word_spans: List of lists of TokenSpan objects representing the aligned words.
-        mapping: List of dictionaries containing the original normalized text tokens that
-            have been aligned with the audio (together with character indices relative
-            to the original text).
-        audio_length: Length of the audio input in frames.
-        chunk_size: Size of the audio chunks in seconds (when doing batched inference).
-        start_segment: Start time of the audio segment inside the audio file (in seconds).
+    Parameters
+    ----------
+    word_spans : list of list of TokenSpan
+        List of lists of TokenSpan objects representing the aligned words.
+    mapping : list of dict
+        List of dictionaries containing the original normalized text tokens that
+        have been aligned with the audio (together with character indices relative
+        to the original text).
+    speech : SpeechSegment
+        The speech segment.
+    chunk_size : int, default 20
+        Size of the audio chunks in seconds (when doing batched inference).
+    start_segment : float, default 0.0
+        Start time of the audio segment inside the audio file (in seconds).
 
-    Returns:
+    Returns
+    -------
+    list of dict
         An updated mapping with start and end times for each normalized token.
     """
 
