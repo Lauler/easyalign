@@ -1,3 +1,4 @@
+import logging
 import subprocess
 from pathlib import Path
 
@@ -7,23 +8,7 @@ import numpy as np
 from easyalign.alignment.utils import segment_speech_probs
 from easyalign.data.datamodel import AudioMetadata
 
-
-def convert_audio_to_wav(input_file, output_file, sample_rate=16000):
-    # fmt: off
-    command = [
-        'ffmpeg',
-        '-i', input_file,
-        '-ar', str(sample_rate),  # Set the audio sample rate
-        '-ac', '1',      # Set the number of audio channels to 1 (mono)
-        '-c:a', 'pcm_s16le',
-        '-loglevel', 'warning',
-        '-hide_banner',
-        '-nostats',
-        '-nostdin',
-        output_file
-    ]
-    # fmt: on
-    subprocess.run(command)
+logger = logging.getLogger(__name__)
 
 
 def numpy_encoder(obj):
@@ -134,3 +119,70 @@ def save_alignments(
             msgpack_path = alignment_path.with_suffix(".msgpack")
             with open(msgpack_path, "wb") as f:
                 f.write(alignment_msgpack)
+
+
+def convert_audio_to_wav(input_file, output_file, sample_rate=16000):
+    # fmt: off
+    command = [
+        'ffmpeg',
+        '-i', input_file,
+        '-ar', str(sample_rate),  # Set the audio sample rate
+        '-ac', '1',      # Set the number of audio channels to 1 (mono)
+        '-c:a', 'pcm_s16le',
+        '-loglevel', 'warning',
+        '-hide_banner',
+        '-nostats',
+        '-nostdin',
+        output_file
+    ]
+    # fmt: on
+    subprocess.run(command)
+
+
+def read_audio_segment(
+    audio_path: str | Path,
+    start_sec: float,
+    duration_sec: float,
+    sample_rate: int = 16000,
+) -> np.ndarray:
+    """
+    Read a segment of audio using ffmpeg subprocess with seek.
+
+    Uses ffmpeg's fast seek (-ss before -i) to efficiently read only the
+    required segment, with resampling to the target sample rate and mono conversion.
+
+    Args:
+        audio_path: Path to the audio file.
+        start_sec: Start time in seconds.
+        duration_sec: Duration to read in seconds.
+        sample_rate: Target sample rate for resampling.
+
+    Returns:
+        Audio data as float32 numpy array.
+    """
+    cmd = [
+        "ffmpeg",
+        "-ss",
+        str(start_sec),  # Seek to position (before -i = fast seek)
+        "-i",
+        str(audio_path),
+        "-t",
+        str(duration_sec),  # Read this many seconds
+        "-ar",
+        str(sample_rate),  # Resample
+        "-ac",
+        "1",  # Mono
+        "-f",
+        "f32le",  # Raw float32 little-endian output
+        "-loglevel",
+        "error",
+        "pipe:1",  # Output to stdout
+    ]
+
+    try:
+        proc = subprocess.run(cmd, capture_output=True, check=True)
+        audio = np.frombuffer(proc.stdout, dtype=np.float32)
+        return audio
+    except subprocess.CalledProcessError as e:
+        logger.error(f"ffmpeg error reading {audio_path}: {e.stderr.decode()}")
+        raise

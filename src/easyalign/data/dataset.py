@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 from transformers import Wav2Vec2Processor, WhisperProcessor
 
 from easyalign.data.datamodel import AudioMetadata
-from easyalign.utils import convert_audio_to_wav
+from easyalign.utils import convert_audio_to_wav, read_audio_segment
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +19,20 @@ class JSONMetadataDataset(Dataset):
     """
     Dataset for reading AudioMetadata JSON files.
 
-    Args:
-        json_paths: List of paths to JSON files.
+    Parameters
+    ----------
+    json_paths : list of str or list of Path
+        List of paths to JSON files.
 
-    Example:
-        >>> from torch.utils.data import DataLoader
-        >>> from easyalign.data.dataset import JSONMetadataDataset
-        >>> json_files = list(Path("output/vad").rglob("*.json"))
-        >>> dataset = JSONMetadataDataset(json_files)
-        >>> loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)
-        >>> for metadata in loader:
-        ...     print(metadata)
+    Examples
+    --------
+    >>> from torch.utils.data import DataLoader
+    >>> from easyalign.data.dataset import JSONMetadataDataset
+    >>> json_files = list(Path("output/vad").rglob("*.json"))
+    >>> dataset = JSONMetadataDataset(json_files)
+    >>> loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)
+    >>> for metadata in loader:
+    ...     print(metadata)
     """
 
     def __init__(self, json_paths: list[str | Path]):
@@ -50,8 +53,10 @@ class MsgpackMetadataDataset(Dataset):
     """
     Dataset for reading AudioMetadata Msgpack files.
 
-    Args:
-        msgpack_paths: List of paths to Msgpack files.
+    Parameters
+    ----------
+    msgpack_paths : list of str or list of Path
+        List of paths to Msgpack files.
     """
 
     def __init__(self, msgpack_paths: list[str | Path]):
@@ -70,9 +75,16 @@ class MsgpackMetadataDataset(Dataset):
 
 class VADAudioDataset(Dataset):
     """
-    Args:
-        audio_paths: List of paths to audio files.
-        audio_dir: Directory containing audio files (if `audio_paths` are relative).
+    Dataset for VAD audio loading.
+
+    Parameters
+    ----------
+    audio_paths : list of str, optional
+        List of paths to audio files.
+    audio_dir : str, optional
+        Directory containing audio files (if `audio_paths` are relative).
+    sample_rate : int, default 16000
+        Sample rate.
     """
 
     def __init__(
@@ -129,6 +141,13 @@ class AudioSliceDataset(Dataset):
         a DataLoader in the outer loop (AudioFileDataset).
     2. Load the wav2vec2 features of a given file for inference in background processes,
         using a separate DataLoader in the inner loop (AudioSliceDataset).
+
+    Parameters
+    ----------
+    features : list
+        List of audio features.
+    metadata : AudioMetadata
+        Metadata associated with the audio file.
     """
 
     def __init__(self, features, metadata):
@@ -149,15 +168,21 @@ class AudioFileDataset(Dataset):
     AudioSliceDataset object containing the features for each chunk, along with the
     metadata.
 
-    Args:
-        metadata: List of AudioMetadata objects or paths to JSON files.
-        processor: The Wav2vec2Processor to use for feature extraction.
-        audio_dir: Directory with audio files
-        sample_rate: Sample rate to resample audio to. Default 16000.
-        chunk_size: When VAD is not used, SpeechSegments are naively split into
-            `chunk_size` sized chunks for feature extraction.
-        use_vad: Whether to use VAD-based chunks (if available in metadata), or just
-            naïvely split the audio of speech segments into `chunk_size` chunks.
+    Parameters
+    ----------
+    metadata : JSONMetadataDataset or list of AudioMetadata or AudioMetadata
+        List of AudioMetadata objects or paths to JSON files.
+    processor : Wav2Vec2Processor or WhisperProcessor
+        The Wav2vec2Processor to use for feature extraction.
+    audio_dir : str, default "data"
+        Directory with audio files
+    sample_rate : int, default 16000
+        Sample rate to resample audio to.
+    chunk_size : int, default 30
+        When VAD is not used, SpeechSegments are naively split into
+        `chunk_size` sized chunks for feature extraction.
+    alignment_strategy : str, default "speech"
+        'speech' or 'chunk' - determines how chunks are defined.
     """
 
     def __init__(
@@ -198,9 +223,24 @@ class AudioFileDataset(Dataset):
 
     def get_speech_features(self, audio_path, metadata, sr=16000):
         """
-        Extract features for each speech segment in the metadata. When `alignment_strategy`
-        is `speech`, the speech segments are split into `chunk_size` sized chunks for wav2vec2
-        inference.
+        Extract features for each speech segment in the metadata.
+
+        When `alignment_strategy` is `speech`, the speech segments are split into `chunk_size`
+        sized chunks for wav2vec2 inference.
+
+        Parameters
+        ----------
+        audio_path : str
+            Path to the audio file.
+        metadata : AudioMetadata
+            Metadata object.
+        sr : int, default 16000
+            Sample rate.
+
+        Returns
+        -------
+        list of dict
+            List of dictionaries containing extracted features and metadata for each chunk.
         """
         audio, sr = self.read_audio(audio_path)
         features = []
@@ -229,9 +269,24 @@ class AudioFileDataset(Dataset):
 
     def get_vad_features(self, audio_path, metadata, sr=16000):
         """
-        Extract features for each VAD chunk in the metadata. The global start time of
-        each chunk is also returned for debugging purposes. This method is used when
-        `alignment_strategy` is set to `chunk`.
+        Extract features for each VAD chunk in the metadata.
+
+        The global start time of each chunk is also returned for debugging purposes.
+        This method is used when `alignment_strategy` is set to `chunk`.
+
+        Parameters
+        ----------
+        audio_path : str
+            Path to the audio file.
+        metadata : AudioMetadata
+            Metadata object.
+        sr : int, default 16000
+            Sample rate.
+
+        Returns
+        -------
+        list of dict
+            List of dictionaries containing extracted features and metadata for each chunk.
         """
         audio, sr = self.read_audio(audio_path)
         features = []
@@ -245,7 +300,8 @@ class AudioFileDataset(Dataset):
                 audio_chunk = audio[start_frame:end_frame]
 
                 if isinstance(self.processor, Wav2Vec2Processor):
-                    audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)  # Add batch dimension
+                    # Add batch dimension
+                    audio_chunk = torch.tensor(audio_chunk).unsqueeze(0)
 
                 inputs = self.processor(
                     audio_chunk,
@@ -290,3 +346,232 @@ class AudioFileDataset(Dataset):
         }
 
         return out_dict
+
+
+class StreamingAudioSliceDataset(Dataset):
+    """
+    Dataset that lazily loads audio chunks on-demand using ffmpeg seek.
+
+    Unlike AudioSliceDataset which holds all features in memory, this dataset
+    stores only the chunk metadata and loads audio when __getitem__ is called.
+
+    Parameters
+    ----------
+    audio_path : str or Path
+        Path to the audio file.
+    chunk_specs : list of dict
+        List of dicts with 'start_sec', 'end_sec', 'speech_id' keys.
+    processor : Wav2Vec2Processor or WhisperProcessor
+        For feature extraction.
+    sample_rate : int, default 16000
+        Target sample rate.
+    metadata : AudioMetadata, optional
+        AudioMetadata object to pass through.
+    """
+
+    def __init__(
+        self,
+        audio_path: str | Path,
+        chunk_specs: list[dict],
+        processor: Wav2Vec2Processor | WhisperProcessor,
+        sample_rate: int = 16000,
+        metadata: AudioMetadata | None = None,
+    ):
+        self.audio_path = str(audio_path)
+        self.chunk_specs = chunk_specs
+        self.processor = processor
+        self.sample_rate = sample_rate
+        self.metadata = metadata
+        self.processor_attribute = (
+            "input_values" if isinstance(processor, Wav2Vec2Processor) else "input_features"
+        )
+
+    def __len__(self):
+        return len(self.chunk_specs)
+
+    def __getitem__(self, idx):
+        spec = self.chunk_specs[idx]
+        start_sec = spec["start_sec"]
+        end_sec = spec["end_sec"]
+        duration_sec = end_sec - start_sec
+
+        # Read only this chunk from disk
+        audio = read_audio_segment(
+            audio_path=self.audio_path,
+            start_sec=start_sec,
+            duration_sec=duration_sec,
+            sample_rate=self.sample_rate,
+        )
+
+        # Convert to tensor and add batch dimension for processor
+        if isinstance(self.processor, Wav2Vec2Processor):
+            audio = torch.tensor(audio).unsqueeze(0)
+
+        # Extract features
+        inputs = self.processor(
+            audio,
+            sampling_rate=self.sample_rate,
+            return_tensors="pt",
+        )
+        feature = getattr(inputs, self.processor_attribute)
+
+        return {
+            "feature": feature,
+            "start_time_global": start_sec,
+            "speech_id": spec["speech_id"],
+        }
+
+
+class StreamingAudioFileDataset(Dataset):
+    """
+    Streaming version of AudioFileDataset that reads audio chunks on-demand.
+
+    Instead of loading entire audio files and chunking in memory, this dataset
+    returns a StreamingAudioSliceDataset that lazily loads each chunk via ffmpeg.
+
+    Parameters
+    ----------
+    metadata : JSONMetadataDataset or list of AudioMetadata or AudioMetadata
+        List of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata.
+    processor : Wav2Vec2Processor or WhisperProcessor
+        For feature extraction.
+    audio_dir : str, default "data"
+        Base directory for audio files.
+    sample_rate : int, default 16000
+        Target sample rate for resampling.
+    chunk_size : int, default 30
+        Maximum chunk size in seconds (for speech-based chunking).
+    alignment_strategy : str, default "speech"
+        'speech' or 'chunk' - determines how chunks are defined.
+    """
+
+    def __init__(
+        self,
+        metadata: JSONMetadataDataset | list[AudioMetadata] | AudioMetadata,
+        processor: Wav2Vec2Processor | WhisperProcessor,
+        audio_dir: str = "data",
+        sample_rate: int = 16000,
+        chunk_size: int = 30,
+        alignment_strategy: str = "speech",
+    ):
+        if isinstance(metadata, AudioMetadata):
+            self.metadata = [metadata]
+        else:
+            self.metadata = metadata
+
+        self.audio_dir = audio_dir
+        self.sr = sample_rate
+        self.chunk_size = chunk_size
+        self.processor = processor
+        self.alignment_strategy = alignment_strategy
+
+    def _get_speech_chunk_specs(self, metadata: AudioMetadata) -> list[dict]:
+        """
+        Build chunk specs from SpeechSegments, splitting into chunk_size pieces.
+
+        This mirrors the behavior of AudioFileDataset.get_speech_features().
+
+        Parameters
+        ----------
+        metadata : AudioMetadata
+            Metadata object.
+
+        Returns
+        -------
+        list of dict
+            List of chunk specifications.
+        """
+        chunk_specs = []
+        for speech in metadata.speeches:
+            speech_start = speech.start
+            speech_end = speech.end
+            speech_duration = speech_end - speech_start
+
+            # Calculate audio frames for the speech segment
+            speech.audio_frames = int(speech_duration * self.sr)
+
+            # Split into chunk_size sized pieces
+            offset = 0.0
+            while offset < speech_duration:
+                chunk_start = speech_start + offset
+                chunk_end = min(chunk_start + self.chunk_size, speech_end)
+
+                chunk_specs.append(
+                    {
+                        "start_sec": chunk_start,
+                        "end_sec": chunk_end,
+                        "speech_id": speech.speech_id,
+                    }
+                )
+                offset += self.chunk_size
+
+        return chunk_specs
+
+    def _get_vad_chunk_specs(self, metadata: AudioMetadata) -> list[dict]:
+        """
+        Build chunk specs from existing VAD chunks in metadata.
+
+        This mirrors the behavior of AudioFileDataset.get_vad_features().
+
+        Parameters
+        ----------
+        metadata : AudioMetadata
+            Metadata object.
+
+        Returns
+        -------
+        list of dict
+            List of chunk specifications.
+        """
+        chunk_specs = []
+        for speech in metadata.speeches:
+            for vad_chunk in speech.chunks:
+                start_sec = vad_chunk.start
+                end_sec = vad_chunk.end
+
+                # Calculate audio frames for the chunk
+                vad_chunk.audio_frames = int((end_sec - start_sec) * self.sr)
+
+                chunk_specs.append(
+                    {
+                        "start_sec": start_sec,
+                        "end_sec": end_sec,
+                        "speech_id": speech.speech_id,
+                    }
+                )
+
+        return chunk_specs
+
+    def __len__(self):
+        return len(self.metadata)
+
+    def __getitem__(self, idx):
+        metadata = self.metadata[idx]
+        audio_path = Path(self.audio_dir) / metadata.audio_path
+
+        # Assign speech IDs if missing
+        for i, speech in enumerate(metadata.speeches):
+            if speech.speech_id is None:
+                speech.speech_id = i
+
+        logger.info(f"Creating streaming dataset for {audio_path}")
+
+        # Build chunk specs based on alignment strategy
+        if self.alignment_strategy == "chunk":
+            chunk_specs = self._get_vad_chunk_specs(metadata)
+        else:
+            chunk_specs = self._get_speech_chunk_specs(metadata)
+
+        # Return a streaming dataset for the inner dataloader
+        slice_dataset = StreamingAudioSliceDataset(
+            audio_path=audio_path,
+            chunk_specs=chunk_specs,
+            processor=self.processor,
+            sample_rate=self.sr,
+            metadata=metadata,
+        )
+
+        return {
+            "dataset": slice_dataset,
+            "audio_path": metadata.audio_path,
+        }
