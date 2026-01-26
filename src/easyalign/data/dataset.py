@@ -109,8 +109,8 @@ class VADAudioDataset(Dataset):
                     sample_rate=self.sample_rate,
                 )
                 audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
-            except Exception as e:
-                logging.error(f"Error reading audio file {audio_path}. {e}")
+            except Exception:
+                logger.error(f"Failed to read audio file: {audio_path}", exc_info=True)
                 return None, None
         return audio, sr
 
@@ -213,8 +213,8 @@ class AudioFileDataset(Dataset):
             try:
                 convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
                 audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
-            except Exception as e:
-                logging.error(f"Error reading audio file {audio_path}. \n\n {e}")
+            except Exception:
+                logger.error(f"Failed to read audio file: {audio_path}", exc_info=True)
                 return None, None
         return audio, sr
 

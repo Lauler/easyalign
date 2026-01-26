@@ -1,17 +1,17 @@
+import inspect
 from typing import Callable, Optional, Text, Union
 
 import numpy as np
 import pandas as pd
 import torch
+from easyalign.data.datamodel import AudioMetadata, SpeechSegment
+from easyalign.vad.utils import encode_vad_segments
 from pyannote.audio import Model
 from pyannote.audio.core.io import AudioFile
 from pyannote.audio.pipelines import VoiceActivityDetection
 from pyannote.audio.pipelines.utils import PipelineModel
 from pyannote.core import Annotation, Segment, SlidingWindowFeature
 from tqdm import tqdm
-
-from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.vad.utils import encode_vad_segments
 
 """
 This file contains modified functions from WhisperX (BSD-4-Clause License).
@@ -32,6 +32,7 @@ def load_vad_model(
     device: torch.device = torch.device("cuda"),
     min_duration_on: float = 0.1,
     min_duration_off: float = 0.1,
+    token: Optional[Text] = None,
 ):
     """
     Load the pyannote VAD model and instantiate a pipeline.
@@ -46,6 +47,8 @@ def load_vad_model(
         Remove active regions shorter than that many seconds.
     min_duration_off : float, default 0.1
         Fill inactive regions shorter than that many seconds.
+    token : str or None, optional
+        Hugging Face authentication token for gated models.
 
     Returns
     -------
@@ -57,7 +60,9 @@ def load_vad_model(
         "min_duration_on": min_duration_on,
         "min_duration_off": min_duration_off,
     }
-    vad_pipeline = VoiceActivitySegmentation(segmentation=vad_model, device=torch.device(device))
+    vad_pipeline = VoiceActivitySegmentation(
+        segmentation=vad_model, device=torch.device(device), token=token
+    )
     vad_pipeline.instantiate(hyperparameters)
     return vad_pipeline
 
@@ -215,7 +220,7 @@ class VoiceActivitySegmentation(VoiceActivityDetection):
     fscore : bool, default False
         Whether to optimize for F-score.
     token : str or None, optional
-        Hugging Face token for gated models.
+        Hugging Face authentication token for gated models.
     **inference_kwargs
         Additional keyword arguments for inference.
     """
@@ -227,10 +232,19 @@ class VoiceActivitySegmentation(VoiceActivityDetection):
         token: Union[Text, None] = None,
         **inference_kwargs,
     ):
+        # Pyannote changed the parameter name from `use_auth_token` to `token` in v4.0
+        # Pass only the parameter supported by the installed pyannote version for compatibility
+        sig = inspect.signature(VoiceActivityDetection.__init__)
+        if "token" in sig.parameters:
+            if token is not None:
+                inference_kwargs["token"] = token
+        elif "use_auth_token" in sig.parameters:
+            if token is not None:
+                inference_kwargs["use_auth_token"] = token
+
         super().__init__(
             segmentation=segmentation,
             fscore=fscore,
-            token=token,
             **inference_kwargs,
         )
 

@@ -1,9 +1,8 @@
+import logging
 from pathlib import Path
 
 import msgspec
-import numpy as np
 import torch
-import transformers.models.audio_spectrogram_transformer.feature_extraction_audio_spectrogram_transformer
 from tqdm import tqdm
 from transformers import Wav2Vec2Processor
 
@@ -29,6 +28,8 @@ from easyalign.data.utils import pad_probs
 from easyalign.text.normalization import text_normalizer
 from easyalign.utils import save_emissions_and_metadata, save_metadata_json, save_metadata_msgpack
 from easyalign.vad.vad import run_vad
+
+logger = logging.getLogger(__name__)
 
 
 def vad_pipeline_generator(
@@ -105,10 +106,13 @@ def vad_pipeline_generator(
     msgpack_encoder = msgspec.msgpack.Encoder()
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     results = []
+    total_files = len(audio_paths)
 
     for i, audio_dict in enumerate(tqdm(vad_dataloader, desc="Running VAD on audio files")):
         audio = audio_dict["audio"][0]
         audio_path = audio_dict["audio_path"][0]
+
+        logger.info(f"[{i + 1}/{total_files}] Processing VAD: {audio_path}")
 
         if not Path(audio_dir, audio_path).exists():
             raise FileNotFoundError(f"Audio file not found: {audio_path}")
@@ -343,9 +347,14 @@ def emissions_pipeline_generator(
         sample_rate=file_dataset.sr,
     )
 
-    for features in tqdm(file_dataloader, desc="Extracting emissions from audio files"):
+    total_files = len(file_dataset)
+    for i, features in enumerate(
+        tqdm(file_dataloader, desc="Extracting emissions from audio files")
+    ):
         slice_dataset = features[0]["dataset"]
         metadata = slice_dataset.metadata
+
+        logger.info(f"[{i + 1}/{total_files}] Extracting emissions: {metadata.audio_path}")
 
         feature_dataloader = torch.utils.data.DataLoader(
             slice_dataset,
@@ -365,7 +374,14 @@ def emissions_pipeline_generator(
                 logits = model(features).logits
 
             probs = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
-            probs = pad_probs(probs, maximum_nr_logits=maximum_nr_logits)
+
+            try:
+                probs = pad_probs(probs, maximum_nr_logits=maximum_nr_logits)
+            except AssertionError as e:
+                logger.error(
+                    f"Error padding probs for {metadata.audio_path} batch: {batch}, error: {e}"
+                )
+                raise
 
             probs_list.append(probs)
             speech_ids.extend(batch["speech_ids"])
@@ -586,11 +602,16 @@ def alignment_pipeline_generator(
     elif alignment_strategy == "chunk":
         align_func = align_chunks
 
+    total_files = len(dataloader.dataset)
+    file_idx = 0
     for batch in tqdm(dataloader):
         for metadata in batch:
+            file_idx += 1
+            logger.info(f"[{file_idx}/{total_files}] Aligning: {metadata.audio_path}")
+
             alignment_mapping = align_func(
                 metadata=metadata,
-                text_normalizer_fn=text_normalizer,
+                text_normalizer_fn=text_normalizer_fn,
                 processor=processor,
                 tokenizer=tokenizer,
                 emissions_dir=emissions_dir,
@@ -912,7 +933,7 @@ def pipeline(
 
     alignments = alignment_pipeline(
         dataloader=json_dataloader,
-        text_normalizer_fn=text_normalizer,
+        text_normalizer_fn=text_normalizer_fn,
         processor=processor,
         tokenizer=tokenizer,
         emissions_dir=output_emissions_dir,
