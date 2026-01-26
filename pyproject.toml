@@ -3,24 +3,50 @@ requires = ["setuptools>=67.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1"
-name = "easyalign"
-
-requires-python = ">= 3.9"
-
+authors = [{ name = "Faton Rekathati" }]
+version = "0.1.0"
+name = "easyaligner"
+requires-python = ">= 3.10"
+description = "Easy, fast and efficient forced alignment."
+readme = "README.md"
 
 dependencies = [
   "transformers>=4.45.0",
-  "torch>=2.1.2",
+  "torch>=2.7.0,!=2.9.*",
+  "torchaudio>=2.7.0,!=2.9.*",
   "tqdm>=4.66.1",
   "soundfile>=0.12.1",
   "nltk>=3.8.2",
+  "pyannote-audio>=3.3.1",
+  "silero-vad~=6.0"
 ]
 
-readme = "README.md"
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+  { index = "pytorch-cuda", marker = "sys_platform != 'darwin'" },
+]
+torchaudio = [
+  { index = "pytorch-cpu", marker = "sys_platform == 'darwin'" },
+  { index = "pytorch-cuda", marker = "sys_platform != 'darwin'" },
+]
 
-[tool.isort]
-profile = "black"
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
-[tool.black]
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+#### Linting ####
+[tool.ruff]
 line-length = 99
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+# Disable fix for unused imports (`F401`).
+unfixable = ["F401"]
