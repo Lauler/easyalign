@@ -1,9 +1,8 @@
 import torch
-from silero_vad import get_speech_timestamps, load_silero_vad
-from tqdm import tqdm
-
 from easyalign.data.datamodel import AudioMetadata, SpeechSegment
 from easyalign.vad.utils import encode_vad_segments
+from silero_vad import get_speech_timestamps, load_silero_vad
+from tqdm import tqdm
 
 
 def load_vad_model(onnx=False, opset_version=16):
@@ -43,7 +42,7 @@ def merge_chunks(segments, chunk_size=30):
         "start", "end", and "segments" keys.
     """
     current_start = segments[0]["start"]
-    current_end = 0
+    current_end = segments[0]["end"]
     merged_segments = []
     subsegments = []
 
@@ -54,7 +53,7 @@ def merge_chunks(segments, chunk_size=30):
             )
             current_start = segment["start"]
             subsegments = []
-        current_end = segment["start"]
+        current_end = segment["end"]
         subsegments.append((segment["start"], segment["end"]))
 
     merged_segments.append(

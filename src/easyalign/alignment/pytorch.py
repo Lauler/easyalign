@@ -1,4 +1,3 @@
-import itertools
 import logging
 from pathlib import Path
 
@@ -7,7 +6,6 @@ import torch
 import torchaudio.functional as F
 from nltk.tokenize.punkt import PunktSentenceTokenizer
 from torchaudio.functional import TokenSpan
-from tqdm import tqdm
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
 from easyalign.alignment.utils import (
@@ -23,6 +21,8 @@ def align_pytorch(
     normalized_tokens: list[str],
     processor: Wav2Vec2Processor,
     emissions: torch.Tensor,
+    blank_id: int,
+    case: str,
     start_wildcard: bool,
     end_wildcard: bool,
     device: str,
@@ -39,6 +39,10 @@ def align_pytorch(
     emissions : torch.Tensor
         Tensor of audio emissions (logits) with shape
         (batch, sequence (time), vocab_size).
+    blank_id : int
+        ID of the blank token (padding token) in the tokenizer.
+    case : str
+        Case of the character tokens in the tokenizer. One of "upper", "lower", or "mixed".
     start_wildcard : bool
         If True, adds a star wildcard token at the start of the transcript
         to allow better alignment if the audio starts with other irrelevant speech.
@@ -55,7 +59,13 @@ def align_pytorch(
         Alignment scores (probabilities) for the tokens.
     """
     transcript = " ".join(normalized_tokens)
-    transcript = transcript.replace("\n", " ").upper()
+
+    if case == "upper":
+        transcript = transcript.replace("\n", " ").upper()
+    elif case == "lower":
+        transcript = transcript.replace("\n", " ").lower()
+    else:
+        transcript = transcript.replace("\n", " ")
 
     if start_wildcard:
         transcript = "* " + transcript
@@ -74,7 +84,7 @@ def align_pytorch(
         )
         emissions = torch.cat((emissions, star_dim), 2)  # Add wildcard star token to the emissions
 
-    alignments, scores = F.forced_align(emissions, targets, blank=0)
+    alignments, scores = F.forced_align(emissions, targets, blank=blank_id)
     alignments, scores = alignments[0], scores[0]  # remove batch dimension for simplicity
     # scores = scores.exp()  # convert back to probability
     return alignments, scores
@@ -140,6 +150,7 @@ def align_chunks(
     list of AlignmentSegment
         List of aligned segments with word-level timestamps.
     """
+    tokenizer_case = _get_processor_case(processor)  # determine if processor is cased or uncased
     chunk_mappings = []
     for speech in metadata.speeches:
         emissions_filepath = Path(emissions_dir) / speech.probs_path
@@ -152,7 +163,7 @@ def align_chunks(
 
             # Check CTC constraint before alignment
             can_align, T, L, R = is_alignable(
-                normalized_tokens, processor, emissions_chunk.shape[0]
+                normalized_tokens, processor, emissions_chunk.shape[0], tokenizer_case
             )
 
             if not can_align:
@@ -174,6 +185,8 @@ def align_chunks(
                 normalized_tokens=normalized_tokens,
                 processor=processor,
                 emissions=torch.tensor(emissions_chunk).to(device).unsqueeze(0),
+                blank_id=blank_id,
+                case=tokenizer_case,
                 start_wildcard=start_wildcard,
                 end_wildcard=end_wildcard,
                 device=device,
@@ -238,6 +251,7 @@ def align_speech(
     remove_wildcards: bool = True,
     device="cuda",
 ) -> list:
+    tokenizer_case = _get_processor_case(processor)
     speech_mappings = []
     for speech in metadata.speeches:
         emissions_filepath = Path(emissions_dir) / speech.probs_path
@@ -258,7 +272,9 @@ def align_speech(
         normalized_tokens, mapping = text_normalizer_fn(original_text)
 
         # Check CTC constraint before alignment
-        can_align, T, L, R = is_alignable(normalized_tokens, processor, emissions.shape[0])
+        can_align, T, L, R = is_alignable(
+            normalized_tokens, processor, emissions.shape[0], tokenizer_case
+        )
 
         if not can_align:
             logger.warning(
@@ -290,6 +306,8 @@ def align_speech(
             normalized_tokens=normalized_tokens,
             processor=processor,
             emissions=torch.tensor(emissions).to(device).unsqueeze(0),
+            blank_id=blank_id,
+            case=tokenizer_case,
             start_wildcard=start_wildcard,
             end_wildcard=end_wildcard,
             device=device,
@@ -337,6 +355,25 @@ def align_speech(
     return speech_mappings
 
 
+def _get_processor_case(processor: Wav2Vec2Processor) -> str:
+    """
+    Determine if the Wav2Vec2Processor is cased or uncased.
+    """
+    vocab = processor.tokenizer.get_vocab()
+
+    # Detect case from actual letter characters only
+    letters = [c for c in vocab.keys() if len(c) == 1 and c.isalpha()]
+
+    if all(c.islower() for c in letters):
+        text_case = "lower"
+    elif all(c.isupper() for c in letters):
+        text_case = "upper"
+    else:
+        text_case = "mixed"
+
+    return text_case
+
+
 def count_target_repeats(targets: torch.Tensor) -> int:
     """
     Count consecutive repeated tokens in target sequence.
@@ -363,6 +400,7 @@ def is_alignable(
     normalized_tokens: list[str],
     processor: Wav2Vec2Processor,
     num_emission_frames: int,
+    case: str = "upper",
 ) -> tuple[bool, int, int, int]:
     """
     Check if alignment is feasible given PyTorch's CTC constraint: T >= L + R.
@@ -384,12 +422,27 @@ def is_alignable(
             - T: Number of emission frames
             - L: Target label length
             - R: Number of consecutive repeated tokens
+
+    Notes
+    -----
+    Returns (False, T, 0, 0) if normalized_tokens is empty. This can happen when
+    our text normalization removes all content from a transcript's text (e.g. if
+    the transcript text is ".....").
     """
-    transcript = " ".join(normalized_tokens).replace("\n", " ").upper()
+    T = num_emission_frames
+    transcript = " ".join(normalized_tokens).replace("\n", " ")
+
+    if case == "upper":
+        transcript = transcript.upper()
+    elif case == "lower":
+        transcript = transcript.lower()
+
+    if not transcript.strip():
+        return (False, T, 0, 0)
+
     targets = processor.tokenizer(transcript, return_tensors="pt")["input_ids"]
     L = targets.size(1)
     R = count_target_repeats(targets)
-    T = num_emission_frames
     return (T >= L + R, T, L, R)
 
 
@@ -639,6 +692,86 @@ def get_word_spans(
     return word_spans, mapping
 
 
+def _find_segment_boundaries(
+    mapping: list[dict],
+    start_idx: int,
+    end_idx: int,
+    token_cursor: int,
+) -> tuple[float | None, float | None, int | None, int | None, list[dict], int]:
+    """
+    Find the start/end timestamps and character indices for a segment span.
+
+    Scans tokens starting from token_cursor until both start and end boundaries
+    are found (or tokens are exhausted).
+
+    Parameters
+    ----------
+    mapping : list of dict
+        The full token mapping list.
+    start_idx : int
+        Start character index of the segment in the original text.
+    end_idx : int
+        End character index of the segment in the original text.
+    token_cursor : int
+        Current position in the mapping to start scanning from.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+            - start_time: Start timestamp of the segment (or None).
+            - end_time: End timestamp of the segment (or None).
+            - start_extended_idx: Start character index (extended) for full text span including
+                leading/trailing whitespace, punctuation, etc.
+            - end_extended_idx: End character index (extended) for full text span.
+            - segment_tokens: List of tokens belonging to this segment.
+            - token_cursor: Updated token cursor position.
+    """
+    start_time = None
+    end_time = None
+    start_extended_idx = None
+    end_extended_idx = None
+    segment_tokens = []
+
+    while token_cursor < len(mapping):
+        token = mapping[token_cursor]
+        segment_tokens.append(token)
+
+        # Check if start_idx falls within this token's character range
+        if (
+            start_time is None
+            and start_idx >= token["start_char"]
+            and start_idx < token["end_char_extended"]
+        ):
+            start_time = assign_segment_time(
+                current_token=token,
+                token_list=mapping[token_cursor:],
+                fallback_direction="next",
+            )
+            start_extended_idx = token["start_char"]
+
+        # Check if end_idx falls within this token's character range
+        if (
+            end_time is None
+            and end_idx > token["start_char"]
+            and end_idx <= token["end_char_extended"]
+        ):
+            end_time = assign_segment_time(
+                current_token=token,
+                token_list=mapping[: token_cursor + 1],
+                fallback_direction="previous",
+            )
+            end_extended_idx = token["end_char_extended"]
+
+        token_cursor += 1
+
+        # Found both boundaries
+        if start_time is not None and end_time is not None:
+            break
+
+    return start_time, end_time, start_extended_idx, end_extended_idx, segment_tokens, token_cursor
+
+
 def get_segment_alignment(
     mapping: list[dict],
     original_text: str,
@@ -677,7 +810,6 @@ def get_segment_alignment(
             - "end_segment": End timestamp of the segment.
             - "text": The original text of the segment.
     """
-
     if not segment_spans:
         # If user does not provide segment spans, we use the tokenizer to get segment spans
         if isinstance(tokenizer, PunktSentenceTokenizer):
@@ -695,73 +827,38 @@ def get_segment_alignment(
                 segment_spans = []  # No segments if mapping/text is empty
 
     segment_mapping = []
-    remaining_tokens = mapping.copy()
-    previous_tokens = []  # List to keep track of tokens that have been removed from the mapping
+    token_cursor = 0
 
-    for span in segment_spans:
-        start_segment_index = span[0]  # Character index in the original text
-        end_segment_index = span[1]
-        start_segment_time = None
-        end_segment_time = None
-        segment_tokens = []
+    for start_idx, end_idx in segment_spans:
+        if token_cursor >= len(mapping):
+            break  # No more tokens to process
 
-        if start_segment_index < remaining_tokens[0]["start_char"]:
-            # Warn the user they probably need to strip leading whitespace from the original text
+        if start_idx < mapping[token_cursor]["start_char"]:
             logger.warning(
-                (
-                    "Segment indices start before the first token index. This may be due to "
-                    "leading whitespace in the original text. Consider stripping leading/trailing "
-                    "whitespace from the original text before creating SpeechSegment objects.\n",
-                )
+                "Segment indices start before the first token index. This may be due to "
+                "leading whitespace in the original text. Consider stripping leading/trailing "
+                "whitespace from the original text before creating SpeechSegment objects.\n"
             )
 
-        while remaining_tokens:
-            token = remaining_tokens[0]
-            segment_tokens.append(token)
+        (
+            start_time,
+            end_time,
+            start_extended_idx,
+            end_extended_idx,
+            segment_tokens,
+            token_cursor,
+        ) = _find_segment_boundaries(mapping, start_idx, end_idx, token_cursor)
 
-            # Check if start_segment_index falls within this token's character range
-            if (
-                start_segment_time is None
-                and start_segment_index >= token["start_char"]
-                and start_segment_index < token["end_char_extended"]
-            ):
-                start_segment_time = assign_segment_time(
-                    current_token=token,
-                    token_list=remaining_tokens,
-                    fallback_direction="next",
-                )
-                start_segment_extended_index = token["start_char"]
-
-            # Check if end_segment_index falls within this token's character range
-            if (
-                end_segment_time is None
-                and end_segment_index > token["start_char"]
-                and end_segment_index <= token["end_char_extended"]
-            ):
-                end_segment_time = assign_segment_time(
-                    current_token=token,
-                    token_list=previous_tokens if previous_tokens else remaining_tokens,
-                    fallback_direction="previous",
-                )
-                end_segment_extended_index = token["end_char_extended"]
-
-            # If we have both timestamps, we can create the segment and break the loop
-            if start_segment_time is not None and end_segment_time is not None:
-                segment_mapping.append(
-                    {
-                        "start_segment": start_segment_time,
-                        "end_segment": end_segment_time,
-                        "text": original_text[start_segment_index:end_segment_index],
-                        "text_span_full": original_text[
-                            start_segment_extended_index:end_segment_extended_index
-                        ],
-                        "tokens": segment_tokens,
-                    }
-                )
-                previous_tokens.append(remaining_tokens.pop(0))
-                break
-
-            previous_tokens.append(remaining_tokens.pop(0))
+        if start_time is not None and end_time is not None:
+            segment_mapping.append(
+                {
+                    "start_segment": start_time,
+                    "end_segment": end_time,
+                    "text": original_text[start_idx:end_idx],
+                    "text_span_full": original_text[start_extended_idx:end_extended_idx],
+                    "tokens": segment_tokens,
+                }
+            )
 
     return segment_mapping
 
