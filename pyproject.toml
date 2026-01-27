@@ -3,13 +3,15 @@ requires = ["setuptools>=67.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-urls = [{ repository = "https://github.com/kb-labb/easyaligner" }]
-authors = [{ name = "Faton Rekathati" }]
 version = "0.1.0"
 name = "easyaligner"
 requires-python = ">= 3.10"
 description = "Forced alignment pipeline designed for efficiency and ease of use."
 readme = "README.md"
+authors = [{ name = "Faton Rekathati" }]
+
+[project.urls]
+Repository = "https://github.com/kb-labb/easyaligner"
 
 dependencies = [
   "transformers>=4.45.0",

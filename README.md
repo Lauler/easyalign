@@ -1,6 +1,6 @@
 # Easier forced alignment with `easyaligner`
 
-`easyaligner` is a user friendly toolkit for forced alignment of speech and text. It supports aligning both from ground-truth transcripts, as well as from ASR-generated transcripts. `easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper). Some notable features of `easyaligner` include:
+`easyaligner` is a fast and memory efficient forced alignment pipeline for aligning speech and text. It is designed with ease of use in mind, supporting alignment both from ground-truth transcripts, as well as from ASR-generated transcripts. `easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper). Some notable features of `easyaligner` include:
 
 * Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with support for efficient GPU accelerated forced alignment. Enables aligning long audio segments fast and memory-efficiently ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf)). 
 * Supports **custom regex-based text normalization** functionality to preprocess transcripts before alignment, in order to improve alignment quality. Maintains a mapping from original to normalized text, meaning the **normalizations and transformations are non-destructive** and reversible after alignment.  
