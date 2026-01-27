@@ -1,8 +1,0 @@
-torch>=2.1.2
-torchaudio<=2.8.0
-transformers
-tqdm
-soundfile
-nltk
-num2words
-silero-vad
