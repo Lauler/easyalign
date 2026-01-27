@@ -22,9 +22,8 @@ from easyalign.pipelines import (
     vad_pipeline,
 )
 from easyalign.text.normalization import (
-    SpanMapNormalizer,
+    text_normalizer,
 )
-from easyalign.text.tokenizer import load_tokenizer
 from easyalign.utils import save_metadata_json
 from easyalign.vad.pyannote import load_vad_model
 
@@ -33,20 +32,6 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
-
-
-def text_normalizer(text: str) -> str:
-    normalizer = SpanMapNormalizer(text)
-    normalizer.transform(r"\(.*?\)", "")  # Remove parentheses and their content
-    normalizer.transform(r"\s[^\w\s]\s", " ")  # Remove punctuation between whitespace
-    normalizer.transform(r"[^\w\s]", "")  # Remove punctuation and special characters
-    normalizer.transform(r"\s+", " ")  # Normalize whitespace to a single space
-    normalizer.transform(r"^\s+|\s+$", "")  # Strip leading and trailing whitespace
-    normalizer.transform(r"\w+", lambda m: m.group().lower())
-
-    mapping = normalizer.get_token_map()
-    normalized_tokens = [item["normalized_token"] for item in mapping]
-    return normalized_tokens, mapping
 
 
 if __name__ == "__main__":

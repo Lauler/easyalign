@@ -34,18 +34,9 @@ def text_normalizer(text: str) -> str:
     return normalized_tokens, mapping
 
 
-text = """
-
- Statsminister Göran Persson sa ju häromdagen att det kan dröja till efter 2006 innan euron införs i Sverige om det blir ett ja i omröstningen. 
-Persson varnade för att förhandlingarna om till vilken kurs kronan ska knytas till euron kan dra ut på tiden. Men professorn i nationalekonomi Harry Flam ser inte alls de problemen. 
-Jag tror inte att frågan om knytkursen kommer vara något större problem faktiskt.
-Om Sverige säger ja till euron i folkomröstningen lämnar vi kronan bakom oss. Men innan vi byter valuta måste vi veta exakt hur många kronor vi får för euron. 
-Detta kallas för knytkurs. Knytkursen bestämmer om vi får 8, 9 eller 10 kronor per euro. 
-Den frågan avgörs någon gång under denna höst i ett hemligt möte mellan euroländernas finansiella kommitté och den svenska regeringen.
-Grupperna förhandlar om och bestämmer en centralkurs mellan kronan och euron. 
-Denna kurs bestäms bl.a. av hur mycket en varukorg kostar i Sverige jämfört med EMU-länderna. 
-Det är vid denna förhandling Göran Persson är rädd för att Sverige ska få ett skambud på kronan medan nationalekonomen Harry Flam tror att det kommer gå smidigt och inte vålla några större diskussioner. 
-Nej, därför att EU tror jag kommer att vara väldigt angeläget om att underlätta Sveriges inträde. Det är
+text = """Statsminister Göran Persson sa ju häromdagen att det kan dröja till efter 2006 innan
+ euron införs i Sverige om det blir ett ja i omröstningen. Persson varnade för att förhandlingarna
+ om till vilken kurs kronan ska knytas till euron kan dra ut på tiden.
 """
 
 # Strip whitespace from beginning and end of text because nltk's span_tokenize
