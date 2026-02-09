@@ -5,8 +5,8 @@ from pathlib import Path
 import msgspec
 import numpy as np
 
-from easyalign.alignment.utils import segment_speech_probs
-from easyalign.data.datamodel import AudioMetadata
+from easyaligner.alignment.utils import segment_speech_probs
+from easyaligner.data.datamodel import AudioMetadata
 
 logger = logging.getLogger(__name__)
 

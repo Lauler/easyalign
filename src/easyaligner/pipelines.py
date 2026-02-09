@@ -6,28 +6,32 @@ import torch
 from tqdm import tqdm
 from transformers import Wav2Vec2Processor
 
-from easyalign.alignment.pytorch import (
+from easyaligner.alignment.pytorch import (
     align_chunks,
     align_speech,
 )
-from easyalign.alignment.utils import add_logits_to_metadata, get_output_logits_length
-from easyalign.data.collators import (
+from easyaligner.alignment.utils import add_logits_to_metadata, get_output_logits_length
+from easyaligner.data.collators import (
     alignment_collate_fn,
     audiofile_collate_fn,
     metadata_collate_fn,
     vad_collate_fn,
 )
-from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.data.dataset import (
+from easyaligner.data.datamodel import AudioMetadata, SpeechSegment
+from easyaligner.data.dataset import (
     AudioFileDataset,
     JSONMetadataDataset,
     StreamingAudioFileDataset,
     VADAudioDataset,
 )
-from easyalign.data.utils import pad_probs
-from easyalign.text.normalization import text_normalizer
-from easyalign.utils import save_emissions_and_metadata, save_metadata_json, save_metadata_msgpack
-from easyalign.vad.vad import run_vad
+from easyaligner.data.utils import pad_probs
+from easyaligner.text.normalization import text_normalizer
+from easyaligner.utils import (
+    save_emissions_and_metadata,
+    save_metadata_json,
+    save_metadata_msgpack,
+)
+from easyaligner.vad.vad import run_vad
 
 logger = logging.getLogger(__name__)
 

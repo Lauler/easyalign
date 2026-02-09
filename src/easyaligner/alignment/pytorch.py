@@ -8,11 +8,11 @@ from nltk.tokenize.punkt import PunktSentenceTokenizer
 from torchaudio.functional import TokenSpan
 from transformers.models.wav2vec2.processing_wav2vec2 import Wav2Vec2Processor
 
-from easyalign.alignment.utils import (
+from easyaligner.alignment.utils import (
     get_output_logits_length,
 )
-from easyalign.data.datamodel import AlignmentSegment, SpeechSegment, WordSegment
-from easyalign.text.normalization import add_deletions_to_mapping, merge_multitoken_expressions
+from easyaligner.data.datamodel import AlignmentSegment, SpeechSegment, WordSegment
+from easyaligner.text.normalization import add_deletions_to_mapping, merge_multitoken_expressions
 
 logger = logging.getLogger(__name__)
 

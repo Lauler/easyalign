@@ -4,14 +4,15 @@ from typing import Callable, Optional, Text, Union
 import numpy as np
 import pandas as pd
 import torch
-from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.vad.utils import encode_vad_segments
 from pyannote.audio import Model
 from pyannote.audio.core.io import AudioFile
 from pyannote.audio.pipelines import VoiceActivityDetection
 from pyannote.audio.pipelines.utils import PipelineModel
 from pyannote.core import Annotation, Segment, SlidingWindowFeature
 from tqdm import tqdm
+
+from easyaligner.data.datamodel import AudioMetadata, SpeechSegment
+from easyaligner.vad.utils import encode_vad_segments
 
 """
 This file contains modified functions from WhisperX (BSD-4-Clause License).

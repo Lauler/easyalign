@@ -6,8 +6,8 @@ import soundfile as sf
 import torch
 from tqdm import tqdm
 
-from easyalign.data.datamodel import AudioChunk, AudioMetadata, SpeechSegment
-from easyalign.utils import convert_audio_to_wav
+from easyaligner.data.datamodel import AudioChunk, AudioMetadata, SpeechSegment
+from easyaligner.utils import convert_audio_to_wav
 
 logger = logging.getLogger(__name__)
 

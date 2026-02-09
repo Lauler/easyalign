@@ -1,8 +1,9 @@
 import torch
-from easyalign.data.datamodel import AudioMetadata, SpeechSegment
-from easyalign.vad.utils import encode_vad_segments
 from silero_vad import get_speech_timestamps, load_silero_vad
 from tqdm import tqdm
+
+from easyaligner.data.datamodel import AudioMetadata, SpeechSegment
+from easyaligner.vad.utils import encode_vad_segments
 
 
 def load_vad_model(onnx=False, opset_version=16):

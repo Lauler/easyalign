@@ -4,13 +4,13 @@ import msgspec
 import torch
 from tqdm import tqdm
 
-from easyalign.data.collators import vad_collate_fn
-from easyalign.data.datamodel import SpeechSegment
-from easyalign.data.dataset import VADAudioDataset
-from easyalign.vad.pyannote import VoiceActivitySegmentation
-from easyalign.vad.pyannote import run_vad_pipeline as run_vad_pipeline_pyannote
-from easyalign.vad.silero import run_vad_pipeline as run_vad_pipeline_silero
-from easyalign.vad.utils import encode_metadata
+from easyaligner.data.collators import vad_collate_fn
+from easyaligner.data.datamodel import SpeechSegment
+from easyaligner.data.dataset import VADAudioDataset
+from easyaligner.vad.pyannote import VoiceActivitySegmentation
+from easyaligner.vad.pyannote import run_vad_pipeline as run_vad_pipeline_pyannote
+from easyaligner.vad.silero import run_vad_pipeline as run_vad_pipeline_silero
+from easyaligner.vad.utils import encode_metadata
 
 
 def run_vad(

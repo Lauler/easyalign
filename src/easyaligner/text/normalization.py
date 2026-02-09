@@ -2,7 +2,7 @@ import re
 import unicodedata
 from typing import Union
 
-from easyalign.text.languages.sv import abbreviations, ocr_corrections, symbols
+from easyaligner.text.languages.sv import abbreviations, ocr_corrections, symbols
 
 
 def text_normalizer(text: str) -> str:
