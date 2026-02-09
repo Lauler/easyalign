@@ -51,8 +51,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system quartodoc
-          uv pip install --system .
+          uv venv
+          uv pip install quartodoc
+          uv pip install .
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
