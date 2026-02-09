@@ -57,8 +57,11 @@ jobs:
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
-      - name: Render docs
-        run: quarto render docs
+      - name: Build and render docs
+        run: |
+          cd docs
+          quartodoc build --verbose
+          quarto render
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
