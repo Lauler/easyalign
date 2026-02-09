@@ -1,0 +1,31 @@
+# normalization.text_normalizer { #easyaligner.text.normalization.text_normalizer }
+
+```python
+text.normalization.text_normalizer(text)
+```
+
+Default text normalization function.
+
+Applies
+    - Unicode normalization (NFKC)
+    - Lowercasing
+    - Normalization of whitespace
+    - Remove parentheses and special characters
+
+## Parameters {.doc-section .doc-section-parameters}
+
++--------+--------+---------------+------------+
+| Name   | Type   | Description   | Default    |
++========+========+===============+============+
+| text   | str    | Input text.   | _required_ |
++--------+--------+---------------+------------+
+
+## Returns {.doc-section .doc-section-returns}
+
++--------+--------------+-------------------------------------------------+
+| Name   | Type         | Description                                     |
++========+==============+=================================================+
+|        | list of str  | List of normalized tokens.                      |
++--------+--------------+-------------------------------------------------+
+|        | list of dict | Mapping between tokens and original text spans. |
++--------+--------------+-------------------------------------------------+

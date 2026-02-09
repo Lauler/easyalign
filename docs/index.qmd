@@ -1,0 +1,5 @@
+---
+title: "easyaligner"
+---
+
+Documentation for the `easyaligner` package.

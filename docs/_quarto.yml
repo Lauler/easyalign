@@ -1,0 +1,89 @@
+project:
+  type: website
+
+execute:
+  freeze: auto
+
+website:
+  title: "easyaligner"
+  navbar:
+    background: light
+    search: true
+    right:
+      - text: "Reference"
+        href: reference/index.qmd
+      - text: "About"
+        href: about.qmd
+
+
+# tell quarto to read the generated sidebar
+metadata-files:
+  - reference/_sidebar.yml
+
+# tell quarto to read the generated styles
+format:
+  html:
+    css:
+      - reference/_styles-quartodoc.css
+      - styles.css
+
+quartodoc:
+  # the name used to import the package you want to create reference docs for
+  package: easyaligner
+  renderer:
+    style: markdown
+    table_style: table # description-list
+  # write sidebar and style data
+  sidebar: reference/_sidebar.yml
+  css: reference/_styles-quartodoc.css
+
+  sections:
+    - title: Pipelines
+      desc: 
+        Pipelines and functions for forced alignment, emission extraction, and VAD. 
+      package: easyaligner.pipelines
+      contents:
+        - pipeline
+        - vad_pipeline
+        - emissions_pipeline
+        - alignment_pipeline
+        - vad_pipeline_generator
+        - emissions_pipeline_generator
+        - alignment_pipeline_generator
+    - title: Datasets and I/O
+      desc: 
+        Dataset classes for creating Pytorch DataLoaders, and reading JSON/Msgpack metadata. 
+        `from easyaligner.data.dataset import ClassName`
+      package: easyaligner
+      contents:
+        - name: data.dataset.StreamingAudioFileDataset
+          children: separate
+        - name: data.dataset.AudioFileDataset
+          children: separate
+        - name: data.dataset.JSONMetadataDataset
+          children: separate
+        - name: data.dataset.MsgpackMetadataDataset
+          children: separate
+        - data.utils.read_json
+    - title: Data Models
+      desc: 
+        Data models for storing transcribed text and metadata. 
+        `from easyaligner.data.datamodel import ClassName`
+      package: easyaligner.data.datamodel
+      contents:
+        - AudioMetadata
+        - SpeechSegment
+        - WordSegment
+        - AlignmentSegment
+        - AudioChunk
+    - title: Text Processing
+      desc: 
+        Text processing utilities. `from easyaligner.text.normalization import function_name`.
+        See also [SpanMapNormalizer](https://kb-labb.github.io/easyaligner/reference/SpanMapNormalizer.html)
+        from [easyaligner](https://github.com/kb-labb/easyaligner).
+      package: easyaligner.text
+      contents:
+        - name: normalization.SpanMapNormalizer
+          children: separate
+        - normalization.text_normalizer
+        - tokenizer.load_tokenizer

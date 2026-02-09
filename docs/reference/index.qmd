@@ -1,0 +1,52 @@
+---
+title: Function reference
+
+---
+
+## Pipelines
+
+Pipelines and functions for forced alignment, emission extraction, and VAD.
+
+| | |
+| --- | --- |
+| [pipeline](pipeline.qmd#easyaligner.pipelines.pipeline) | Complete pipeline to run VAD, extract emissions, and perform alignment. |
+| [vad_pipeline](vad_pipeline.qmd#easyaligner.pipelines.vad_pipeline) | Run VAD on a list of audio files. |
+| [emissions_pipeline](emissions_pipeline.qmd#easyaligner.pipelines.emissions_pipeline) | Run emissions extraction pipeline on the given audio files and save results to file. |
+| [alignment_pipeline](alignment_pipeline.qmd#easyaligner.pipelines.alignment_pipeline) | Perform alignment on speech segments or VAD chunks using emissions. |
+| [vad_pipeline_generator](vad_pipeline_generator.qmd#easyaligner.pipelines.vad_pipeline_generator) | Run VAD on a list of audio files. |
+| [emissions_pipeline_generator](emissions_pipeline_generator.qmd#easyaligner.pipelines.emissions_pipeline_generator) | Run emissions extraction pipeline on the given audio files and save results to file. |
+| [alignment_pipeline_generator](alignment_pipeline_generator.qmd#easyaligner.pipelines.alignment_pipeline_generator) | Perform alignment on speech segments or VAD chunks using emissions. |
+
+## Datasets and I/O
+
+Dataset classes for creating Pytorch DataLoaders, and reading JSON/Msgpack metadata. `from easyaligner.data.dataset import ClassName`
+
+| | |
+| --- | --- |
+| [data.dataset.StreamingAudioFileDataset](data.dataset.StreamingAudioFileDataset.qmd#easyaligner.data.dataset.StreamingAudioFileDataset) | Streaming version of AudioFileDataset that reads audio chunks on-demand. |
+| [data.dataset.AudioFileDataset](data.dataset.AudioFileDataset.qmd#easyaligner.data.dataset.AudioFileDataset) | Loads audio files and corresponding metadata files. Splits the audio into chunks |
+| [data.dataset.JSONMetadataDataset](data.dataset.JSONMetadataDataset.qmd#easyaligner.data.dataset.JSONMetadataDataset) | Dataset for reading AudioMetadata JSON files. |
+| [data.dataset.MsgpackMetadataDataset](data.dataset.MsgpackMetadataDataset.qmd#easyaligner.data.dataset.MsgpackMetadataDataset) | Dataset for reading AudioMetadata Msgpack files. |
+| [data.utils.read_json](data.utils.read_json.qmd#easyaligner.data.utils.read_json) | Convenience function to read a JSON file and parse it into an `AudioMetadata` object. |
+
+## Data Models
+
+Data models for storing transcribed text and metadata. `from easyaligner.data.datamodel import ClassName`
+
+| | |
+| --- | --- |
+| [AudioMetadata](AudioMetadata.qmd#easyaligner.data.datamodel.AudioMetadata) | Data model for the metadata of an audio file. |
+| [SpeechSegment](SpeechSegment.qmd#easyaligner.data.datamodel.SpeechSegment) | A slice of the audio that contains speech of interest to be aligned. |
+| [WordSegment](WordSegment.qmd#easyaligner.data.datamodel.WordSegment) | Word-level alignment data. |
+| [AlignmentSegment](AlignmentSegment.qmd#easyaligner.data.datamodel.AlignmentSegment) | A segment of aligned audio and text. |
+| [AudioChunk](AudioChunk.qmd#easyaligner.data.datamodel.AudioChunk) | Segment of audio, usually created by VAD. |
+
+## Text Processing
+
+Text processing utilities. `from easyaligner.text.normalization import function_name`. See also [SpanMapNormalizer](https://kb-labb.github.io/easyaligner/reference/SpanMapNormalizer.html) from [easyaligner](https://github.com/kb-labb/easyaligner).
+
+| | |
+| --- | --- |
+| [normalization.SpanMapNormalizer](normalization.SpanMapNormalizer.qmd#easyaligner.text.normalization.SpanMapNormalizer) |  |
+| [normalization.text_normalizer](normalization.text_normalizer.qmd#easyaligner.text.normalization.text_normalizer) | Default text normalization function. |
+| [tokenizer.load_tokenizer](tokenizer.load_tokenizer.qmd#easyaligner.text.tokenizer.load_tokenizer) | Loads a PunktTokenizer for the specified language that can be used to sentence tokenize text. |

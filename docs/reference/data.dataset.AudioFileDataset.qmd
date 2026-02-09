@@ -1,0 +1,42 @@
+# data.dataset.AudioFileDataset { #easyaligner.data.dataset.AudioFileDataset }
+
+```python
+data.dataset.AudioFileDataset(
+    metadata,
+    processor,
+    audio_dir='data',
+    sample_rate=16000,
+    chunk_size=30,
+    alignment_strategy='speech',
+)
+```
+
+Loads audio files and corresponding metadata files. Splits the audio into chunks
+according to metadata, and creates wav2vec2 features for each chunk. Returns an
+AudioSliceDataset object containing the features for each chunk, along with the
+metadata.
+
+## Parameters {.doc-section .doc-section-parameters}
+
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| Name               | Type                                                          | Description                                                                                                   | Default    |
++====================+===============================================================+===============================================================================================================+============+
+| metadata           | JSONMetadataDataset or list of AudioMetadata or AudioMetadata | List of AudioMetadata objects or paths to JSON files.                                                         | _required_ |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| processor          | Wav2Vec2Processor or WhisperProcessor                         | The Wav2vec2Processor to use for feature extraction.                                                          | _required_ |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| audio_dir          | str                                                           | Directory with audio files                                                                                    | `"data"`   |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| sample_rate        | int                                                           | Sample rate to resample audio to.                                                                             | `16000`    |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| chunk_size         | int                                                           | When VAD is not used, SpeechSegments are naively split into `chunk_size` sized chunks for feature extraction. | `30`       |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+| alignment_strategy | str                                                           | 'speech' or 'chunk' - determines how chunks are defined.                                                      | `"speech"` |
++--------------------+---------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------+------------+
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [get_speech_features](easyaligner.data.dataset.AudioFileDataset.get_speech_features.qmd#easyaligner.data.dataset.AudioFileDataset.get_speech_features) | Extract features for each speech segment in the metadata. |
+| [get_vad_features](easyaligner.data.dataset.AudioFileDataset.get_vad_features.qmd#easyaligner.data.dataset.AudioFileDataset.get_vad_features) | Extract features for each VAD chunk in the metadata. |

@@ -1,0 +1,23 @@
+# tokenizer.load_tokenizer { #easyaligner.text.tokenizer.load_tokenizer }
+
+```python
+text.tokenizer.load_tokenizer(language='swedish')
+```
+
+Loads a PunktTokenizer for the specified language that can be used to sentence tokenize text.
+
+## Parameters {.doc-section .doc-section-parameters}
+
++----------+--------+---------------------------------------------------------------+-------------+
+| Name     | Type   | Description                                                   | Default     |
++==========+========+===============================================================+=============+
+| language | str    | Language to use for the tokenizer, e.g. "swedish", "english". | `"swedish"` |
++----------+--------+---------------------------------------------------------------+-------------+
+
+## Returns {.doc-section .doc-section-returns}
+
++--------+----------------+-------------------+
+| Name   | Type           | Description       |
++========+================+===================+
+|        | PunktTokenizer | Loaded tokenizer. |
++--------+----------------+-------------------+

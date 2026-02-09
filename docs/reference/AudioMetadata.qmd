@@ -1,0 +1,23 @@
+# AudioMetadata { #easyaligner.data.datamodel.AudioMetadata }
+
+```python
+data.datamodel.AudioMetadata()
+```
+
+Data model for the metadata of an audio file.
+
+## Attributes {.doc-section .doc-section-attributes}
+
++-------------+---------------------------------+---------------------------------------+
+| Name        | Type                            | Description                           |
++=============+=================================+=======================================+
+| audio_path  | str                             | Path to audio file.                   |
++-------------+---------------------------------+---------------------------------------+
+| sample_rate | int                             | Sample rate.                          |
++-------------+---------------------------------+---------------------------------------+
+| duration    | float                           | Duration in seconds.                  |
++-------------+---------------------------------+---------------------------------------+
+| speeches    | list of SpeechSegment, optional | List of speech segments in the audio. |
++-------------+---------------------------------+---------------------------------------+
+| metadata    | (dict, optional)                | Optional extra metadata.              |
++-------------+---------------------------------+---------------------------------------+

@@ -1,0 +1,35 @@
+# data.dataset.StreamingAudioFileDataset { #easyaligner.data.dataset.StreamingAudioFileDataset }
+
+```python
+data.dataset.StreamingAudioFileDataset(
+    metadata,
+    processor,
+    audio_dir='data',
+    sample_rate=16000,
+    chunk_size=30,
+    alignment_strategy='speech',
+)
+```
+
+Streaming version of AudioFileDataset that reads audio chunks on-demand.
+
+Instead of loading entire audio files and chunking in memory, this dataset
+returns a StreamingAudioSliceDataset that lazily loads each chunk via ffmpeg.
+
+## Parameters {.doc-section .doc-section-parameters}
+
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| Name               | Type                                                          | Description                                                                  | Default    |
++====================+===============================================================+==============================================================================+============+
+| metadata           | JSONMetadataDataset or list of AudioMetadata or AudioMetadata | List of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata. | _required_ |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| processor          | Wav2Vec2Processor or WhisperProcessor                         | For feature extraction.                                                      | _required_ |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| audio_dir          | str                                                           | Base directory for audio files.                                              | `"data"`   |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| sample_rate        | int                                                           | Target sample rate for resampling.                                           | `16000`    |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| chunk_size         | int                                                           | Maximum chunk size in seconds (for speech-based chunking).                   | `30`       |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+
+| alignment_strategy | str                                                           | 'speech' or 'chunk' - determines how chunks are defined.                     | `"speech"` |
++--------------------+---------------------------------------------------------------+------------------------------------------------------------------------------+------------+

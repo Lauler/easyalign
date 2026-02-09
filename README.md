@@ -1,10 +1,11 @@
 # Easier forced alignment with `easyaligner`
 
-`easyaligner` is a fast and memory efficient forced alignment pipeline for aligning speech and text. It is designed with ease of use in mind, supporting alignment both from ground-truth transcripts, as well as from ASR-generated transcripts. `easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper). Some notable features of `easyaligner` include:
+`easyaligner` is a fast and memory efficient forced alignment pipeline for speech and text. It is designed with ease of use in mind. The library supports aligning both from ground-truth transcripts, as well as from ASR-generated transcripts (`easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper)). Some notable features of `easyaligner` include:
 
-* Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with support for efficient GPU accelerated forced alignment. Enables aligning long audio segments fast and memory-efficiently ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf)). 
-* Supports **custom regex-based text normalization** functionality to preprocess transcripts before alignment, in order to improve alignment quality. Maintains a mapping from original to normalized text, meaning the **normalizations and transformations are non-destructive** and reversible after alignment.  
-* Separates VAD, emission extraction (emissions are written to disk), and alignment into modular pipeline stages. Allows users to run everything end-to-end, or to run the separate stages individually (better flexibility for parallelization).
+* **GPU accelerated forced alignment**. Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with a GPU based implementation of the Viterbi algorithm. Enables fast and memory-efficient forced alignment of long audio segments ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf)). 
+* **Arbitrary text normalization for improved alignment**. Users can supply custom regex-based text normalization functions to preprocess transcripts before alignment. A mapping from the original text to the normalized text is maintained internally. All of the applied normalizations and transformations are therefore **non-destructive and reversible after alignment**.  
+* **Batch processing support for emission extraction**. `easyaligner` supports batched inference for wav2vec2-based models, keeping track of non-padded logits.   
+* **Modular pipeline design**. The library has separate, independent, pipelines for VAD, emission extraction, and forced alignment. Users can run everything end-to-end, or run the separate stages individually. 
 
 ## Installation
 
@@ -34,6 +35,62 @@ cd easyaligner
 pip install -e . --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
+## Usage
+
+```python
+from transformers import (
+    AutoModelForCTC,
+    Wav2Vec2Processor,
+)
+
+from easyaligner.data.datamodel import SpeechSegment
+from easyaligner.pipelines import pipeline
+from easyaligner.text.normalization import (
+    SpanMapNormalizer,
+    text_normalizer,
+)
+from easyaligner.text.tokenizer import load_tokenizer
+from easyaligner.vad.pyannote import load_vad_model
+
+text = """Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+"""
+
+tokenizer = load_tokenizer(language="swedish") # sentence tokenizer 
+text = text.strip()
+span_list = list(tokenizer.span_tokenize(text)) # start, end character indices for each sentence
+
+speeches = [[SpeechSegment(speech_id=0, text=text, text_spans=span_list, start=None, end=None)]]
+
+model_vad = load_vad_model()
+model = (
+    AutoModelForCTC.from_pretrained("KBLab/wav2vec2-large-voxrex-swedish").to("cuda").half()
+)
+processor = Wav2Vec2Processor.from_pretrained("KBLab/wav2vec2-large-voxrex-swedish")
+
+pipeline(
+    vad_model=model_vad,
+    emissions_model=model,
+    processor=processor,
+    audio_paths=["audio/statsminister.wav"],
+    audio_dir="data",
+    speeches=speeches,
+    alignment_strategy="speech",
+    text_normalizer_fn=text_normalizer,
+    tokenizer=tokenizer,
+    start_wildcard=True,
+    end_wildcard=True,
+    blank_id=processor.tokenizer.pad_token_id,
+    word_boundary="|",
+    output_vad_dir="output/vad",
+    output_emissions_dir="output/emissions",
+    output_alignments_dir="output/alignments",
+    save_json=True,
+    save_msgpack=False,
+    return_alignments=False,
+)
+```
+
 ## Logging and Error Handling
 
 ### Enabling Logging
@@ -47,7 +104,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(name)s | %(levelname)s | %(message)s'
     # handlers=[
-    #     logging.FileHandler('easyalign.log'), # Log to a file
+    #     logging.FileHandler('easyaligner.log'), # Log to a file
     #     logging.StreamHandler()  # Also print to console
     # ]
 )
