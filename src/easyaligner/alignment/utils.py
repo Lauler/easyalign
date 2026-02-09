@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 import torch
 
-from easyalign.data.datamodel import AudioMetadata
+from easyaligner.data.datamodel import AudioMetadata
 
 
 def _calculate_receptive_field(
@@ -77,7 +77,7 @@ def _compute_logits(
         Number of output logits.
     """
 
-    # Pad input frames to at least the receptive field (see `pad_` easyalign/data/collators.py)
+    # Pad input frames to at least the receptive field (see `pad_` easyaligner/data/collators.py)
     current_logits = max(frames, receptive_field)  # This is still in frames
 
     # CNN layers

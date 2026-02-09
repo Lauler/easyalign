@@ -9,8 +9,8 @@ import torch
 from torch.utils.data import Dataset
 from transformers import Wav2Vec2Processor, WhisperProcessor
 
-from easyalign.data.datamodel import AudioMetadata
-from easyalign.utils import convert_audio_to_wav, read_audio_segment
+from easyaligner.data.datamodel import AudioMetadata
+from easyaligner.utils import convert_audio_to_wav, read_audio_segment
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class JSONMetadataDataset(Dataset):
     Examples
     --------
     >>> from torch.utils.data import DataLoader
-    >>> from easyalign.data.dataset import JSONMetadataDataset
+    >>> from easyaligner.data.dataset import JSONMetadataDataset
     >>> json_files = list(Path("output/vad").rglob("*.json"))
     >>> dataset = JSONMetadataDataset(json_files)
     >>> loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)

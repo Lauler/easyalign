@@ -5,13 +5,13 @@ from transformers import (
     Wav2Vec2Processor,
 )
 
-from easyalign.data.datamodel import SpeechSegment
-from easyalign.pipelines import pipeline
-from easyalign.text.normalization import (
+from easyaligner.data.datamodel import SpeechSegment
+from easyaligner.pipelines import pipeline
+from easyaligner.text.normalization import (
     SpanMapNormalizer,
 )
-from easyalign.text.tokenizer import load_tokenizer
-from easyalign.vad.pyannote import load_vad_model
+from easyaligner.text.tokenizer import load_tokenizer
+from easyaligner.vad.pyannote import load_vad_model
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

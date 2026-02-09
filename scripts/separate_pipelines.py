@@ -4,13 +4,18 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForCTC, Wav2Vec2Processor
 
-from easyalign.data.collators import metadata_collate_fn
-from easyalign.data.datamodel import SpeechSegment
-from easyalign.data.dataset import JSONMetadataDataset
-from easyalign.pipelines import align_speech, alignment_pipeline, emissions_pipeline, vad_pipeline
-from easyalign.text.normalization import text_normalizer
-from easyalign.text.tokenizer import load_tokenizer
-from easyalign.vad.pyannote import load_vad_model
+from easyaligner.data.collators import metadata_collate_fn
+from easyaligner.data.datamodel import SpeechSegment
+from easyaligner.data.dataset import JSONMetadataDataset
+from easyaligner.pipelines import (
+    align_speech,
+    alignment_pipeline,
+    emissions_pipeline,
+    vad_pipeline,
+)
+from easyaligner.text.normalization import text_normalizer
+from easyaligner.text.tokenizer import load_tokenizer
+from easyaligner.vad.pyannote import load_vad_model
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

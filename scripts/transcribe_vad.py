@@ -10,22 +10,22 @@ from transformers import (
     WhisperProcessor,
 )
 
-from easyalign.data.collators import (
+from easyaligner.data.collators import (
     audiofile_collate_fn,
     metadata_collate_fn,
     transcribe_collate_fn,
 )
-from easyalign.data.dataset import AudioFileDataset, JSONMetadataDataset
-from easyalign.pipelines import (
+from easyaligner.data.dataset import AudioFileDataset, JSONMetadataDataset
+from easyaligner.pipelines import (
     alignment_pipeline,
     emissions_pipeline,
     vad_pipeline,
 )
-from easyalign.text.normalization import (
+from easyaligner.text.normalization import (
     text_normalizer,
 )
-from easyalign.utils import save_metadata_json
-from easyalign.vad.pyannote import load_vad_model
+from easyaligner.utils import save_metadata_json
+from easyaligner.vad.pyannote import load_vad_model
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",

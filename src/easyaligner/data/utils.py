@@ -3,7 +3,7 @@ from pathlib import Path
 import msgspec
 import numpy as np
 
-from easyalign.data.datamodel import AudioMetadata
+from easyaligner.data.datamodel import AudioMetadata
 
 
 def pad_probs(probs, maximum_nr_logits: int):
@@ -54,7 +54,7 @@ def read_json(json_path: str | Path) -> AudioMetadata:
     """
     Convenience function to read a JSON file and parse it into an `AudioMetadata` object.
 
-    For better performance, use `JSONMetadataDataset` in `easyalign.data.dataset`.
+    For better performance, use `JSONMetadataDataset` in `easyaligner.data.dataset`.
 
     Parameters
     ----------
