@@ -23,6 +23,7 @@ metadata-files:
 # tell quarto to read the generated styles
 format:
   html:
+    theme: cosmo
     css:
       - reference/_styles-quartodoc.css
       - styles.css
@@ -79,8 +80,6 @@ quartodoc:
     - title: Text Processing
       desc: 
         Text processing utilities. `from easyaligner.text.normalization import function_name`.
-        See also [SpanMapNormalizer](https://kb-labb.github.io/easyaligner/reference/SpanMapNormalizer.html)
-        from [easyaligner](https://github.com/kb-labb/easyaligner).
       package: easyaligner.text
       contents:
         - name: normalization.SpanMapNormalizer

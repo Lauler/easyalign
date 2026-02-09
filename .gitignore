@@ -4,3 +4,4 @@ __pycache__/
 /output
 /logs
 docs/_site
+docs/reference
