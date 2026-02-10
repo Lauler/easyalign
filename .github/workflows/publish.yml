@@ -51,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install "griffe<2" quartodoc .
+          uv pip install "griffe<2" "quartodoc @ git+https://github.com/machow/quartodoc.git" .
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
