@@ -37,12 +37,13 @@ class JSONMetadataDataset(Dataset):
 
     def __init__(self, json_paths: list[str | Path]):
         self.json_paths = [Path(p) for p in json_paths]
-        self.decoder = msgspec.json.Decoder(type=AudioMetadata)
+        # self.decoder = msgspec.json.Decoder(type=AudioMetadata)
 
     def __len__(self):
         return len(self.json_paths)
 
     def __getitem__(self, idx) -> AudioMetadata:
+        self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
         json_path = self.json_paths[idx]
         logger.info(f"Loading metadata from {json_path}")
         with open(json_path, "r") as f:
@@ -61,12 +62,13 @@ class MsgpackMetadataDataset(Dataset):
 
     def __init__(self, msgpack_paths: list[str | Path]):
         self.msgpack_paths = [Path(p) for p in msgpack_paths]
-        self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
+        # self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
 
     def __len__(self):
         return len(self.msgpack_paths)
 
     def __getitem__(self, idx) -> AudioMetadata:
+        self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
         msgpack_path = self.msgpack_paths[idx]
         logger.info(f"Loading metadata from {msgpack_path}")
         with open(msgpack_path, "rb") as f:

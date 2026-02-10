@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 from pyannote.audio import Model
 from pyannote.audio.core.io import AudioFile
+from pyannote.audio.core.task import Problem, Resolution, Specifications
 from pyannote.audio.pipelines import VoiceActivityDetection
 from pyannote.audio.pipelines.utils import PipelineModel
 from pyannote.core import Annotation, Segment, SlidingWindowFeature
@@ -56,6 +57,10 @@ def load_vad_model(
     VoiceActivitySegmentation
         The instantiated VAD pipeline.
     """
+    # Allow TorchVersion for PyTorch 2.6+ weights_only loading
+    torch.serialization.add_safe_globals(
+        [torch.torch_version.TorchVersion, Specifications, Problem, Resolution]
+    )
     vad_model = Model.from_pretrained(model_name_or_path).to(device)
     hyperparameters = {
         "min_duration_on": min_duration_on,

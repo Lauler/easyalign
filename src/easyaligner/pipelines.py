@@ -920,6 +920,7 @@ def pipeline(
         save_emissions=save_emissions,
         return_emissions=False,
         output_dir=output_emissions_dir,
+        device=device,
     )
 
     # Step 3: Perform Alignment

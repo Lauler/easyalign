@@ -1,5 +1,7 @@
 __pycache__/
 *.egg-info/
+.vscode/
+
 /data
 /output
 /logs
