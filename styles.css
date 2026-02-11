@@ -67,7 +67,6 @@ html body.nav-sidebar.floating.nav-fixed.fullcontent.quarto-light div#quarto-con
 
 td:first-child {
     text-wrap: nowrap;
-    text-size-adjust: 100%;
 }
 
 td:first-child a {

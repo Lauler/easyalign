@@ -376,13 +376,6 @@
     ]
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "easyaligner",
-    "section": "",
-    "text": "Documentation for the easyaligner package."
-  },
-  {
     "objectID": "reference/normalization.SpanMapNormalizer.html",
     "href": "reference/normalization.SpanMapNormalizer.html",
     "title": "normalization.SpanMapNormalizer",
