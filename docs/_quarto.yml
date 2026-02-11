@@ -7,7 +7,7 @@ execute:
 website:
   title: "easyaligner"
   navbar:
-    background: light
+    background: dark
     search: true
     right:
       - text: "Reference"
@@ -23,7 +23,13 @@ metadata-files:
 # tell quarto to read the generated styles
 format:
   html:
-    theme: cosmo
+    theme:
+      dark:
+        - cosmo
+        - styles/dark-custom.scss
+      light: 
+        - cosmo
+        - styles/light-custom.scss
     css:
       - reference/_styles-quartodoc.css
       - styles.css
