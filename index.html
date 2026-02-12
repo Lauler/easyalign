@@ -281,11 +281,15 @@ ul.task-list li input[type="checkbox"] {
 
 
 
+<style>
+  .hero-iframe { width: 100%; border: none; overflow: hidden; height: 450px; }
+  @media (max-width: 720px) { .hero-iframe { height: 60vw; } }
+</style>
 <div class="dark-content">
-<iframe src="_assets/hero-dark.html" width="100%" height="450" style="border:none; overflow:hidden;"></iframe>
+<iframe class="hero-iframe" src="_assets/hero-dark.html"></iframe>
 </div>
 <div class="light-content">
-<iframe src="_assets/hero-light.html" width="100%" height="450" style="border:none; overflow:hidden;"></iframe>
+<iframe class="hero-iframe" src="_assets/hero-light.html"></iframe>
 </div>
 
 
