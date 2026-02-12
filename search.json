@@ -7,6 +7,27 @@
     "text": "About this site"
   },
   {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html",
+    "title": "get_vad_features",
+    "section": "",
+    "text": "data.dataset.AudioFileDataset.get_vad_features(audio_path, metadata, sr=16000)\nExtract features for each VAD chunk in the metadata.\nThe global start time of each chunk is also returned for debugging purposes. This method is used when alignment_strategy is set to chunk.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
+  },
+  {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#parameters",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#parameters",
+    "title": "get_vad_features",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000"
+  },
+  {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#returns",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#returns",
+    "title": "get_vad_features",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
+  },
+  {
     "objectID": "reference/data.dataset.AudioFileDataset.html",
     "href": "reference/data.dataset.AudioFileDataset.html",
     "title": "data.dataset.AudioFileDataset",
@@ -43,204 +64,27 @@
     ]
   },
   {
-    "objectID": "reference/AudioChunk.html",
-    "href": "reference/AudioChunk.html",
-    "title": "AudioChunk",
+    "objectID": "reference/AudioMetadata.html",
+    "href": "reference/AudioMetadata.html",
+    "title": "AudioMetadata",
     "section": "",
-    "text": "data.datamodel.AudioChunk()\nSegment of audio, usually created by VAD.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
+    "text": "data.datamodel.AudioMetadata()\nData model for the metadata of an audio file.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\naudio_path\nstr\nPath to audio file.\n\n\nsample_rate\nint\nSample rate.\n\n\nduration\nfloat\nDuration in seconds.\n\n\nspeeches\nlist of SpeechSegment, optional\nList of speech segments in the audio.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AudioChunk"
+      "AudioMetadata"
     ]
   },
   {
-    "objectID": "reference/AudioChunk.html#attributes",
-    "href": "reference/AudioChunk.html#attributes",
-    "title": "AudioChunk",
+    "objectID": "reference/AudioMetadata.html#attributes",
+    "href": "reference/AudioMetadata.html#attributes",
+    "title": "AudioMetadata",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
+    "text": "Name\nType\nDescription\n\n\n\n\naudio_path\nstr\nPath to audio file.\n\n\nsample_rate\nint\nSample rate.\n\n\nduration\nfloat\nDuration in seconds.\n\n\nspeeches\nlist of SpeechSegment, optional\nList of speech segments in the audio.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AudioChunk"
-    ]
-  },
-  {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html",
-    "title": "get_vad_features",
-    "section": "",
-    "text": "data.dataset.AudioFileDataset.get_vad_features(audio_path, metadata, sr=16000)\nExtract features for each VAD chunk in the metadata.\nThe global start time of each chunk is also returned for debugging purposes. This method is used when alignment_strategy is set to chunk.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
-  },
-  {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#parameters",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#parameters",
-    "title": "get_vad_features",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000"
-  },
-  {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#returns",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_vad_features.html#returns",
-    "title": "get_vad_features",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
-  },
-  {
-    "objectID": "reference/pipeline.html",
-    "href": "reference/pipeline.html",
-    "title": "pipeline",
-    "section": "",
-    "text": "pipelines.pipeline(\n    vad_model,\n    emissions_model,\n    processor,\n    audio_paths,\n    audio_dir,\n    speeches=None,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    text_normalizer_fn=text_normalizer,\n    tokenizer=None,\n    start_wildcard=False,\n    end_wildcard=False,\n    blank_id=0,\n    word_boundary='|',\n    indent=2,\n    ndigits=5,\n    batch_size_files=1,\n    num_workers_files=2,\n    prefetch_factor_files=1,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_alignments=False,\n    delete_emissions=False,\n    output_vad_dir='output/vad',\n    output_emissions_dir='output/emissions',\n    output_alignments_dir='output/alignments',\n    device='cuda',\n)\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nvad_model\nobject\nThe loaded VAD model.\nrequired\n\n\nemissions_model\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files (relative to audio_dir).\nrequired\n\n\naudio_dir\nstr\nBase directory with audio files relative to audio_paths.\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nList of SpeechSegment objects to run VAD and alignment only on specific segments of the audio. If alignment_strategy is ‘speech’, the text needs to be supplied in the SpeechSegment objects. If alignment_strategy is ‘chunk’ and ASR transcriptions are used, there is no need to supply text in the SpeechSegment objects.\nNone\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, VAD chunks are used as basis for feature extraction and alignment. NOTE: chunk currently only works with ASR. The individual VAD chunks won’t contain the relevant text information for alignment.\n\"speech\"\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\ntext_normalizer\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n2\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n1\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming loading of audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the output files as JSON.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the output files as Msgpack.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\noutput_vad_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\noutput_emissions_dir\nstr\nDirectory to save the emissions output files.\n\"output/emissions\"\n\n\noutput_alignments_dir\nstr\nDirectory to save alignment output files.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None (the alignments are saved to disk only).",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/pipeline.html#parameters",
-    "href": "reference/pipeline.html#parameters",
-    "title": "pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nvad_model\nobject\nThe loaded VAD model.\nrequired\n\n\nemissions_model\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files (relative to audio_dir).\nrequired\n\n\naudio_dir\nstr\nBase directory with audio files relative to audio_paths.\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nList of SpeechSegment objects to run VAD and alignment only on specific segments of the audio. If alignment_strategy is ‘speech’, the text needs to be supplied in the SpeechSegment objects. If alignment_strategy is ‘chunk’ and ASR transcriptions are used, there is no need to supply text in the SpeechSegment objects.\nNone\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, VAD chunks are used as basis for feature extraction and alignment. NOTE: chunk currently only works with ASR. The individual VAD chunks won’t contain the relevant text information for alignment.\n\"speech\"\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\ntext_normalizer\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n2\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n1\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming loading of audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the output files as JSON.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the output files as Msgpack.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\noutput_vad_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\noutput_emissions_dir\nstr\nDirectory to save the emissions output files.\n\"output/emissions\"\n\n\noutput_alignments_dir\nstr\nDirectory to save alignment output files.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/pipeline.html#returns",
-    "href": "reference/pipeline.html#returns",
-    "title": "pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None (the alignments are saved to disk only).",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/data.dataset.JSONMetadataDataset.html",
-    "href": "reference/data.dataset.JSONMetadataDataset.html",
-    "title": "data.dataset.JSONMetadataDataset",
-    "section": "",
-    "text": "data.dataset.JSONMetadataDataset(json_paths)\nDataset for reading AudioMetadata JSON files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired\n\n\n\n\n\n\n&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
-    "crumbs": [
-      "Reference",
-      "Datasets and I/O",
-      "data.dataset.JSONMetadataDataset"
-    ]
-  },
-  {
-    "objectID": "reference/data.dataset.JSONMetadataDataset.html#parameters",
-    "href": "reference/data.dataset.JSONMetadataDataset.html#parameters",
-    "title": "data.dataset.JSONMetadataDataset",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired",
-    "crumbs": [
-      "Reference",
-      "Datasets and I/O",
-      "data.dataset.JSONMetadataDataset"
-    ]
-  },
-  {
-    "objectID": "reference/data.dataset.JSONMetadataDataset.html#examples",
-    "href": "reference/data.dataset.JSONMetadataDataset.html#examples",
-    "title": "data.dataset.JSONMetadataDataset",
-    "section": "",
-    "text": "&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
-    "crumbs": [
-      "Reference",
-      "Datasets and I/O",
-      "data.dataset.JSONMetadataDataset"
-    ]
-  },
-  {
-    "objectID": "reference/data.dataset.StreamingAudioFileDataset.html",
-    "href": "reference/data.dataset.StreamingAudioFileDataset.html",
-    "title": "data.dataset.StreamingAudioFileDataset",
-    "section": "",
-    "text": "data.dataset.StreamingAudioFileDataset(\n    metadata,\n    processor,\n    audio_dir='data',\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n)\nStreaming version of AudioFileDataset that reads audio chunks on-demand.\nInstead of loading entire audio files and chunking in memory, this dataset returns a StreamingAudioSliceDataset that lazily loads each chunk via ffmpeg.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmetadata\nJSONMetadataDataset or list of AudioMetadata or AudioMetadata\nList of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata.\nrequired\n\n\nprocessor\nWav2Vec2Processor or WhisperProcessor\nFor feature extraction.\nrequired\n\n\naudio_dir\nstr\nBase directory for audio files.\n\"data\"\n\n\nsample_rate\nint\nTarget sample rate for resampling.\n16000\n\n\nchunk_size\nint\nMaximum chunk size in seconds (for speech-based chunking).\n30\n\n\nalignment_strategy\nstr\n‘speech’ or ‘chunk’ - determines how chunks are defined.\n\"speech\"",
-    "crumbs": [
-      "Reference",
-      "Datasets and I/O",
-      "data.dataset.StreamingAudioFileDataset"
-    ]
-  },
-  {
-    "objectID": "reference/data.dataset.StreamingAudioFileDataset.html#parameters",
-    "href": "reference/data.dataset.StreamingAudioFileDataset.html#parameters",
-    "title": "data.dataset.StreamingAudioFileDataset",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmetadata\nJSONMetadataDataset or list of AudioMetadata or AudioMetadata\nList of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata.\nrequired\n\n\nprocessor\nWav2Vec2Processor or WhisperProcessor\nFor feature extraction.\nrequired\n\n\naudio_dir\nstr\nBase directory for audio files.\n\"data\"\n\n\nsample_rate\nint\nTarget sample rate for resampling.\n16000\n\n\nchunk_size\nint\nMaximum chunk size in seconds (for speech-based chunking).\n30\n\n\nalignment_strategy\nstr\n‘speech’ or ‘chunk’ - determines how chunks are defined.\n\"speech\"",
-    "crumbs": [
-      "Reference",
-      "Datasets and I/O",
-      "data.dataset.StreamingAudioFileDataset"
-    ]
-  },
-  {
-    "objectID": "reference/emissions_pipeline_generator.html",
-    "href": "reference/emissions_pipeline_generator.html",
-    "title": "emissions_pipeline_generator",
-    "section": "",
-    "text": "pipelines.emissions_pipeline_generator(\n    model,\n    processor,\n    metadata,\n    audio_dir,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    batch_size_files=1,\n    num_workers_files=1,\n    prefetch_factor_files=2,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_emissions=False,\n    output_dir='output/emissions',\n    device='cuda',\n)\nRun emissions extraction pipeline on the given audio files and save results to file.\nIf return_emissions is True, function becomes a generator that yields tuples of (metadata, emissions) for each audio file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen VAD is not used, SpeechSegments are naively split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\ntuple(AudioMetadata, np.ndarray)\nIf return_emissions is True, yields tuples of (metadata, emissions) for each audio file.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline_generator"
-    ]
-  },
-  {
-    "objectID": "reference/emissions_pipeline_generator.html#parameters",
-    "href": "reference/emissions_pipeline_generator.html#parameters",
-    "title": "emissions_pipeline_generator",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen VAD is not used, SpeechSegments are naively split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline_generator"
-    ]
-  },
-  {
-    "objectID": "reference/emissions_pipeline_generator.html#yields",
-    "href": "reference/emissions_pipeline_generator.html#yields",
-    "title": "emissions_pipeline_generator",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\ntuple(AudioMetadata, np.ndarray)\nIf return_emissions is True, yields tuples of (metadata, emissions) for each audio file.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline_generator"
-    ]
-  },
-  {
-    "objectID": "reference/SpeechSegment.html",
-    "href": "reference/SpeechSegment.html",
-    "title": "SpeechSegment",
-    "section": "",
-    "text": "data.datamodel.SpeechSegment()\nA slice of the audio that contains speech of interest to be aligned.\nA SpeechSegment may be a speech given by a single speaker, a dialogue between multiple speakers, a book chapter, or whatever unit of organisational abstraction the user prefers.\nIf no SpeechSegment is defined, one will automatically be added, treating the entire audio as a single speech.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
-    "crumbs": [
-      "Reference",
-      "Data Models",
-      "SpeechSegment"
-    ]
-  },
-  {
-    "objectID": "reference/SpeechSegment.html#attributes",
-    "href": "reference/SpeechSegment.html#attributes",
-    "title": "SpeechSegment",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
-    "crumbs": [
-      "Reference",
-      "Data Models",
-      "SpeechSegment"
+      "AudioMetadata"
     ]
   },
   {
@@ -280,28 +124,181 @@
     ]
   },
   {
-    "objectID": "reference/AlignmentSegment.html",
-    "href": "reference/AlignmentSegment.html",
-    "title": "AlignmentSegment",
+    "objectID": "reference/WordSegment.html",
+    "href": "reference/WordSegment.html",
+    "title": "WordSegment",
     "section": "",
-    "text": "data.datamodel.AlignmentSegment()\nA segment of aligned audio and text.\nThis can be sentence, paragraph, or any other unit of text.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "text": "data.datamodel.WordSegment()\nWord-level alignment data.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\ntext\nstr\nThe aligned word’s text.\n\n\nstart\nfloat\nStart time of the word in seconds.\n\n\nend\nfloat\nEnd time of the word in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the word alignment.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AlignmentSegment"
+      "WordSegment"
     ]
   },
   {
-    "objectID": "reference/AlignmentSegment.html#attributes",
-    "href": "reference/AlignmentSegment.html#attributes",
-    "title": "AlignmentSegment",
+    "objectID": "reference/WordSegment.html#attributes",
+    "href": "reference/WordSegment.html#attributes",
+    "title": "WordSegment",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "text": "Name\nType\nDescription\n\n\n\n\ntext\nstr\nThe aligned word’s text.\n\n\nstart\nfloat\nStart time of the word in seconds.\n\n\nend\nfloat\nEnd time of the word in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the word alignment.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AlignmentSegment"
+      "WordSegment"
     ]
+  },
+  {
+    "objectID": "reference/pipeline.html",
+    "href": "reference/pipeline.html",
+    "title": "pipeline",
+    "section": "",
+    "text": "pipelines.pipeline(\n    vad_model,\n    emissions_model,\n    processor,\n    audio_paths,\n    audio_dir,\n    speeches=None,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    text_normalizer_fn=text_normalizer,\n    tokenizer=None,\n    start_wildcard=False,\n    end_wildcard=False,\n    blank_id=0,\n    word_boundary='|',\n    indent=2,\n    ndigits=5,\n    batch_size_files=1,\n    num_workers_files=2,\n    prefetch_factor_files=1,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_alignments=False,\n    delete_emissions=False,\n    output_vad_dir='output/vad',\n    output_emissions_dir='output/emissions',\n    output_alignments_dir='output/alignments',\n    device='cuda',\n)\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nvad_model\nobject\nThe loaded VAD model.\nrequired\n\n\nemissions_model\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files (relative to audio_dir).\nrequired\n\n\naudio_dir\nstr\nBase directory with audio files relative to audio_paths.\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nList of SpeechSegment objects to run VAD and alignment only on specific segments of the audio. If alignment_strategy is ‘speech’, the text needs to be supplied in the SpeechSegment objects. If alignment_strategy is ‘chunk’ and ASR transcriptions are used, there is no need to supply text in the SpeechSegment objects.\nNone\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, VAD chunks are used as basis for feature extraction and alignment. NOTE: chunk currently only works with ASR. The individual VAD chunks won’t contain the relevant text information for alignment.\n\"speech\"\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\ntext_normalizer\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n2\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n1\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming loading of audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the output files as JSON.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the output files as Msgpack.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\noutput_vad_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\noutput_emissions_dir\nstr\nDirectory to save the emissions output files.\n\"output/emissions\"\n\n\noutput_alignments_dir\nstr\nDirectory to save alignment output files.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None (the alignments are saved to disk only).",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/pipeline.html#parameters",
+    "href": "reference/pipeline.html#parameters",
+    "title": "pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nvad_model\nobject\nThe loaded VAD model.\nrequired\n\n\nemissions_model\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files (relative to audio_dir).\nrequired\n\n\naudio_dir\nstr\nBase directory with audio files relative to audio_paths.\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nList of SpeechSegment objects to run VAD and alignment only on specific segments of the audio. If alignment_strategy is ‘speech’, the text needs to be supplied in the SpeechSegment objects. If alignment_strategy is ‘chunk’ and ASR transcriptions are used, there is no need to supply text in the SpeechSegment objects.\nNone\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, VAD chunks are used as basis for feature extraction and alignment. NOTE: chunk currently only works with ASR. The individual VAD chunks won’t contain the relevant text information for alignment.\n\"speech\"\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\ntext_normalizer\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n2\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n1\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming loading of audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the output files as JSON.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the output files as Msgpack.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\noutput_vad_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\noutput_emissions_dir\nstr\nDirectory to save the emissions output files.\n\"output/emissions\"\n\n\noutput_alignments_dir\nstr\nDirectory to save alignment output files.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/pipeline.html#returns",
+    "href": "reference/pipeline.html#returns",
+    "title": "pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None (the alignments are saved to disk only).",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/data.dataset.StreamingAudioFileDataset.html",
+    "href": "reference/data.dataset.StreamingAudioFileDataset.html",
+    "title": "data.dataset.StreamingAudioFileDataset",
+    "section": "",
+    "text": "data.dataset.StreamingAudioFileDataset(\n    metadata,\n    processor,\n    audio_dir='data',\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n)\nStreaming version of AudioFileDataset that reads audio chunks on-demand.\nInstead of loading entire audio files and chunking in memory, this dataset returns a StreamingAudioSliceDataset that lazily loads each chunk via ffmpeg.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmetadata\nJSONMetadataDataset or list of AudioMetadata or AudioMetadata\nList of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata.\nrequired\n\n\nprocessor\nWav2Vec2Processor or WhisperProcessor\nFor feature extraction.\nrequired\n\n\naudio_dir\nstr\nBase directory for audio files.\n\"data\"\n\n\nsample_rate\nint\nTarget sample rate for resampling.\n16000\n\n\nchunk_size\nint\nMaximum chunk size in seconds (for speech-based chunking).\n30\n\n\nalignment_strategy\nstr\n‘speech’ or ‘chunk’ - determines how chunks are defined.\n\"speech\"",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.dataset.StreamingAudioFileDataset"
+    ]
+  },
+  {
+    "objectID": "reference/data.dataset.StreamingAudioFileDataset.html#parameters",
+    "href": "reference/data.dataset.StreamingAudioFileDataset.html#parameters",
+    "title": "data.dataset.StreamingAudioFileDataset",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmetadata\nJSONMetadataDataset or list of AudioMetadata or AudioMetadata\nList of AudioMetadata objects, JSONMetadataDataset, or single AudioMetadata.\nrequired\n\n\nprocessor\nWav2Vec2Processor or WhisperProcessor\nFor feature extraction.\nrequired\n\n\naudio_dir\nstr\nBase directory for audio files.\n\"data\"\n\n\nsample_rate\nint\nTarget sample rate for resampling.\n16000\n\n\nchunk_size\nint\nMaximum chunk size in seconds (for speech-based chunking).\n30\n\n\nalignment_strategy\nstr\n‘speech’ or ‘chunk’ - determines how chunks are defined.\n\"speech\"",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.dataset.StreamingAudioFileDataset"
+    ]
+  },
+  {
+    "objectID": "reference/vad_pipeline_generator.html",
+    "href": "reference/vad_pipeline_generator.html",
+    "title": "vad_pipeline_generator",
+    "section": "",
+    "text": "pipelines.vad_pipeline_generator(\n    model,\n    audio_paths,\n    audio_dir,\n    speeches=None,\n    chunk_size=30,\n    sample_rate=16000,\n    metadata=None,\n    batch_size=1,\n    num_workers=1,\n    prefetch_factor=2,\n    save_json=True,\n    save_msgpack=False,\n    return_vad=False,\n    output_dir='output/vad',\n)\nRun VAD on a list of audio files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded VAD model.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files.\nrequired\n\n\naudio_dir\nstr\nDirectory where the audio files/dirs are located (if audio_paths are relative).\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nOptional list of SpeechSegment objects to run VAD only on specific segments of the audio. Alignment can generally be improved if VAD/alignment is only performed on the segments of the audio that overlap with text transcripts.\nNone\n\n\nchunk_size\nint\nThe maximum length chunks VAD will create (seconds).\n30\n\n\nsample_rate\nint\nThe sample rate to resample the audio to before running VAD.\n16000\n\n\nmetadata\nlist[dict] or None\nOptional list of additional file level metadata to include.\nNone\n\n\nbatch_size\nint\nThe batch size for the DataLoader.\n1\n\n\nnum_workers\nint\nThe number of workers for the DataLoader.\n1\n\n\nprefetch_factor\nint\nThe prefetch factor for the DataLoader.\n2\n\n\nsave_json\nbool\nWhether to save the VAD output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the VAD output as Msgpack files.\nFalse\n\n\nreturn_vad\nbool\nWhether to yield the VAD output.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nAudioMetadata\nIf return_vad is True, yields AudioMetadata objects for each audio file.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "vad_pipeline_generator"
+    ]
+  },
+  {
+    "objectID": "reference/vad_pipeline_generator.html#parameters",
+    "href": "reference/vad_pipeline_generator.html#parameters",
+    "title": "vad_pipeline_generator",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded VAD model.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files.\nrequired\n\n\naudio_dir\nstr\nDirectory where the audio files/dirs are located (if audio_paths are relative).\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nOptional list of SpeechSegment objects to run VAD only on specific segments of the audio. Alignment can generally be improved if VAD/alignment is only performed on the segments of the audio that overlap with text transcripts.\nNone\n\n\nchunk_size\nint\nThe maximum length chunks VAD will create (seconds).\n30\n\n\nsample_rate\nint\nThe sample rate to resample the audio to before running VAD.\n16000\n\n\nmetadata\nlist[dict] or None\nOptional list of additional file level metadata to include.\nNone\n\n\nbatch_size\nint\nThe batch size for the DataLoader.\n1\n\n\nnum_workers\nint\nThe number of workers for the DataLoader.\n1\n\n\nprefetch_factor\nint\nThe prefetch factor for the DataLoader.\n2\n\n\nsave_json\nbool\nWhether to save the VAD output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the VAD output as Msgpack files.\nFalse\n\n\nreturn_vad\nbool\nWhether to yield the VAD output.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "vad_pipeline_generator"
+    ]
+  },
+  {
+    "objectID": "reference/vad_pipeline_generator.html#yields",
+    "href": "reference/vad_pipeline_generator.html#yields",
+    "title": "vad_pipeline_generator",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nAudioMetadata\nIf return_vad is True, yields AudioMetadata objects for each audio file.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "vad_pipeline_generator"
+    ]
+  },
+  {
+    "objectID": "reference/data.utils.read_json.html",
+    "href": "reference/data.utils.read_json.html",
+    "title": "data.utils.read_json",
+    "section": "",
+    "text": "data.utils.read_json(json_path)\nConvenience function to read a JSON file and parse it into an AudioMetadata object.\nFor better performance, use JSONMetadataDataset in easyaligner.data.dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_path\nstr or Path\nPath to the JSON file.\nrequired\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nAudioMetadata\nParsed AudioMetadata object.",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.utils.read_json"
+    ]
+  },
+  {
+    "objectID": "reference/data.utils.read_json.html#parameters",
+    "href": "reference/data.utils.read_json.html#parameters",
+    "title": "data.utils.read_json",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\njson_path\nstr or Path\nPath to the JSON file.\nrequired",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.utils.read_json"
+    ]
+  },
+  {
+    "objectID": "reference/data.utils.read_json.html#returns",
+    "href": "reference/data.utils.read_json.html#returns",
+    "title": "data.utils.read_json",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nAudioMetadata\nParsed AudioMetadata object.",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.utils.read_json"
+    ]
+  },
+  {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html",
+    "title": "get_speech_features",
+    "section": "",
+    "text": "data.dataset.AudioFileDataset.get_speech_features(\n    audio_path,\n    metadata,\n    sr=16000,\n)\nExtract features for each speech segment in the metadata.\nWhen alignment_strategy is speech, the speech segments are split into chunk_size sized chunks for wav2vec2 inference.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
+  },
+  {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#parameters",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#parameters",
+    "title": "get_speech_features",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000"
+  },
+  {
+    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#returns",
+    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#returns",
+    "title": "get_speech_features",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
   },
   {
     "objectID": "reference/tokenizer.load_tokenizer.html",
@@ -340,39 +337,163 @@
     ]
   },
   {
-    "objectID": "reference/data.utils.read_json.html",
-    "href": "reference/data.utils.read_json.html",
-    "title": "data.utils.read_json",
+    "objectID": "reference/emissions_pipeline_generator.html",
+    "href": "reference/emissions_pipeline_generator.html",
+    "title": "emissions_pipeline_generator",
     "section": "",
-    "text": "data.utils.read_json(json_path)\nConvenience function to read a JSON file and parse it into an AudioMetadata object.\nFor better performance, use JSONMetadataDataset in easyaligner.data.dataset.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_path\nstr or Path\nPath to the JSON file.\nrequired\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nAudioMetadata\nParsed AudioMetadata object.",
+    "text": "pipelines.emissions_pipeline_generator(\n    model,\n    processor,\n    metadata,\n    audio_dir,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    batch_size_files=1,\n    num_workers_files=1,\n    prefetch_factor_files=2,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_emissions=False,\n    output_dir='output/emissions',\n    device='cuda',\n)\nRun emissions extraction pipeline on the given audio files and save results to file.\nIf return_emissions is True, function becomes a generator that yields tuples of (metadata, emissions) for each audio file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen VAD is not used, SpeechSegments are naively split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\ntuple(AudioMetadata, np.ndarray)\nIf return_emissions is True, yields tuples of (metadata, emissions) for each audio file.",
     "crumbs": [
       "Reference",
-      "Datasets and I/O",
-      "data.utils.read_json"
+      "Pipelines",
+      "emissions_pipeline_generator"
     ]
   },
   {
-    "objectID": "reference/data.utils.read_json.html#parameters",
-    "href": "reference/data.utils.read_json.html#parameters",
-    "title": "data.utils.read_json",
+    "objectID": "reference/emissions_pipeline_generator.html#parameters",
+    "href": "reference/emissions_pipeline_generator.html#parameters",
+    "title": "emissions_pipeline_generator",
     "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\njson_path\nstr or Path\nPath to the JSON file.\nrequired",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen VAD is not used, SpeechSegments are naively split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"",
     "crumbs": [
       "Reference",
-      "Datasets and I/O",
-      "data.utils.read_json"
+      "Pipelines",
+      "emissions_pipeline_generator"
     ]
   },
   {
-    "objectID": "reference/data.utils.read_json.html#returns",
-    "href": "reference/data.utils.read_json.html#returns",
-    "title": "data.utils.read_json",
+    "objectID": "reference/emissions_pipeline_generator.html#yields",
+    "href": "reference/emissions_pipeline_generator.html#yields",
+    "title": "emissions_pipeline_generator",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nAudioMetadata\nParsed AudioMetadata object.",
+    "text": "Name\nType\nDescription\n\n\n\n\n\ntuple(AudioMetadata, np.ndarray)\nIf return_emissions is True, yields tuples of (metadata, emissions) for each audio file.",
     "crumbs": [
       "Reference",
-      "Datasets and I/O",
-      "data.utils.read_json"
+      "Pipelines",
+      "emissions_pipeline_generator"
+    ]
+  },
+  {
+    "objectID": "reference/index.html",
+    "href": "reference/index.html",
+    "title": "Function reference",
+    "section": "",
+    "text": "Pipelines and functions for forced alignment, emission extraction, and VAD.\n\n\n\npipeline\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\nvad_pipeline\nRun VAD on a list of audio files.\n\n\nemissions_pipeline\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline\nPerform alignment on speech segments or VAD chunks using emissions.\n\n\nvad_pipeline_generator\nRun VAD on a list of audio files.\n\n\nemissions_pipeline_generator\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline_generator\nPerform alignment on speech segments or VAD chunks using emissions.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#pipelines",
+    "href": "reference/index.html#pipelines",
+    "title": "Function reference",
+    "section": "",
+    "text": "Pipelines and functions for forced alignment, emission extraction, and VAD.\n\n\n\npipeline\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\nvad_pipeline\nRun VAD on a list of audio files.\n\n\nemissions_pipeline\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline\nPerform alignment on speech segments or VAD chunks using emissions.\n\n\nvad_pipeline_generator\nRun VAD on a list of audio files.\n\n\nemissions_pipeline_generator\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline_generator\nPerform alignment on speech segments or VAD chunks using emissions.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#datasets-and-io",
+    "href": "reference/index.html#datasets-and-io",
+    "title": "Function reference",
+    "section": "Datasets and I/O",
+    "text": "Datasets and I/O\nDataset classes for creating Pytorch DataLoaders, and reading JSON/Msgpack metadata. from easyaligner.data.dataset import ClassName\n\n\n\ndata.dataset.StreamingAudioFileDataset\nStreaming version of AudioFileDataset that reads audio chunks on-demand.\n\n\ndata.dataset.AudioFileDataset\nLoads audio files and corresponding metadata files. Splits the audio into chunks\n\n\ndata.dataset.JSONMetadataDataset\nDataset for reading AudioMetadata JSON files.\n\n\ndata.dataset.MsgpackMetadataDataset\nDataset for reading AudioMetadata Msgpack files.\n\n\ndata.utils.read_json\nConvenience function to read a JSON file and parse it into an AudioMetadata object.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#data-models",
+    "href": "reference/index.html#data-models",
+    "title": "Function reference",
+    "section": "Data Models",
+    "text": "Data Models\nData models for storing transcribed text and metadata. from easyaligner.data.datamodel import ClassName\n\n\n\nAudioMetadata\nData model for the metadata of an audio file.\n\n\nSpeechSegment\nA slice of the audio that contains speech of interest to be aligned.\n\n\nWordSegment\nWord-level alignment data.\n\n\nAlignmentSegment\nA segment of aligned audio and text.\n\n\nAudioChunk\nSegment of audio, usually created by VAD.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "reference/index.html#text-processing",
+    "href": "reference/index.html#text-processing",
+    "title": "Function reference",
+    "section": "Text Processing",
+    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\n\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
+    "objectID": "reference/AlignmentSegment.html",
+    "href": "reference/AlignmentSegment.html",
+    "title": "AlignmentSegment",
+    "section": "",
+    "text": "data.datamodel.AlignmentSegment()\nA segment of aligned audio and text.\nThis can be sentence, paragraph, or any other unit of text.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "crumbs": [
+      "Reference",
+      "Data Models",
+      "AlignmentSegment"
+    ]
+  },
+  {
+    "objectID": "reference/AlignmentSegment.html#attributes",
+    "href": "reference/AlignmentSegment.html#attributes",
+    "title": "AlignmentSegment",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "crumbs": [
+      "Reference",
+      "Data Models",
+      "AlignmentSegment"
+    ]
+  },
+  {
+    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html",
+    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html",
+    "title": "get_token_map",
+    "section": "",
+    "text": "text.normalization.SpanMapNormalizer.get_token_map(tokenization_level='word')\nTokenize the current text and create a mapping of normalized tokens to the original text spans they were normalized from.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ntokenization_level\nstr\nTokenization level (‘word’ or ‘char’).\n\"word\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nToken mapping."
+  },
+  {
+    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#parameters",
+    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#parameters",
+    "title": "get_token_map",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\ntokenization_level\nstr\nTokenization level (‘word’ or ‘char’).\n\"word\""
+  },
+  {
+    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#returns",
+    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#returns",
+    "title": "get_token_map",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nToken mapping."
+  },
+  {
+    "objectID": "reference/SpeechSegment.html",
+    "href": "reference/SpeechSegment.html",
+    "title": "SpeechSegment",
+    "section": "",
+    "text": "data.datamodel.SpeechSegment()\nA slice of the audio that contains speech of interest to be aligned.\nA SpeechSegment may be a speech given by a single speaker, a dialogue between multiple speakers, a book chapter, or whatever unit of organisational abstraction the user prefers.\nIf no SpeechSegment is defined, one will automatically be added, treating the entire audio as a single speech.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
+    "crumbs": [
+      "Reference",
+      "Data Models",
+      "SpeechSegment"
+    ]
+  },
+  {
+    "objectID": "reference/SpeechSegment.html#attributes",
+    "href": "reference/SpeechSegment.html#attributes",
+    "title": "SpeechSegment",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
+    "crumbs": [
+      "Reference",
+      "Data Models",
+      "SpeechSegment"
     ]
   },
   {
@@ -436,121 +557,6 @@
     ]
   },
   {
-    "objectID": "reference/index.html",
-    "href": "reference/index.html",
-    "title": "Function reference",
-    "section": "",
-    "text": "Pipelines and functions for forced alignment, emission extraction, and VAD.\n\n\n\npipeline\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\nvad_pipeline\nRun VAD on a list of audio files.\n\n\nemissions_pipeline\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline\nPerform alignment on speech segments or VAD chunks using emissions.\n\n\nvad_pipeline_generator\nRun VAD on a list of audio files.\n\n\nemissions_pipeline_generator\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline_generator\nPerform alignment on speech segments or VAD chunks using emissions.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#pipelines",
-    "href": "reference/index.html#pipelines",
-    "title": "Function reference",
-    "section": "",
-    "text": "Pipelines and functions for forced alignment, emission extraction, and VAD.\n\n\n\npipeline\nComplete pipeline to run VAD, extract emissions, and perform alignment.\n\n\nvad_pipeline\nRun VAD on a list of audio files.\n\n\nemissions_pipeline\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline\nPerform alignment on speech segments or VAD chunks using emissions.\n\n\nvad_pipeline_generator\nRun VAD on a list of audio files.\n\n\nemissions_pipeline_generator\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\nalignment_pipeline_generator\nPerform alignment on speech segments or VAD chunks using emissions.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#datasets-and-io",
-    "href": "reference/index.html#datasets-and-io",
-    "title": "Function reference",
-    "section": "Datasets and I/O",
-    "text": "Datasets and I/O\nDataset classes for creating Pytorch DataLoaders, and reading JSON/Msgpack metadata. from easyaligner.data.dataset import ClassName\n\n\n\ndata.dataset.StreamingAudioFileDataset\nStreaming version of AudioFileDataset that reads audio chunks on-demand.\n\n\ndata.dataset.AudioFileDataset\nLoads audio files and corresponding metadata files. Splits the audio into chunks\n\n\ndata.dataset.JSONMetadataDataset\nDataset for reading AudioMetadata JSON files.\n\n\ndata.dataset.MsgpackMetadataDataset\nDataset for reading AudioMetadata Msgpack files.\n\n\ndata.utils.read_json\nConvenience function to read a JSON file and parse it into an AudioMetadata object.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#data-models",
-    "href": "reference/index.html#data-models",
-    "title": "Function reference",
-    "section": "Data Models",
-    "text": "Data Models\nData models for storing transcribed text and metadata. from easyaligner.data.datamodel import ClassName\n\n\n\nAudioMetadata\nData model for the metadata of an audio file.\n\n\nSpeechSegment\nA slice of the audio that contains speech of interest to be aligned.\n\n\nWordSegment\nWord-level alignment data.\n\n\nAlignmentSegment\nA segment of aligned audio and text.\n\n\nAudioChunk\nSegment of audio, usually created by VAD.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#text-processing",
-    "href": "reference/index.html#text-processing",
-    "title": "Function reference",
-    "section": "Text Processing",
-    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\n\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/alignment_pipeline.html",
-    "href": "reference/alignment_pipeline.html",
-    "title": "alignment_pipeline",
-    "section": "",
-    "text": "pipelines.alignment_pipeline(\n    dataloader,\n    text_normalizer_fn,\n    processor,\n    tokenizer=None,\n    alignment_strategy='speech',\n    start_wildcard=False,\n    end_wildcard=False,\n    blank_id=0,\n    word_boundary='|',\n    chunk_size=30,\n    ndigits=5,\n    indent=2,\n    save_json=True,\n    save_msgpack=False,\n    return_alignments=False,\n    delete_emissions=False,\n    remove_wildcards=True,\n    emissions_dir='output/emissions',\n    output_dir='output/alignments',\n    device='cuda',\n)\nPerform alignment on speech segments or VAD chunks using emissions.\nSpeech based alignment is typically used when aligning human transcriptions, while chunk based alignment is typically used to align the output of ASR models.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ndataloader\ntorch.utils.data.DataLoader\nDataLoader loading AudioMetadata objects from JSON or Msgpack files.\nrequired\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, alignments are performed on SpeechSegments. If chunk, alignments are performed on VAD chunks.\n\"speech\"\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nchunk_size\nint\nMaximum chunk size in seconds.\n30\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nsave_json\nbool\nWhether to save alignment metadata in JSON format.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save alignment metadata in Msgpack format.\nFalse\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\nremove_wildcards\nbool\nWhether to remove wildcard tokens from the final alignment.\nTrue\n\n\nemissions_dir\nstr\nDirectory where the emissions are stored.\n\"output/emissions\"\n\n\noutput_dir\nstr\nDirectory to save alignment outputs.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "alignment_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/alignment_pipeline.html#parameters",
-    "href": "reference/alignment_pipeline.html#parameters",
-    "title": "alignment_pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\ndataloader\ntorch.utils.data.DataLoader\nDataLoader loading AudioMetadata objects from JSON or Msgpack files.\nrequired\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, alignments are performed on SpeechSegments. If chunk, alignments are performed on VAD chunks.\n\"speech\"\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nchunk_size\nint\nMaximum chunk size in seconds.\n30\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nsave_json\nbool\nWhether to save alignment metadata in JSON format.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save alignment metadata in Msgpack format.\nFalse\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\nremove_wildcards\nbool\nWhether to remove wildcard tokens from the final alignment.\nTrue\n\n\nemissions_dir\nstr\nDirectory where the emissions are stored.\n\"output/emissions\"\n\n\noutput_dir\nstr\nDirectory to save alignment outputs.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "alignment_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/alignment_pipeline.html#returns",
-    "href": "reference/alignment_pipeline.html#returns",
-    "title": "alignment_pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "alignment_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/WordSegment.html",
-    "href": "reference/WordSegment.html",
-    "title": "WordSegment",
-    "section": "",
-    "text": "data.datamodel.WordSegment()\nWord-level alignment data.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\ntext\nstr\nThe aligned word’s text.\n\n\nstart\nfloat\nStart time of the word in seconds.\n\n\nend\nfloat\nEnd time of the word in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the word alignment.",
-    "crumbs": [
-      "Reference",
-      "Data Models",
-      "WordSegment"
-    ]
-  },
-  {
-    "objectID": "reference/WordSegment.html#attributes",
-    "href": "reference/WordSegment.html#attributes",
-    "title": "WordSegment",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\ntext\nstr\nThe aligned word’s text.\n\n\nstart\nfloat\nStart time of the word in seconds.\n\n\nend\nfloat\nEnd time of the word in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the word alignment.",
-    "crumbs": [
-      "Reference",
-      "Data Models",
-      "WordSegment"
-    ]
-  },
-  {
     "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.transform.html",
     "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.transform.html",
     "title": "transform",
@@ -563,78 +569,6 @@
     "title": "transform",
     "section": "",
     "text": "Name\nType\nDescription\nDefault\n\n\n\n\npattern\nstr\nThe regex pattern to match.\nrequired\n\n\nreplacement\nstr or callable\nThe replacement string or a function that takes a match object and returns a replacement string.\nrequired"
-  },
-  {
-    "objectID": "reference/emissions_pipeline.html",
-    "href": "reference/emissions_pipeline.html",
-    "title": "emissions_pipeline",
-    "section": "",
-    "text": "pipelines.emissions_pipeline(\n    model,\n    processor,\n    metadata,\n    audio_dir,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    batch_size_files=1,\n    num_workers_files=1,\n    prefetch_factor_files=2,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_emissions=False,\n    output_dir='output/emissions',\n    device='cuda',\n)\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[tuple(AudioMetadata, np.ndarray)] or None\nIf return_emissions is True, returns a list of tuples (metadata, emissions) for each audio file. Otherwise, returns None.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/emissions_pipeline.html#parameters",
-    "href": "reference/emissions_pipeline.html#parameters",
-    "title": "emissions_pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/emissions_pipeline.html#returns",
-    "href": "reference/emissions_pipeline.html#returns",
-    "title": "emissions_pipeline",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[tuple(AudioMetadata, np.ndarray)] or None\nIf return_emissions is True, returns a list of tuples (metadata, emissions) for each audio file. Otherwise, returns None.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "emissions_pipeline"
-    ]
-  },
-  {
-    "objectID": "reference/vad_pipeline_generator.html",
-    "href": "reference/vad_pipeline_generator.html",
-    "title": "vad_pipeline_generator",
-    "section": "",
-    "text": "pipelines.vad_pipeline_generator(\n    model,\n    audio_paths,\n    audio_dir,\n    speeches=None,\n    chunk_size=30,\n    sample_rate=16000,\n    metadata=None,\n    batch_size=1,\n    num_workers=1,\n    prefetch_factor=2,\n    save_json=True,\n    save_msgpack=False,\n    return_vad=False,\n    output_dir='output/vad',\n)\nRun VAD on a list of audio files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded VAD model.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files.\nrequired\n\n\naudio_dir\nstr\nDirectory where the audio files/dirs are located (if audio_paths are relative).\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nOptional list of SpeechSegment objects to run VAD only on specific segments of the audio. Alignment can generally be improved if VAD/alignment is only performed on the segments of the audio that overlap with text transcripts.\nNone\n\n\nchunk_size\nint\nThe maximum length chunks VAD will create (seconds).\n30\n\n\nsample_rate\nint\nThe sample rate to resample the audio to before running VAD.\n16000\n\n\nmetadata\nlist[dict] or None\nOptional list of additional file level metadata to include.\nNone\n\n\nbatch_size\nint\nThe batch size for the DataLoader.\n1\n\n\nnum_workers\nint\nThe number of workers for the DataLoader.\n1\n\n\nprefetch_factor\nint\nThe prefetch factor for the DataLoader.\n2\n\n\nsave_json\nbool\nWhether to save the VAD output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the VAD output as Msgpack files.\nFalse\n\n\nreturn_vad\nbool\nWhether to yield the VAD output.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nAudioMetadata\nIf return_vad is True, yields AudioMetadata objects for each audio file.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "vad_pipeline_generator"
-    ]
-  },
-  {
-    "objectID": "reference/vad_pipeline_generator.html#parameters",
-    "href": "reference/vad_pipeline_generator.html#parameters",
-    "title": "vad_pipeline_generator",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded VAD model.\nrequired\n\n\naudio_paths\nlist\nList of paths to audio files.\nrequired\n\n\naudio_dir\nstr\nDirectory where the audio files/dirs are located (if audio_paths are relative).\nrequired\n\n\nspeeches\nlist[list[SpeechSegment]] or None\nOptional list of SpeechSegment objects to run VAD only on specific segments of the audio. Alignment can generally be improved if VAD/alignment is only performed on the segments of the audio that overlap with text transcripts.\nNone\n\n\nchunk_size\nint\nThe maximum length chunks VAD will create (seconds).\n30\n\n\nsample_rate\nint\nThe sample rate to resample the audio to before running VAD.\n16000\n\n\nmetadata\nlist[dict] or None\nOptional list of additional file level metadata to include.\nNone\n\n\nbatch_size\nint\nThe batch size for the DataLoader.\n1\n\n\nnum_workers\nint\nThe number of workers for the DataLoader.\n1\n\n\nprefetch_factor\nint\nThe prefetch factor for the DataLoader.\n2\n\n\nsave_json\nbool\nWhether to save the VAD output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the VAD output as Msgpack files.\nFalse\n\n\nreturn_vad\nbool\nWhether to yield the VAD output.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the VAD output files.\n\"output/vad\"",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "vad_pipeline_generator"
-    ]
-  },
-  {
-    "objectID": "reference/vad_pipeline_generator.html#yields",
-    "href": "reference/vad_pipeline_generator.html#yields",
-    "title": "vad_pipeline_generator",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nAudioMetadata\nIf return_vad is True, yields AudioMetadata objects for each audio file.",
-    "crumbs": [
-      "Reference",
-      "Pipelines",
-      "vad_pipeline_generator"
-    ]
   },
   {
     "objectID": "reference/normalization.text_normalizer.html",
@@ -673,69 +607,27 @@
     ]
   },
   {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html",
-    "title": "get_speech_features",
+    "objectID": "reference/AudioChunk.html",
+    "href": "reference/AudioChunk.html",
+    "title": "AudioChunk",
     "section": "",
-    "text": "data.dataset.AudioFileDataset.get_speech_features(\n    audio_path,\n    metadata,\n    sr=16000,\n)\nExtract features for each speech segment in the metadata.\nWhen alignment_strategy is speech, the speech segments are split into chunk_size sized chunks for wav2vec2 inference.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
-  },
-  {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#parameters",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#parameters",
-    "title": "get_speech_features",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\naudio_path\nstr\nPath to the audio file.\nrequired\n\n\nmetadata\nAudioMetadata\nMetadata object.\nrequired\n\n\nsr\nint\nSample rate.\n16000"
-  },
-  {
-    "objectID": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#returns",
-    "href": "reference/easyaligner.data.dataset.AudioFileDataset.get_speech_features.html#returns",
-    "title": "get_speech_features",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nList of dictionaries containing extracted features and metadata for each chunk."
-  },
-  {
-    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html",
-    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html",
-    "title": "get_token_map",
-    "section": "",
-    "text": "text.normalization.SpanMapNormalizer.get_token_map(tokenization_level='word')\nTokenize the current text and create a mapping of normalized tokens to the original text spans they were normalized from.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ntokenization_level\nstr\nTokenization level (‘word’ or ‘char’).\n\"word\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist of dict\nToken mapping."
-  },
-  {
-    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#parameters",
-    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#parameters",
-    "title": "get_token_map",
-    "section": "",
-    "text": "Name\nType\nDescription\nDefault\n\n\n\n\ntokenization_level\nstr\nTokenization level (‘word’ or ‘char’).\n\"word\""
-  },
-  {
-    "objectID": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#returns",
-    "href": "reference/easyaligner.text.normalization.SpanMapNormalizer.get_token_map.html#returns",
-    "title": "get_token_map",
-    "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\n\nlist of dict\nToken mapping."
-  },
-  {
-    "objectID": "reference/AudioMetadata.html",
-    "href": "reference/AudioMetadata.html",
-    "title": "AudioMetadata",
-    "section": "",
-    "text": "data.datamodel.AudioMetadata()\nData model for the metadata of an audio file.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\naudio_path\nstr\nPath to audio file.\n\n\nsample_rate\nint\nSample rate.\n\n\nduration\nfloat\nDuration in seconds.\n\n\nspeeches\nlist of SpeechSegment, optional\nList of speech segments in the audio.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata.",
+    "text": "data.datamodel.AudioChunk()\nSegment of audio, usually created by VAD.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AudioMetadata"
+      "AudioChunk"
     ]
   },
   {
-    "objectID": "reference/AudioMetadata.html#attributes",
-    "href": "reference/AudioMetadata.html#attributes",
-    "title": "AudioMetadata",
+    "objectID": "reference/AudioChunk.html#attributes",
+    "href": "reference/AudioChunk.html#attributes",
+    "title": "AudioChunk",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\naudio_path\nstr\nPath to audio file.\n\n\nsample_rate\nint\nSample rate.\n\n\nduration\nfloat\nDuration in seconds.\n\n\nspeeches\nlist of SpeechSegment, optional\nList of speech segments in the audio.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata.",
+    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
     "crumbs": [
       "Reference",
       "Data Models",
-      "AudioMetadata"
+      "AudioChunk"
     ]
   },
   {
@@ -760,6 +652,114 @@
       "Reference",
       "Datasets and I/O",
       "data.dataset.MsgpackMetadataDataset"
+    ]
+  },
+  {
+    "objectID": "reference/data.dataset.JSONMetadataDataset.html",
+    "href": "reference/data.dataset.JSONMetadataDataset.html",
+    "title": "data.dataset.JSONMetadataDataset",
+    "section": "",
+    "text": "data.dataset.JSONMetadataDataset(json_paths)\nDataset for reading AudioMetadata JSON files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired\n\n\n\n\n\n\n&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.dataset.JSONMetadataDataset"
+    ]
+  },
+  {
+    "objectID": "reference/data.dataset.JSONMetadataDataset.html#parameters",
+    "href": "reference/data.dataset.JSONMetadataDataset.html#parameters",
+    "title": "data.dataset.JSONMetadataDataset",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.dataset.JSONMetadataDataset"
+    ]
+  },
+  {
+    "objectID": "reference/data.dataset.JSONMetadataDataset.html#examples",
+    "href": "reference/data.dataset.JSONMetadataDataset.html#examples",
+    "title": "data.dataset.JSONMetadataDataset",
+    "section": "",
+    "text": "&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
+    "crumbs": [
+      "Reference",
+      "Datasets and I/O",
+      "data.dataset.JSONMetadataDataset"
+    ]
+  },
+  {
+    "objectID": "reference/emissions_pipeline.html",
+    "href": "reference/emissions_pipeline.html",
+    "title": "emissions_pipeline",
+    "section": "",
+    "text": "pipelines.emissions_pipeline(\n    model,\n    processor,\n    metadata,\n    audio_dir,\n    sample_rate=16000,\n    chunk_size=30,\n    alignment_strategy='speech',\n    batch_size_files=1,\n    num_workers_files=1,\n    prefetch_factor_files=2,\n    batch_size_features=8,\n    num_workers_features=4,\n    streaming=True,\n    save_json=True,\n    save_msgpack=False,\n    save_emissions=True,\n    return_emissions=False,\n    output_dir='output/emissions',\n    device='cuda',\n)\nRun emissions extraction pipeline on the given audio files and save results to file.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[tuple(AudioMetadata, np.ndarray)] or None\nIf return_emissions is True, returns a list of tuples (metadata, emissions) for each audio file. Otherwise, returns None.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "emissions_pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/emissions_pipeline.html#parameters",
+    "href": "reference/emissions_pipeline.html#parameters",
+    "title": "emissions_pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\nmodel\nobject\nThe loaded ASR model.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nThe processor to use for audio.\nrequired\n\n\nmetadata\nJSONMetadataDataset or list[AudioMetadata] or AudioMetadata\nList of AudioMetadata objects or paths to JSON files.\nrequired\n\n\naudio_dir\nstr\nDirectory with audio files.\nrequired\n\n\nsample_rate\nint\nSample rate to resample audio to.\n16000\n\n\nchunk_size\nint\nWhen alignment_strategy is set to speech, SpeechSegments are split into chunk_size sized chunks for feature extraction.\n30\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, audio is split into chunk_size sized chunks based on SpeechSegments. If chunk, audio is taken from existing VAD chunks.\n\"speech\"\n\n\nbatch_size_files\nint\nBatch size for the file DataLoader.\n1\n\n\nnum_workers_files\nint\nNumber of workers for the file DataLoader.\n1\n\n\nprefetch_factor_files\nint\nPrefetch factor for the file DataLoader.\n2\n\n\nbatch_size_features\nint\nBatch size for the feature DataLoader.\n8\n\n\nnum_workers_features\nint\nNumber of workers for the feature DataLoader.\n4\n\n\nstreaming\nbool\nWhether to use streaming audio files.\nFalse\n\n\nsave_json\nbool\nWhether to save the emissions output as JSON files.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save the emissions output as Msgpack files.\nFalse\n\n\nsave_emissions\nbool\nWhether to save the raw emissions as .npy files.\nTrue\n\n\nreturn_emissions\nbool\nWhether to return the emissions as a list of numpy arrays.\nFalse\n\n\noutput_dir\nstr\nDirectory to save the output files if saving is enabled.\n\"output/emissions\"\n\n\ndevice\nstr\nDevice to run the model on (e.g. “cuda” or “cpu”).\n\"cuda\"",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "emissions_pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/emissions_pipeline.html#returns",
+    "href": "reference/emissions_pipeline.html#returns",
+    "title": "emissions_pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[tuple(AudioMetadata, np.ndarray)] or None\nIf return_emissions is True, returns a list of tuples (metadata, emissions) for each audio file. Otherwise, returns None.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "emissions_pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/alignment_pipeline.html",
+    "href": "reference/alignment_pipeline.html",
+    "title": "alignment_pipeline",
+    "section": "",
+    "text": "pipelines.alignment_pipeline(\n    dataloader,\n    text_normalizer_fn,\n    processor,\n    tokenizer=None,\n    alignment_strategy='speech',\n    start_wildcard=False,\n    end_wildcard=False,\n    blank_id=0,\n    word_boundary='|',\n    chunk_size=30,\n    ndigits=5,\n    indent=2,\n    save_json=True,\n    save_msgpack=False,\n    return_alignments=False,\n    delete_emissions=False,\n    remove_wildcards=True,\n    emissions_dir='output/emissions',\n    output_dir='output/alignments',\n    device='cuda',\n)\nPerform alignment on speech segments or VAD chunks using emissions.\nSpeech based alignment is typically used when aligning human transcriptions, while chunk based alignment is typically used to align the output of ASR models.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ndataloader\ntorch.utils.data.DataLoader\nDataLoader loading AudioMetadata objects from JSON or Msgpack files.\nrequired\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, alignments are performed on SpeechSegments. If chunk, alignments are performed on VAD chunks.\n\"speech\"\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nchunk_size\nint\nMaximum chunk size in seconds.\n30\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nsave_json\nbool\nWhether to save alignment metadata in JSON format.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save alignment metadata in Msgpack format.\nFalse\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\nremove_wildcards\nbool\nWhether to remove wildcard tokens from the final alignment.\nTrue\n\n\nemissions_dir\nstr\nDirectory where the emissions are stored.\n\"output/emissions\"\n\n\noutput_dir\nstr\nDirectory to save alignment outputs.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "alignment_pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/alignment_pipeline.html#parameters",
+    "href": "reference/alignment_pipeline.html#parameters",
+    "title": "alignment_pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\ndataloader\ntorch.utils.data.DataLoader\nDataLoader loading AudioMetadata objects from JSON or Msgpack files.\nrequired\n\n\ntext_normalizer_fn\ncallable\nFunction to normalize text according to regex rules.\nrequired\n\n\nprocessor\nWav2Vec2Processor\nWav2Vec2Processor to preprocess the audio.\nrequired\n\n\ntokenizer\nobject\nOptional tokenizer for custom segmentation of text (e.g. sentence segmentation, or paragraph segmentation). The tokenizer should either i) be a PunktTokenizer from nltk, or ii) directly return a list of spans (start_char, end_char) when called on a string.\nNone\n\n\nalignment_strategy\nstr\nStrategy for aligning features to text. One of ‘speech’ or ‘chunk’. If speech, alignments are performed on SpeechSegments. If chunk, alignments are performed on VAD chunks.\n\"speech\"\n\n\nstart_wildcard\nbool\nWhether to add a wildcard token at the start of the segments.\nFalse\n\n\nend_wildcard\nbool\nWhether to add a wildcard token at the end of the segments.\nFalse\n\n\nblank_id\nint\nID of the blank token in the tokenizer.\n0\n\n\nword_boundary\nstr\nToken indicating word boundaries in the tokenizer.\n\"|\"\n\n\nchunk_size\nint\nMaximum chunk size in seconds.\n30\n\n\nndigits\nint\nNumber of decimal digits to round the alignment times and scores to.\n5\n\n\nindent\nint\nIndentation level for saved JSON files. None to disable pretty formatting.\n2\n\n\nsave_json\nbool\nWhether to save alignment metadata in JSON format.\nTrue\n\n\nsave_msgpack\nbool\nWhether to save alignment metadata in Msgpack format.\nFalse\n\n\nreturn_alignments\nbool\nWhether to return the alignment mappings.\nFalse\n\n\ndelete_emissions\nbool\nWhether to delete the emissions files after alignment to save space.\nFalse\n\n\nremove_wildcards\nbool\nWhether to remove wildcard tokens from the final alignment.\nTrue\n\n\nemissions_dir\nstr\nDirectory where the emissions are stored.\n\"output/emissions\"\n\n\noutput_dir\nstr\nDirectory to save alignment outputs.\n\"output/alignments\"\n\n\ndevice\nstr\nDevice to run the alignment on (e.g. “cuda” or “cpu”).\n\"cuda\"",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "alignment_pipeline"
+    ]
+  },
+  {
+    "objectID": "reference/alignment_pipeline.html#returns",
+    "href": "reference/alignment_pipeline.html#returns",
+    "title": "alignment_pipeline",
+    "section": "",
+    "text": "Name\nType\nDescription\n\n\n\n\n\nlist[list[SpeechSegment]] or None\nIf return_alignments is True, returns a list of alignment mappings for each audio file. Otherwise, returns None.",
+    "crumbs": [
+      "Reference",
+      "Pipelines",
+      "alignment_pipeline"
     ]
   }
 ]

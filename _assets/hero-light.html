@@ -24,10 +24,17 @@
             overflow: hidden;
         }
 
+        .hero-wrapper {
+            width: 100%;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
         .hero {
             position: relative;
             width: 720px;
             height: 420px;
+            transform-origin: top left;
         }
 
         .word {
@@ -213,37 +220,52 @@
 
 <body>
 
-    <div class="hero">
-        <div class="word" id="word-easy">easy</div>
-        <div class="word" id="word-aligner">aligner</div>
+    <div class="hero-wrapper" id="hero-wrapper">
+        <div class="hero">
+            <div class="word" id="word-easy">easy</div>
+            <div class="word" id="word-aligner">aligner</div>
 
-        <div class="waveform-wrap" id="waveform-wrap">
-            <svg class="waveform" id="waveform" viewBox="0 0 600 100" preserveAspectRatio="none"></svg>
+            <div class="waveform-wrap" id="waveform-wrap">
+                <svg class="waveform" id="waveform" viewBox="0 0 600 100" preserveAspectRatio="none"></svg>
+            </div>
+
+            <div class="highlight-region" id="highlight-easy"></div>
+            <div class="highlight-region" id="highlight-aligner"></div>
+
+            <div class="bracket" id="bracket-easy"></div>
+            <div class="bracket" id="bracket-aligner"></div>
+
+            <div class="timestamp ts-easy" id="ts-easy-start"><span class="label">start</span><span
+                    class="val">0.00s</span></div>
+            <div class="timestamp ts-easy" id="ts-easy-end"><span class="label">end</span><span class="val">0.00s</span>
+            </div>
+            <div class="timestamp ts-aligner" id="ts-aligner-start"><span class="label">start</span><span
+                    class="val">0.00s</span></div>
+            <div class="timestamp ts-aligner" id="ts-aligner-end"><span class="label">end</span><span
+                    class="val">0.00s</span></div>
+
+            <div class="playhead" id="playhead"></div>
+
+            <div class="subtitle" id="subtitle">Forced alignment of text and audio, <em>made simple.</em></div>
+            <button class="replay-btn" id="replay-btn" onclick="replay()">↻ replay</button>
         </div>
-
-        <div class="highlight-region" id="highlight-easy"></div>
-        <div class="highlight-region" id="highlight-aligner"></div>
-
-        <div class="bracket" id="bracket-easy"></div>
-        <div class="bracket" id="bracket-aligner"></div>
-
-        <div class="timestamp ts-easy" id="ts-easy-start"><span class="label">start</span><span class="val">0.00s</span>
-        </div>
-        <div class="timestamp ts-easy" id="ts-easy-end"><span class="label">end</span><span class="val">0.00s</span>
-        </div>
-        <div class="timestamp ts-aligner" id="ts-aligner-start"><span class="label">start</span><span
-                class="val">0.00s</span></div>
-        <div class="timestamp ts-aligner" id="ts-aligner-end"><span class="label">end</span><span
-                class="val">0.00s</span></div>
-
-        <div class="playhead" id="playhead"></div>
-
-        <div class="subtitle" id="subtitle">Forced alignment of text and audio, <em>made simple.</em></div>
-        <button class="replay-btn" id="replay-btn" onclick="replay()">↻ replay</button>
     </div>
 
     <script>
-        // ── Generate waveform bars ──
+        // ── Responsive scaling ──
+        const heroEl = document.querySelector('.hero');
+        const wrapper = document.getElementById('hero-wrapper');
+
+        function scaleHero() {
+            const wrapperW = wrapper.clientWidth;
+            const scale = Math.min(1, wrapperW / 720);
+            heroEl.style.transform = `scale(${scale})`;
+            wrapper.style.height = (420 * scale) + 'px';
+        }
+
+        scaleHero();
+        window.addEventListener('resize', scaleHero);
+
         const svg = document.getElementById('waveform');
         const BAR_COUNT = 120, BAR_W = 3;
         const GAP = (600 - BAR_COUNT * BAR_W) / (BAR_COUNT - 1);
@@ -277,7 +299,6 @@
         }
         buildBars();
 
-        // ── Layout constants ──
         const HERO_W = 720;
         const WAVE_LEFT = (HERO_W - 600) / 2;
         const WAVE_RIGHT = WAVE_LEFT + 600;
@@ -290,7 +311,6 @@
         const bEasyL = pxFromNorm(EASY_START), bEasyR = pxFromNorm(EASY_END);
         const bAlnL = pxFromNorm(ALIGNER_START), bAlnR = pxFromNorm(ALIGNER_END);
 
-        // ── Elements ──
         const wEasy = document.getElementById('word-easy');
         const wAligner = document.getElementById('word-aligner');
         const waveWrap = document.getElementById('waveform-wrap');
@@ -306,17 +326,12 @@
         const subtitle = document.getElementById('subtitle');
         const replayBtn = document.getElementById('replay-btn');
 
-        // ── Helpers ──
         function colorBars() {
             bars.forEach((rect, i) => {
                 const n = i / BAR_COUNT;
                 if (n >= EASY_START && n <= EASY_END) rect.setAttribute('fill', 'rgba(22,163,74,0.5)');
                 else if (n >= ALIGNER_START && n <= ALIGNER_END) rect.setAttribute('fill', 'rgba(37,99,235,0.5)');
             });
-        }
-
-        function resetBars() {
-            bars.forEach(rect => rect.setAttribute('fill', DEFAULT_BAR_COLOR));
         }
 
         function setPos(el, x, y) {
@@ -340,17 +355,15 @@
         function clearTimers() { timers.forEach(clearTimeout); timers = []; }
         function schedule(fn, ms) { timers.push(setTimeout(fn, ms)); }
 
-        function instantHide(el, cls) {
+        function instantHide(el) {
             el.style.transition = 'none';
-            el.classList.remove(cls || 'visible');
+            el.classList.remove('visible');
             el.offsetWidth;
             el.style.transition = '';
         }
 
-        // ── Reset ──
         function reset() {
             clearTimers();
-
             buildBars();
 
             instantHide(waveWrap);
@@ -395,7 +408,6 @@
             tsAE.querySelector('.val').textContent = '0.00s';
         }
 
-        // ── Play animation ──
         function play() {
             reset();
 
