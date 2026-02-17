@@ -373,6 +373,24 @@
     ]
   },
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "easyaligner",
+    "section": "",
+    "text": "Get Started\n    Install easyaligner and align your first audio file.\n  \n  \n    \n    Tutorials\n    How-to guides and examples for using easyaligner.\n  \n  \n    \n    Reference\n    Explore the API — pipelines, datasets, data models, and text processing."
+  },
+  {
+    "objectID": "get-started/overview.html",
+    "href": "get-started/overview.html",
+    "title": "Overview",
+    "section": "",
+    "text": "Hi.\ntest\nimport easytranscriber as et\n\ndef main():\n    # create a transcriber\n    transcriber = et.Transcriber()\n\n    # transcribe an audio\n    a = 3+3\n    print(a)\n\nprint(3+3)\nprint(\"hello\")\n\n6\nhello\n\n\n\n\n\n\n\n\nTip\n\n\n\nThis is a tip.\n\n\n\n\n\n\n\n\nImportant\n\n\n\nThis is important!",
+    "crumbs": [
+      "Get Started",
+      "Overview"
+    ]
+  },
+  {
     "objectID": "reference/index.html",
     "href": "reference/index.html",
     "title": "Function reference",
@@ -395,6 +413,17 @@
     ]
   },
   {
+    "objectID": "reference/index.html#text-processing",
+    "href": "reference/index.html#text-processing",
+    "title": "Function reference",
+    "section": "Text Processing",
+    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\n\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
+    "crumbs": [
+      "Reference",
+      "Function reference"
+    ]
+  },
+  {
     "objectID": "reference/index.html#datasets-and-io",
     "href": "reference/index.html#datasets-and-io",
     "title": "Function reference",
@@ -411,17 +440,6 @@
     "title": "Function reference",
     "section": "Data Models",
     "text": "Data Models\nData models for storing transcribed text and metadata. from easyaligner.data.datamodel import ClassName\n\n\n\nAudioMetadata\nData model for the metadata of an audio file.\n\n\nSpeechSegment\nA slice of the audio that contains speech of interest to be aligned.\n\n\nWordSegment\nWord-level alignment data.\n\n\nAlignmentSegment\nA segment of aligned audio and text.\n\n\nAudioChunk\nSegment of audio, usually created by VAD.",
-    "crumbs": [
-      "Reference",
-      "Function reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#text-processing",
-    "href": "reference/index.html#text-processing",
-    "title": "Function reference",
-    "section": "Text Processing",
-    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\n\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
     "crumbs": [
       "Reference",
       "Function reference"

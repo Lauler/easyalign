@@ -26,20 +26,21 @@
 
         .hero-wrapper {
             width: 100%;
-            max-width: 720px;
+            max-width: 860px;
             margin: 0 auto;
+            transform: translateX(-20px);
         }
 
         .hero {
             position: relative;
-            width: 720px;
-            height: 420px;
+            width: 860px;
+            height: 472px;
             transform-origin: top left;
         }
 
         .word {
             position: absolute;
-            font-size: 3.2rem;
+            font-size: 3.82rem;
             font-weight: 800;
             letter-spacing: -0.02em;
             white-space: nowrap;
@@ -56,11 +57,11 @@
 
         .waveform-wrap {
             position: absolute;
-            top: 170px;
+            top: 173px;
             left: 50%;
             transform: translateX(-50%);
-            width: 600px;
-            height: 100px;
+            width: 716px;
+            height: 120px;
             opacity: 0;
         }
 
@@ -76,8 +77,8 @@
 
         .bracket {
             position: absolute;
-            top: 275px;
-            height: 38px;
+            top: 298px;
+            height: 45px;
             border-left: 2px solid;
             border-right: 2px solid;
             border-bottom: 2px solid;
@@ -104,10 +105,10 @@
         .timestamp {
             position: absolute;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
+            font-size: 0.98rem;
             font-weight: 500;
             opacity: 0;
-            top: 320px;
+            top: 352px;
             white-space: nowrap;
         }
 
@@ -118,7 +119,7 @@
 
         .timestamp .label {
             color: #667;
-            font-size: 0.68rem;
+            font-size: 0.81rem;
             text-transform: uppercase;
             letter-spacing: 0.06em;
             display: block;
@@ -135,8 +136,8 @@
 
         .highlight-region {
             position: absolute;
-            top: 170px;
-            height: 100px;
+            top: 173px;
+            height: 120px;
             opacity: 0;
             pointer-events: none;
         }
@@ -156,9 +157,9 @@
 
         .playhead {
             position: absolute;
-            top: 165px;
+            top: 167px;
             width: 2px;
-            height: 110px;
+            height: 131px;
             background: #fff;
             opacity: 0;
             box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
@@ -171,10 +172,10 @@
 
         .subtitle {
             position: absolute;
-            bottom: 18px;
+            bottom: 22px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 1rem;
+            font-size: 1.19rem;
             color: #667;
             opacity: 0;
             white-space: nowrap;
@@ -193,15 +194,15 @@
 
         .replay-btn {
             position: absolute;
-            bottom: 16px;
-            right: 20px;
+            bottom: 19px;
+            right: 24px;
             background: none;
             border: 1px solid #333;
             border-radius: 6px;
             color: #667;
             font-family: 'Inter', sans-serif;
-            font-size: 0.78rem;
-            padding: 4px 12px;
+            font-size: 0.93rem;
+            padding: 5px 14px;
             cursor: pointer;
             opacity: 0;
             transition: opacity 0.4s ease, border-color 0.2s;
@@ -247,7 +248,7 @@
 
             <div class="playhead" id="playhead"></div>
 
-            <div class="subtitle" id="subtitle">Forced alignment of text and audio, <em>made simple.</em></div>
+            <div class="subtitle" id="subtitle">Forced alignment of text and audio, <em>made easy.</em></div>
             <button class="replay-btn" id="replay-btn" onclick="replay()">↻ replay</button>
         </div>
     </div>
@@ -259,9 +260,9 @@
 
         function scaleHero() {
             const wrapperW = wrapper.clientWidth;
-            const scale = Math.min(1, wrapperW / 720);
+            const scale = Math.min(1, wrapperW / 860);
             heroEl.style.transform = `scale(${scale})`;
-            wrapper.style.height = (420 * scale) + 'px';
+            wrapper.style.height = (472 * scale) + 'px';
         }
 
         scaleHero();
@@ -300,14 +301,14 @@
         }
         buildBars();
 
-        const HERO_W = 720;
-        const WAVE_LEFT = (HERO_W - 600) / 2;
-        const WAVE_RIGHT = WAVE_LEFT + 600;
+        const HERO_W = 860;
+        const WAVE_LEFT = (HERO_W - 716) / 2;
+        const WAVE_RIGHT = WAVE_LEFT + 716;
 
         const EASY_START = 0.06, EASY_END = 0.34;
         const ALIGNER_START = 0.40, ALIGNER_END = 0.88;
 
-        function pxFromNorm(n) { return WAVE_LEFT + n * 600; }
+        function pxFromNorm(n) { return WAVE_LEFT + n * 716; }
 
         const bEasyL = pxFromNorm(EASY_START), bEasyR = pxFromNorm(EASY_END);
         const bAlnL = pxFromNorm(ALIGNER_START), bAlnR = pxFromNorm(ALIGNER_END);
@@ -380,13 +381,13 @@
             instantHide(subtitle);
             instantHide(replayBtn);
 
-            const charW = 33;
+            const charW = 39;
             const totalW = 11 * charW;
             const startX = (HERO_W - totalW) / 2;
             wEasy.style.transition = 'none';
             wAligner.style.transition = 'none';
-            setPos(wEasy, startX, 50);
-            setPos(wAligner, startX + 4 * charW, 50);
+            setPos(wEasy, startX, 30);
+            setPos(wAligner, startX + 4 * charW, 30);
 
             brEasy.style.left = bEasyL + 'px';
             brEasy.style.width = (bEasyR - bEasyL) + 'px';
@@ -399,9 +400,9 @@
             hlAligner.style.width = (bAlnR - bAlnL) + 'px';
 
             tsES.style.left = bEasyL + 'px';
-            tsEE.style.left = (bEasyR - 38) + 'px';
+            tsEE.style.left = (bEasyR - 45) + 'px';
             tsAS.style.left = bAlnL + 'px';
-            tsAE.style.left = (bAlnR - 38) + 'px';
+            tsAE.style.left = (bAlnR - 45) + 'px';
 
             tsES.querySelector('.val').textContent = '0.00s';
             tsEE.querySelector('.val').textContent = '0.00s';
@@ -412,11 +413,11 @@
         function play() {
             reset();
 
-            const charW = 33;
+            const charW = 39;
             const easyW = 4 * charW;
             const easyTargetX = bEasyL + (bEasyR - bEasyL) / 2 - easyW / 2;
-            const alignerTargetX = bAlnL + (bAlnR - bAlnL) / 2 - (7 * charW) / 2;
-            const targetY = 115;
+            const alignerTargetX = bAlnL + (bAlnR - bAlnL) / 2 - (7 * charW) / 2 + 18;
+            const targetY = 107;
 
             schedule(() => { waveWrap.classList.add('visible'); }, 800);
 
@@ -434,7 +435,7 @@
             }, 2200);
 
             schedule(() => { brEasy.classList.add('visible'); }, 2950);
-            schedule(() => { brAligner.classList.add('visible'); }, 3750);
+            schedule(() => { brAligner.classList.add('visible'); }, 3650);
 
             schedule(() => {
                 playhead.style.transition = 'none';
@@ -444,7 +445,7 @@
             }, 2300);
 
             schedule(() => {
-                playhead.style.transition = 'left 2s linear';
+                playhead.style.transition = 'left 1.8s linear';
                 playhead.style.left = WAVE_RIGHT + 'px';
             }, 3000);
 
@@ -453,21 +454,21 @@
                 tsEE.classList.add('visible');
                 animateValue(tsES, 0, 0.12, 600, v => v.toFixed(2) + 's');
                 animateValue(tsEE, 0, 0.68, 600, v => v.toFixed(2) + 's');
-            }, 3600);
+            }, 3450);
 
             schedule(() => {
                 tsAS.classList.add('visible');
                 tsAE.classList.add('visible');
                 animateValue(tsAS, 0, 0.81, 600, v => v.toFixed(2) + 's');
                 animateValue(tsAE, 0, 1.76, 600, v => v.toFixed(2) + 's');
-            }, 4600);
+            }, 4360);
 
             schedule(() => {
                 playhead.classList.remove('visible');
                 subtitle.classList.add('visible');
-            }, 5650);
+            }, 5750);
 
-            schedule(() => { replayBtn.classList.add('visible'); }, 6600);
+            schedule(() => { replayBtn.classList.add('visible'); }, 6900);
         }
 
         function replay() { play(); }
