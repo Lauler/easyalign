@@ -1,10 +1,10 @@
 # Easier forced alignment with `easyaligner`
 
-`easyaligner` is a fast and memory efficient forced alignment pipeline for speech and text. It is designed with ease of use in mind. The library supports aligning both from ground-truth transcripts, as well as from ASR-generated transcripts (`easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper)). Some notable features of `easyaligner` include:
+`easyaligner` is a fast and memory efficient forced alignment pipeline for speech and text. Given a text transcript, `easyaligner` will help identify where each word or phrase was spoken in the audio. The library supports aligning both from ground-truth transcripts, as well as from ASR-generated transcripts (`easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper)). Some notable features of `easyaligner` include:
 
-* **GPU accelerated forced alignment**. Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with a GPU based implementation of the Viterbi algorithm. Enables fast and memory-efficient forced alignment of long audio segments ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf)). 
-* **Arbitrary text normalization for improved alignment**. Users can supply custom regex-based text normalization functions to preprocess transcripts before alignment. A mapping from the original text to the normalized text is maintained internally. All of the applied normalizations and transformations are therefore **non-destructive and reversible after alignment**.  
-* **Batch processing support for emission extraction**. `easyaligner` supports batched inference for wav2vec2-based models, keeping track of non-padded logits.   
+* **GPU accelerated forced alignment**. Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with a GPU based implementation of the Viterbi algorithm. Enables fast and memory-efficient forced alignment of long audio segments ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf#page=8)). 
+* **Flexible text normalization for improved alignment quality**. Users can supply custom regex-based text normalization functions to preprocess transcripts before alignment. A mapping from the original text to the normalized text is maintained internally. All of the applied normalizations and transformations are consequently **non-destructive and reversible after alignment**.  
+* **Batch processing support for emission extraction**. `easyaligner` supports batched inference for wav2vec2-based models, keeping track of non-padded logits when doing alignment.   
 * **Modular pipeline design**. The library has separate, independent, pipelines for VAD, emission extraction, and forced alignment. Users can run everything end-to-end, or run the separate stages individually. 
 
 ## Installation
@@ -16,7 +16,7 @@ pip install easyaligner --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
 > [!TIP]  
-> Remove `--extra-index-url` if you want CPU-only installation.
+> Remove `--extra-index-url` if you want a CPU-only installation.
 
 ### Using uv
 
@@ -24,15 +24,6 @@ When installing with [uv](https://docs.astral.sh/uv/), it will select the approp
 
 ```bash
 uv pip install easyaligner
-```
-
-### For development
-
-```bash
-git clone https://github.com/kb-labb/easyaligner.git
-cd easyaligner
-
-pip install -e . --extra-index-url https://download.pytorch.org/whl/cu128
 ```
 
 ## Usage
@@ -90,6 +81,21 @@ pipeline(
     return_alignments=False,
 )
 ```
+
+## Outputs
+
+By default, `easyaligner` saves the outputs of each stage of the pipeline (VAD, emission extraction, forced alignment) as JSON files in separate directories. The final aligned output can be found in `output/alignments`. The directory structure after running the full pipeline will look as follows:  
+
+```
+output
+├── alignments
+├── emissions
+└── vad
+```
+
+The `output/emissions` directory will, in addition to the JSON files, also contain output emissions for each JSON file in `.npy` format.  
+
+All intermediate files can safely be deleted, assuming there is no need to re-run the pipeline from a specific intermediate stage. 
 
 ## Logging and Error Handling
 

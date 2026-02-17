@@ -5,16 +5,25 @@ execute:
   freeze: auto
 
 website:
+  repo-url: https://github.com/kb-labb/easyaligner
   title: "easyaligner"
   navbar:
     background: dark
     search: true
     right:
+      - text: "Get Started"
+        href: get-started/overview.qmd
       - text: "Reference"
         href: reference/index.qmd
       - text: "About"
         href: about.qmd
-
+      - icon: github
+        href: https://github.com/kb-labb/easyaligner
+  sidebar:
+    - id: get-started
+      title: "Get Started"
+      contents:
+        - get-started/overview.qmd
 
 # tell quarto to read the generated sidebar
 metadata-files:
@@ -57,6 +66,15 @@ quartodoc:
         - vad_pipeline_generator
         - emissions_pipeline_generator
         - alignment_pipeline_generator
+    - title: Text Processing
+      desc: 
+        Text processing utilities. `from easyaligner.text.normalization import function_name`.
+      package: easyaligner.text
+      contents:
+        - name: normalization.SpanMapNormalizer
+          children: separate
+        - normalization.text_normalizer
+        - tokenizer.load_tokenizer
     - title: Datasets and I/O
       desc: 
         Dataset classes for creating Pytorch DataLoaders, and reading JSON/Msgpack metadata. 
@@ -83,12 +101,3 @@ quartodoc:
         - WordSegment
         - AlignmentSegment
         - AudioChunk
-    - title: Text Processing
-      desc: 
-        Text processing utilities. `from easyaligner.text.normalization import function_name`.
-      package: easyaligner.text
-      contents:
-        - name: normalization.SpanMapNormalizer
-          children: separate
-        - normalization.text_normalizer
-        - tokenizer.load_tokenizer
