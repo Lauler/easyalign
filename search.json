@@ -677,7 +677,7 @@
     "href": "reference/data.dataset.JSONMetadataDataset.html",
     "title": "data.dataset.JSONMetadataDataset",
     "section": "",
-    "text": "data.dataset.JSONMetadataDataset(json_paths)\nDataset for reading AudioMetadata JSON files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired\n\n\n\n\n\n\n&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
+    "text": "data.dataset.JSONMetadataDataset(json_paths)\nDataset for reading AudioMetadata JSON files.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\njson_paths\nlist of str or list of Path\nList of paths to JSON files.\nrequired\n\n\n\n\n\n\nfrom torch.utils.data import DataLoader\nfrom easyaligner.data.dataset import JSONMetadataDataset\njson_files = list(Path(\"output/vad\").rglob(\"*.json\"))\ndataset = JSONMetadataDataset(json_files)\nloader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\nfor metadata in loader:\n    print(metadata)",
     "crumbs": [
       "Reference",
       "Datasets and I/O",
@@ -701,7 +701,7 @@
     "href": "reference/data.dataset.JSONMetadataDataset.html#examples",
     "title": "data.dataset.JSONMetadataDataset",
     "section": "",
-    "text": "&gt;&gt;&gt; from torch.utils.data import DataLoader\n&gt;&gt;&gt; from easyaligner.data.dataset import JSONMetadataDataset\n&gt;&gt;&gt; json_files = list(Path(\"output/vad\").rglob(\"*.json\"))\n&gt;&gt;&gt; dataset = JSONMetadataDataset(json_files)\n&gt;&gt;&gt; loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\n&gt;&gt;&gt; for metadata in loader:\n...     print(metadata)",
+    "text": "from torch.utils.data import DataLoader\nfrom easyaligner.data.dataset import JSONMetadataDataset\njson_files = list(Path(\"output/vad\").rglob(\"*.json\"))\ndataset = JSONMetadataDataset(json_files)\nloader = DataLoader(dataset, num_workers=4, prefetch_factor=2)\nfor metadata in loader:\n    print(metadata)",
     "crumbs": [
       "Reference",
       "Datasets and I/O",
