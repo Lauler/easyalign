@@ -26,13 +26,15 @@ class JSONMetadataDataset(Dataset):
 
     Examples
     --------
-    >>> from torch.utils.data import DataLoader
-    >>> from easyaligner.data.dataset import JSONMetadataDataset
-    >>> json_files = list(Path("output/vad").rglob("*.json"))
-    >>> dataset = JSONMetadataDataset(json_files)
-    >>> loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)
-    >>> for metadata in loader:
-    ...     print(metadata)
+    ```python
+    from torch.utils.data import DataLoader
+    from easyaligner.data.dataset import JSONMetadataDataset
+    json_files = list(Path("output/vad").rglob("*.json"))
+    dataset = JSONMetadataDataset(json_files)
+    loader = DataLoader(dataset, num_workers=4, prefetch_factor=2)
+    for metadata in loader:
+        print(metadata)
+    ```
     """
 
     def __init__(self, json_paths: list[str | Path]):
@@ -43,7 +45,7 @@ class JSONMetadataDataset(Dataset):
         return len(self.json_paths)
 
     def __getitem__(self, idx) -> AudioMetadata:
-        self.decoder = msgspec.msgpack.Decoder(type=AudioMetadata)
+        self.decoder = msgspec.json.Decoder(type=AudioMetadata)
         json_path = self.json_paths[idx]
         logger.info(f"Loading metadata from {json_path}")
         with open(json_path, "r") as f:
