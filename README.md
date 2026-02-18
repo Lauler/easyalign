@@ -1,5 +1,7 @@
 # Easier forced alignment with `easyaligner`
 
+<div align="center"><img width="1020" height="340" alt="image" src="https://github.com/user-attachments/assets/a3589539-5c85-4ac1-a4a7-d5e801207faa" /></div>
+
 `easyaligner` is a fast and memory efficient forced alignment pipeline for speech and text. Given a text transcript, `easyaligner` will help identify where each word or phrase was spoken in the audio. The library supports aligning both from ground-truth transcripts, as well as from ASR-generated transcripts (`easyaligner` acts as the backend that powers alignment in [`easywhisper`](https://github.com/kb-labb/easywhisper)). Some notable features of `easyaligner` include:
 
 * **GPU accelerated forced alignment**. Uses [Pytorch's forced alignment API](https://docs.pytorch.org/audio/main/tutorials/ctc_forced_alignment_api_tutorial.html) with a GPU based implementation of the Viterbi algorithm. Enables fast and memory-efficient forced alignment of long audio segments ([Pratap et al., 2024](https://jmlr.org/papers/volume25/23-1318/23-1318.pdf#page=8)). 
