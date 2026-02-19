@@ -24,6 +24,12 @@ website:
       title: "Get Started"
       contents:
         - get-started/overview.qmd
+  open-graph: 
+    title: "easyaligner: Forced Alignment Made Easy"
+    description: 
+      "easyaligner is a fast and memory efficient forced alignment pipeline for speech and text.
+      Given a text transcript, easyaligner will help identify where each word or phrase was spoken in the audio."
+    image: _assets/easyaligner.png
 
 # tell quarto to read the generated sidebar
 metadata-files:
