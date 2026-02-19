@@ -12,31 +12,6 @@ from easyaligner.utils import convert_audio_to_wav
 logger = logging.getLogger(__name__)
 
 
-def read_audio(audio_path):
-    """
-    Read audio from disk, converting to wav if necessary.
-
-    Parameters
-    ----------
-    audio_path : str
-        Path to the audio file.
-
-    Returns
-    -------
-    tuple
-        A tuple containing the audio signal (np.ndarray) and the sample rate (int).
-        Returns (None, None) if an error occurs.
-    """
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        try:
-            convert_audio_to_wav(audio_path, os.path.join(tmpdirname, "tmp.wav"))
-            audio, sr = sf.read(os.path.join(tmpdirname, "tmp.wav"))
-        except Exception as e:
-            logger.error(f"Error reading audio file {audio_path}. {e}")
-            return None, None
-    return audio, sr
-
-
 def get_video_length(video_path):
     """
     Get the length of an audio file embedded in video containers using ffprobe.

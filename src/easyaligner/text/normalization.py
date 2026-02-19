@@ -45,41 +45,6 @@ def text_normalizer(text: str) -> str:
     normalized_tokens = [item["normalized_token"] for item in mapping]
     return normalized_tokens, mapping
 
-
-def format_symbols_abbreviations():
-    """
-    Formats abbreviations into dicts that include the pattern (abbreviation)
-    and replacement (expansion).
-
-    Follows the same logic as the user-supplied patterns in collect_regex_patterns.
-
-    Returns
-    -------
-    list of dict
-        List of abbreviation patterns.
-    """
-    abbreviation_patterns = []
-    for abbreviation, expansion in abbreviations.items():
-        abbreviation_patterns.append(
-            {
-                "pattern": re.escape(abbreviation),
-                "replacement": expansion,
-                "transformation_type": "substitution",
-            }
-        )
-
-    for symbol, expansion in symbols.items():
-        abbreviation_patterns.append(
-            {
-                "pattern": re.escape(symbol),
-                "replacement": expansion,
-                "transformation_type": "substitution",
-            }
-        )
-
-    return abbreviation_patterns
-
-
 class SpanMapNormalizer:
     def __init__(self, text: str):
         self.original_text = text
