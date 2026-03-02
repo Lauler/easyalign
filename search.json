@@ -417,7 +417,7 @@
     "href": "reference/index.html#text-processing",
     "title": "Function reference",
     "section": "Text Processing",
-    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\n\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
+    "text": "Text Processing\nText processing utilities. from easyaligner.text.normalization import function_name.\n\n\n\nnormalization.SpanMapNormalizer\nApply regex text transformations while keeping track of the character spans\n\n\nnormalization.text_normalizer\nDefault text normalization function.\n\n\ntokenizer.load_tokenizer\nLoads a PunktTokenizer for the specified language that can be used to sentence tokenize text.",
     "crumbs": [
       "Reference",
       "Function reference"
@@ -439,7 +439,7 @@
     "href": "reference/index.html#data-models",
     "title": "Function reference",
     "section": "Data Models",
-    "text": "Data Models\nData models for storing transcribed text and metadata. from easyaligner.data.datamodel import ClassName\n\n\n\nAudioMetadata\nData model for the metadata of an audio file.\n\n\nSpeechSegment\nA slice of the audio that contains speech of interest to be aligned.\n\n\nWordSegment\nWord-level alignment data.\n\n\nAlignmentSegment\nA segment of aligned audio and text.\n\n\nAudioChunk\nSegment of audio, usually created by VAD.",
+    "text": "Data Models\nData models for storing transcribed text and metadata. from easyaligner.data.datamodel import ClassName\n\n\n\nAudioMetadata\nData model for the metadata of an audio file.\n\n\nSpeechSegment\nA slice of the audio file that contains speech of interest to be aligned.\n\n\nWordSegment\nWord-level alignment data.\n\n\nAlignmentSegment\nA segment of aligned audio and text.\n\n\nAudioChunk\nSegment of audio, usually created by Voice Activity Detection (VAD).",
     "crumbs": [
       "Reference",
       "Function reference"
@@ -450,7 +450,7 @@
     "href": "reference/AlignmentSegment.html",
     "title": "AlignmentSegment",
     "section": "",
-    "text": "data.datamodel.AlignmentSegment()\nA segment of aligned audio and text.\nThis can be sentence, paragraph, or any other unit of text.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "text": "data.datamodel.AlignmentSegment()\nA segment of aligned audio and text.\nThis can be sentence, paragraph, or any other unit of text.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nid\n(str or int, optional)\nOptional unique identifier for the alignment segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
     "crumbs": [
       "Reference",
       "Data Models",
@@ -462,7 +462,7 @@
     "href": "reference/AlignmentSegment.html#attributes",
     "title": "AlignmentSegment",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
+    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the aligned segment in seconds.\n\n\nend\nfloat\nEnd time of the aligned segment in seconds.\n\n\ntext\nstr\nThe aligned text segment.\n\n\nwords\nlist of WordSegment\nList of word-level alignment data within this segment.\n\n\nid\n(str or int, optional)\nOptional unique identifier for the alignment segment.\n\n\nduration\n(float, optional)\nDuration of the aligned segment in seconds.\n\n\nscore\n(float, optional)\nOptional confidence score for the alignment.",
     "crumbs": [
       "Reference",
       "Data Models",
@@ -495,7 +495,7 @@
     "href": "reference/SpeechSegment.html",
     "title": "SpeechSegment",
     "section": "",
-    "text": "data.datamodel.SpeechSegment()\nA slice of the audio that contains speech of interest to be aligned.\nA SpeechSegment may be a speech given by a single speaker, a dialogue between multiple speakers, a book chapter, or whatever unit of organisational abstraction the user prefers.\nIf no SpeechSegment is defined, one will automatically be added, treating the entire audio as a single speech.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
+    "text": "data.datamodel.SpeechSegment()\nA slice of the audio file that contains speech of interest to be aligned.\nA SpeechSegment may be a speech given by a single speaker, a dialogue between multiple speakers, a book chapter, or whatever unit of organisational abstraction the user prefers.\nIf no SpeechSegment is defined, one will automatically be added, treating the entire audio as a single speech.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the speech segment in seconds.\n\n\nend\nfloat\nEnd time of the speech segment in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription (manual, or created by ASR).\n\n\ntext_spans\nlist of tuple, optional\nOptional (start_char, end_char) indices in the text that allows for a custom segmentation of the text to be aligned to audio. Can for example be used to perform alignment on paragraph, sentence, or other optional levels of granularity.\n\n\nchunks\nlist of AudioChunk\nAudio chunks from which we create w2v2 logits (if alignment_strategy is ‘chunk’). When ASR is used, these chunks will additionally contain the transcribed text of the chunk. The ASR output will be used for forced alignment within the chunk.\n\n\nalignments\nlist of AlignmentSegment\nAligned text segments.\n\n\nduration\n(float, optional)\nDuration of the speech segment in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames speech segment spans.\n\n\nspeech_id\n(str or int, optional)\nOptional unique identifier for the speech segment.\n\n\nprobs_path\n(str, optional)\nPath to saved wav2vec2 emissions/probs.\n\n\nmetadata\n(dict, optional)\nOptional extra metadata such as speaker name, etc.",
     "crumbs": [
       "Reference",
       "Data Models",
@@ -519,7 +519,31 @@
     "href": "reference/normalization.SpanMapNormalizer.html",
     "title": "normalization.SpanMapNormalizer",
     "section": "",
-    "text": "text.normalization.SpanMapNormalizer(text)\n\n\n\n\n\nName\nDescription\n\n\n\n\nget_token_map\nTokenize the current text and create a mapping of normalized tokens to the\n\n\ntransform\nApply a regex transformation to the current text, while keeping track of the",
+    "text": "text.normalization.SpanMapNormalizer(text)\nApply regex text transformations while keeping track of the character spans in the original text.\n\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\nDefault\n\n\n\n\ntext\nstr\nThe input text to be normalized.\nrequired\n\n\n\n\n\n\nfrom easyaligner.text.normalization import SpanMapNormalizer\n\ntext = '''Book 1. Chapter 1, The Period. It was the best of times. It was the worst of times.\nIt was the age of wisdom. It was the age of foolishness. It was the epoch of belief.\nIt was the epoch of incredulity. It was the season of light.\nIt was the season of darkness. It was the spring of hope.'''\n\nnormalizer = SpanMapNormalizer(text)\nnormalizer.transform(r\"[^\\w\\s]\", \"\")  # Remove punctuation and special characters\nnormalizer.transform(r\"\\S+\", lambda m: m.group().lower()) # Lowercase\nnormalizer.transform(r\"\\s+\", \" \")  # Normalize whitespace to a single space\nnormalizer.transform(r\"^\\s+|\\s+$\", \"\")  # Strip leading and trailing whitespace\nprint(normalizer.current_text)\nprint(normalizer.get_token_map())\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nget_token_map\nTokenize the current text and create a mapping of normalized tokens to the\n\n\ntransform\nApply a regex transformation to the current text, while keeping track of the",
+    "crumbs": [
+      "Reference",
+      "Text Processing",
+      "normalization.SpanMapNormalizer"
+    ]
+  },
+  {
+    "objectID": "reference/normalization.SpanMapNormalizer.html#parameters",
+    "href": "reference/normalization.SpanMapNormalizer.html#parameters",
+    "title": "normalization.SpanMapNormalizer",
+    "section": "",
+    "text": "Name\nType\nDescription\nDefault\n\n\n\n\ntext\nstr\nThe input text to be normalized.\nrequired",
+    "crumbs": [
+      "Reference",
+      "Text Processing",
+      "normalization.SpanMapNormalizer"
+    ]
+  },
+  {
+    "objectID": "reference/normalization.SpanMapNormalizer.html#example",
+    "href": "reference/normalization.SpanMapNormalizer.html#example",
+    "title": "normalization.SpanMapNormalizer",
+    "section": "",
+    "text": "from easyaligner.text.normalization import SpanMapNormalizer\n\ntext = '''Book 1. Chapter 1, The Period. It was the best of times. It was the worst of times.\nIt was the age of wisdom. It was the age of foolishness. It was the epoch of belief.\nIt was the epoch of incredulity. It was the season of light.\nIt was the season of darkness. It was the spring of hope.'''\n\nnormalizer = SpanMapNormalizer(text)\nnormalizer.transform(r\"[^\\w\\s]\", \"\")  # Remove punctuation and special characters\nnormalizer.transform(r\"\\S+\", lambda m: m.group().lower()) # Lowercase\nnormalizer.transform(r\"\\s+\", \" \")  # Normalize whitespace to a single space\nnormalizer.transform(r\"^\\s+|\\s+$\", \"\")  # Strip leading and trailing whitespace\nprint(normalizer.current_text)\nprint(normalizer.get_token_map())",
     "crumbs": [
       "Reference",
       "Text Processing",
@@ -629,7 +653,7 @@
     "href": "reference/AudioChunk.html",
     "title": "AudioChunk",
     "section": "",
-    "text": "data.datamodel.AudioChunk()\nSegment of audio, usually created by VAD.\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
+    "text": "data.datamodel.AudioChunk()\nSegment of audio, usually created by Voice Activity Detection (VAD).\n\n\n\n\n\n\n\n\n\n\nName\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.\n\n\nid\n(str or int, optional)\nOptional unique identifier for the chunk.",
     "crumbs": [
       "Reference",
       "Data Models",
@@ -641,7 +665,7 @@
     "href": "reference/AudioChunk.html#attributes",
     "title": "AudioChunk",
     "section": "",
-    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.",
+    "text": "Name\nType\nDescription\n\n\n\n\nstart\nfloat\nStart time of the chunk in seconds.\n\n\nend\nfloat\nEnd time of the chunk in seconds.\n\n\ntext\n(str, optional)\nOptional text transcription for the chunk.\n\n\nduration\n(float, optional)\nDuration of the chunk in seconds.\n\n\naudio_frames\n(int, optional)\nNumber of audio frames a chunk spans.\n\n\nnum_logits\n(int, optional)\nNumber of model output logits for the chunk.\n\n\nlanguage\n(str, optional)\nLanguage code for the chunk.\n\n\nlanguage_prob\n(float, optional)\nProbability/confidence of the detected language.\n\n\nid\n(str or int, optional)\nOptional unique identifier for the chunk.",
     "crumbs": [
       "Reference",
       "Data Models",

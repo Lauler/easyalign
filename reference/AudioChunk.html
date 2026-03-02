@@ -519,14 +519,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="easyaligner.data.datamodel.AudioChunk" class="level1">
 <h1>AudioChunk</h1>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>data.datamodel.AudioChunk()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Segment of audio, usually created by VAD.</p>
+<p>Segment of audio, usually created by Voice Activity Detection (VAD).</p>
 <section id="attributes" class="level2 doc-section doc-section-attributes">
 <h2 class="doc-section doc-section-attributes anchored" data-anchor-id="attributes">Attributes</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 18%">
-<col style="width: 22%">
-<col style="width: 57%">
+<col style="width: 17%">
+<col style="width: 26%">
+<col style="width: 54%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -575,6 +575,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>language_prob</td>
 <td>(float, optional)</td>
 <td>Probability/confidence of the detected language.</td>
+</tr>
+<tr class="odd">
+<td>id</td>
+<td>(str or int, optional)</td>
+<td>Optional unique identifier for the chunk.</td>
 </tr>
 </tbody>
 </table>
