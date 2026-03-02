@@ -45,7 +45,37 @@ def text_normalizer(text: str) -> str:
     normalized_tokens = [item["normalized_token"] for item in mapping]
     return normalized_tokens, mapping
 
+
 class SpanMapNormalizer:
+    r"""
+    Apply regex text transformations while keeping track of the character spans
+    in the original text.
+
+    Parameters
+    ----------
+    text : str
+        The input text to be normalized.
+
+    Example
+    -------
+    ```python
+    from easyaligner.text.normalization import SpanMapNormalizer
+
+    text = '''Book 1. Chapter 1, The Period. It was the best of times. It was the worst of times.
+    It was the age of wisdom. It was the age of foolishness. It was the epoch of belief.
+    It was the epoch of incredulity. It was the season of light.
+    It was the season of darkness. It was the spring of hope.'''
+
+    normalizer = SpanMapNormalizer(text)
+    normalizer.transform(r"[^\w\s]", "")  # Remove punctuation and special characters
+    normalizer.transform(r"\S+", lambda m: m.group().lower()) # Lowercase
+    normalizer.transform(r"\s+", " ")  # Normalize whitespace to a single space
+    normalizer.transform(r"^\s+|\s+$", "")  # Strip leading and trailing whitespace
+    print(normalizer.current_text)
+    print(normalizer.get_token_map())
+    ```
+    """
+
     def __init__(self, text: str):
         self.original_text = text
         self.current_text = text

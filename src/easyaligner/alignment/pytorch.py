@@ -152,11 +152,13 @@ def align_chunks(
     """
     tokenizer_case = _get_processor_case(processor)  # determine if processor is cased or uncased
     chunk_mappings = []
-    for speech in metadata.speeches:
+    for speech_idx, speech in enumerate(metadata.speeches):
+        speech_id = speech.speech_id if speech.speech_id is not None else speech_idx
         emissions_filepath = Path(emissions_dir) / speech.probs_path
         emissions = np.load(emissions_filepath)
 
         for i, chunk in enumerate(speech.chunks):
+            chunk.id = f"{speech_id}-{i}"
             normalized_tokens, mapping = text_normalizer_fn(chunk.text)
             emissions_chunk = emissions[i]
             emissions_chunk = emissions_chunk[: chunk.num_logits]
@@ -177,6 +179,8 @@ def align_chunks(
                 alignment_mapping = process_fallback_alignment(
                     mapping, chunk.start, chunk.end, chunk.text, tokenizer, None, ndigits
                 )
+                for j, seg in enumerate(alignment_mapping):
+                    seg.id = f"{speech_id}-{i}-{j}"
                 chunk_mappings.extend(alignment_mapping)
                 speech.alignments.extend(alignment_mapping)
                 continue
@@ -225,6 +229,8 @@ def align_chunks(
             )
 
             alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+            for j, seg in enumerate(alignment_mapping):
+                seg.id = f"{speech_id}-{i}-{j}"
 
             chunk_mappings.extend(alignment_mapping)
             speech.alignments.extend(alignment_mapping)
@@ -253,7 +259,8 @@ def align_speech(
 ) -> list:
     tokenizer_case = _get_processor_case(processor)
     speech_mappings = []
-    for speech in metadata.speeches:
+    for speech_idx, speech in enumerate(metadata.speeches):
+        speech_id = speech.speech_id if speech.speech_id is not None else speech_idx
         emissions_filepath = Path(emissions_dir) / speech.probs_path
         emissions = np.load(emissions_filepath)
         emissions = np.vstack(emissions)
@@ -296,6 +303,8 @@ def align_speech(
                 speech.text_spans,
                 ndigits,
             )
+            for j, seg in enumerate(alignment_mapping):
+                seg.id = f"{speech_id}-{j}"
             speech.alignments.extend(alignment_mapping)
             speech_mappings.extend(alignment_mapping)
             if delete_emissions:
@@ -346,6 +355,8 @@ def align_speech(
         )
 
         alignment_mapping = encode_alignments(mapping, ndigits=ndigits)
+        for j, seg in enumerate(alignment_mapping):
+            seg.id = f"{speech_id}-{j}"
         speech.alignments.extend(alignment_mapping)
         speech_mappings.extend(alignment_mapping)
 
