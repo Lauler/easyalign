@@ -844,7 +844,7 @@ def get_segment_alignment(
         if token_cursor >= len(mapping):
             break  # No more tokens to process
 
-        if start_idx < mapping[token_cursor]["start_char"]:
+        if token_cursor == 0 and start_idx < mapping[token_cursor]["start_char"]:
             logger.warning(
                 "Segment indices start before the first token index. This may be due to "
                 "leading whitespace in the original text. Consider stripping leading/trailing "
