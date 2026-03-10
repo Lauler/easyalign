@@ -218,3 +218,26 @@ class AudioMetadata(msgspec.Struct):
 
     def to_dict(self):
         return {f: getattr(self, f) for f in self.__struct_fields__}
+
+
+class FuzzyMatch(msgspec.Struct):
+    """
+    Result of a fuzzy text match.
+
+    A `FuzzyMatch` contains the word indices and confidence score of the best
+    match found between a needle (ground truth text) and a haystack (concatenated
+    word texts from ASR output).
+
+    Attributes
+    ----------
+    start_index : int
+        Start matching word index in the haystack word list.
+    end_index : int
+        End matching word index in the haystack word list (inclusive).
+    score : float
+        Fuzzy match score on a 0-100 scale, as returned by rapidfuzz.
+    """
+
+    start_index: int
+    end_index: int
+    score: float

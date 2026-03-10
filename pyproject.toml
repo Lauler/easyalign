@@ -19,7 +19,8 @@ dependencies = [
   "nltk>=3.8.2",
   "pyannote-audio>=3.3.1",
   "silero-vad~=6.0",
-  "msgspec"
+  "msgspec",
+  "rapidfuzz"
 ]
 
 [project.urls]
