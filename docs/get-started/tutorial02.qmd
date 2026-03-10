@@ -1,0 +1,32 @@
+---
+title: "Tutorial: Align text(s) with specific region(s) of audio"
+format:
+  html:
+    embed-resources: false
+    toc: true
+    toc-depth: 3
+lightbox: true
+reference-location: margin
+freeze: auto
+cache: true
+conda:
+    environment: easywhisperer
+resources:
+    ../_assets/tale_two_cities_ch01.txt
+---
+
+
+```{python}
+import re
+import requests
+
+url = "https://www.gutenberg.org/cache/epub/98/pg98.txt"
+full_text = requests.get(url).text
+
+# Extract Chapter I text
+match = re.search(
+    r"(?<=CHAPTER I\.\r\nThe Period\r\n)[\s\S]+?(?=CHAPTER II\.)",
+    full_text,
+)
+text = match.group().strip()
+``` 

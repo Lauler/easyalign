@@ -1,0 +1,12 @@
+{
+  "hash": "a1d136779b2e6a8b63fdc43ae68197d9",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: \"Tutorial: Locate text in audio and align\"\nformat:\n  html:\n    embed-resources: false\n    toc: true\n    toc-depth: 3\nlightbox: true\nreference-location: margin\nfreeze: auto\ncache: true\nconda:\n    environment: easywhisperer\nresources:\n    ../_assets/tale_two_cities_ch01.txt\n---\n\n::: {#acca4cb3 .cell execution_count=2}\n``` {.python .cell-code}\nimport re\nimport requests\n\nurl = \"https://www.gutenberg.org/cache/epub/98/pg98.txt\"\nfull_text = requests.get(url).text\n\n# Extract Chapter I text\nmatch = re.search(\n    r\"(?<=CHAPTER I\\.\\r\\nThe Period\\r\\n)[\\s\\S]+?(?=CHAPTER II\\.)\",\n    full_text,\n)\ntext = match.group().strip()\n```\n:::\n\n\n",
+    "supporting": [
+      "tutorial03_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

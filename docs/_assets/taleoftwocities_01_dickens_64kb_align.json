@@ -1,0 +1,768 @@
+{
+  "audio_path": "taleoftwocities_01_dickens_64kb_align.mp3",
+  "sample_rate": 16000,
+  "duration": 57.51873015873016,
+  "speeches": [
+    {
+      "speech_id": 0,
+      "start": 1.7690937500000001,
+      "end": 57.05159375,
+      "text": "It was the best of times, it was the worst of times, it was the age of\nwisdom, it was the age of foolishness, it was the epoch of belief, it\nwas the epoch of incredulity, it was the season of Light, it was the\nseason of Darkness, it was the spring of hope, it was the winter of\ndespair, we had everything before us, we had nothing before us, we were\nall going direct to Heaven, we were all going direct the other way--in\nshort, the period was so far like the present period, that some of its\nnoisiest authorities insisted on its being received, for good or for\nevil, in the superlative degree of comparison only.",
+      "text_spans": [
+        [
+          0,
+          612
+        ]
+      ],
+      "chunks": [
+        {
+          "start": 1.7690937500000001,
+          "end": 28.16159375,
+          "text": null,
+          "duration": 26.392500000000002,
+          "audio_frames": 422280,
+          "num_logits": 1319,
+          "language": null,
+          "language_prob": null,
+          "id": null
+        },
+        {
+          "start": 29.039093750000003,
+          "end": 57.05159375,
+          "text": null,
+          "duration": 28.0125,
+          "audio_frames": 448200,
+          "num_logits": 1400,
+          "language": null,
+          "language_prob": null,
+          "id": null
+        }
+      ],
+      "alignments": [
+        {
+          "start": 4.97156,
+          "end": 56.99155,
+          "text": "It was the best of times, it was the worst of times, it was the age of\nwisdom, it was the age of foolishness, it was the epoch of belief, it\nwas the epoch of incredulity, it was the season of Light, it was the\nseason of Darkness, it was the spring of hope, it was the winter of\ndespair, we had everything before us, we had nothing before us, we were\nall going direct to Heaven, we were all going direct the other way--in\nshort, the period was so far like the present period, that some of its\nnoisiest authorities insisted on its being received, for good or for\nevil, in the superlative degree of comparison only.",
+          "words": [
+            {
+              "text": "It ",
+              "start": 4.97156,
+              "end": 5.05162,
+              "score": 0.63086
+            },
+            {
+              "text": "was ",
+              "start": 6.67286,
+              "end": 6.77294,
+              "score": 0.99967
+            },
+            {
+              "text": "the ",
+              "start": 6.853,
+              "end": 6.95308,
+              "score": 0.92004
+            },
+            {
+              "text": "best ",
+              "start": 7.27333,
+              "end": 7.59357,
+              "score": 0.99961
+            },
+            {
+              "text": "of ",
+              "start": 7.73368,
+              "end": 7.77371,
+              "score": 0.99951
+            },
+            {
+              "text": "times, ",
+              "start": 7.8938,
+              "end": 8.57433,
+              "score": 0.96924
+            },
+            {
+              "text": "it ",
+              "start": 8.83453,
+              "end": 8.89457,
+              "score": 0.99544
+            },
+            {
+              "text": "was ",
+              "start": 8.97463,
+              "end": 9.09473,
+              "score": 0.99854
+            },
+            {
+              "text": "the ",
+              "start": 9.21482,
+              "end": 9.35493,
+              "score": 0.93916
+            },
+            {
+              "text": "worst ",
+              "start": 9.53506,
+              "end": 9.9754,
+              "score": 0.95497
+            },
+            {
+              "text": "of ",
+              "start": 10.11551,
+              "end": 10.15554,
+              "score": 0.99585
+            },
+            {
+              "text": "times, ",
+              "start": 10.29565,
+              "end": 10.85608,
+              "score": 0.98682
+            },
+            {
+              "text": "it ",
+              "start": 11.17633,
+              "end": 11.21636,
+              "score": 0.99683
+            },
+            {
+              "text": "was ",
+              "start": 11.25639,
+              "end": 11.33645,
+              "score": 0.99919
+            },
+            {
+              "text": "the ",
+              "start": 11.3965,
+              "end": 11.47656,
+              "score": 1.0
+            },
+            {
+              "text": "age ",
+              "start": 11.63668,
+              "end": 11.83683,
+              "score": 0.91875
+            },
+            {
+              "text": "of\n",
+              "start": 11.9169,
+              "end": 11.95693,
+              "score": 1.0
+            },
+            {
+              "text": "wisdom, ",
+              "start": 12.15708,
+              "end": 12.6975,
+              "score": 0.99548
+            },
+            {
+              "text": "it ",
+              "start": 13.55816,
+              "end": 13.59819,
+              "score": 0.99951
+            },
+            {
+              "text": "was ",
+              "start": 13.63822,
+              "end": 13.7383,
+              "score": 0.99646
+            },
+            {
+              "text": "the ",
+              "start": 13.81836,
+              "end": 13.91843,
+              "score": 0.99414
+            },
+            {
+              "text": "age ",
+              "start": 14.03853,
+              "end": 14.19865,
+              "score": 1.0
+            },
+            {
+              "text": "of ",
+              "start": 14.27871,
+              "end": 14.31874,
+              "score": 0.99976
+            },
+            {
+              "text": "foolishness, ",
+              "start": 14.61897,
+              "end": 15.41959,
+              "score": 0.97705
+            },
+            {
+              "text": "it ",
+              "start": 15.57971,
+              "end": 15.61974,
+              "score": 0.99927
+            },
+            {
+              "text": "was ",
+              "start": 15.67979,
+              "end": 15.75985,
+              "score": 0.99951
+            },
+            {
+              "text": "the ",
+              "start": 15.83991,
+              "end": 15.91997,
+              "score": 0.99939
+            },
+            {
+              "text": "epoch ",
+              "start": 16.10011,
+              "end": 16.4804,
+              "score": 0.98382
+            },
+            {
+              "text": "of ",
+              "start": 16.58048,
+              "end": 16.62051,
+              "score": 0.99927
+            },
+            {
+              "text": "belief, ",
+              "start": 16.80065,
+              "end": 17.28102,
+              "score": 0.99182
+            },
+            {
+              "text": "it\n",
+              "start": 17.86147,
+              "end": 17.9015,
+              "score": 0.99951
+            },
+            {
+              "text": "was ",
+              "start": 17.96154,
+              "end": 18.0416,
+              "score": 0.99951
+            },
+            {
+              "text": "the ",
+              "start": 18.10165,
+              "end": 18.18171,
+              "score": 0.99935
+            },
+            {
+              "text": "epoch ",
+              "start": 18.32182,
+              "end": 18.70211,
+              "score": 0.98676
+            },
+            {
+              "text": "of ",
+              "start": 18.76216,
+              "end": 18.80219,
+              "score": 1.0
+            },
+            {
+              "text": "incredulity, ",
+              "start": 18.90227,
+              "end": 20.10319,
+              "score": 0.99255
+            },
+            {
+              "text": "it ",
+              "start": 20.46347,
+              "end": 20.5035,
+              "score": 0.99976
+            },
+            {
+              "text": "was ",
+              "start": 20.56354,
+              "end": 20.66362,
+              "score": 0.99967
+            },
+            {
+              "text": "the ",
+              "start": 20.7637,
+              "end": 20.84376,
+              "score": 0.97864
+            },
+            {
+              "text": "season ",
+              "start": 21.00388,
+              "end": 21.48425,
+              "score": 0.94658
+            },
+            {
+              "text": "of ",
+              "start": 21.58433,
+              "end": 21.62436,
+              "score": 0.99951
+            },
+            {
+              "text": "Light, ",
+              "start": 21.90457,
+              "end": 22.2048,
+              "score": 0.97893
+            },
+            {
+              "text": "it ",
+              "start": 23.12551,
+              "end": 23.16554,
+              "score": 0.99951
+            },
+            {
+              "text": "was ",
+              "start": 23.20557,
+              "end": 23.28564,
+              "score": 0.99886
+            },
+            {
+              "text": "the\n",
+              "start": 23.3657,
+              "end": 23.44576,
+              "score": 0.98014
+            },
+            {
+              "text": "season ",
+              "start": 23.6259,
+              "end": 24.06624,
+              "score": 0.97461
+            },
+            {
+              "text": "of ",
+              "start": 24.16631,
+              "end": 24.20634,
+              "score": 0.99951
+            },
+            {
+              "text": "Darkness, ",
+              "start": 24.50657,
+              "end": 25.38725,
+              "score": 0.99574
+            },
+            {
+              "text": "it ",
+              "start": 25.9677,
+              "end": 26.02774,
+              "score": 0.9821
+            },
+            {
+              "text": "was ",
+              "start": 26.06777,
+              "end": 26.18787,
+              "score": 0.98711
+            },
+            {
+              "text": "the ",
+              "start": 26.26793,
+              "end": 26.368,
+              "score": 0.99414
+            },
+            {
+              "text": "spring ",
+              "start": 26.52813,
+              "end": 27.1486,
+              "score": 0.98633
+            },
+            {
+              "text": "of ",
+              "start": 27.28871,
+              "end": 27.34876,
+              "score": 0.97786
+            },
+            {
+              "text": "hope, ",
+              "start": 27.86916,
+              "end": 28.16939,
+              "score": 0.99536
+            },
+            {
+              "text": "it ",
+              "start": 29.19017,
+              "end": 29.23021,
+              "score": 0.99951
+            },
+            {
+              "text": "was ",
+              "start": 29.29025,
+              "end": 29.43036,
+              "score": 0.91426
+            },
+            {
+              "text": "the ",
+              "start": 29.53044,
+              "end": 29.65053,
+              "score": 0.90833
+            },
+            {
+              "text": "winter ",
+              "start": 29.85068,
+              "end": 30.41111,
+              "score": 0.95028
+            },
+            {
+              "text": "of\n",
+              "start": 30.53121,
+              "end": 30.57124,
+              "score": 1.0
+            },
+            {
+              "text": "despair, ",
+              "start": 30.75137,
+              "end": 31.75214,
+              "score": 0.997
+            },
+            {
+              "text": "we ",
+              "start": 33.33336,
+              "end": 33.41342,
+              "score": 0.98991
+            },
+            {
+              "text": "had ",
+              "start": 33.47347,
+              "end": 33.59356,
+              "score": 0.98547
+            },
+            {
+              "text": "everything ",
+              "start": 33.7737,
+              "end": 34.17401,
+              "score": 0.99474
+            },
+            {
+              "text": "before ",
+              "start": 34.27408,
+              "end": 34.79448,
+              "score": 0.99988
+            },
+            {
+              "text": "us, ",
+              "start": 34.91458,
+              "end": 34.99464,
+              "score": 0.90869
+            },
+            {
+              "text": "we ",
+              "start": 35.41496,
+              "end": 35.49502,
+              "score": 1.0
+            },
+            {
+              "text": "had ",
+              "start": 35.55507,
+              "end": 35.67516,
+              "score": 0.99967
+            },
+            {
+              "text": "nothing ",
+              "start": 35.89533,
+              "end": 36.29564,
+              "score": 0.99396
+            },
+            {
+              "text": "before ",
+              "start": 36.39571,
+              "end": 36.87608,
+              "score": 0.95527
+            },
+            {
+              "text": "us, ",
+              "start": 36.99618,
+              "end": 37.07624,
+              "score": 0.99447
+            },
+            {
+              "text": "we ",
+              "start": 37.71673,
+              "end": 37.79679,
+              "score": 0.88672
+            },
+            {
+              "text": "were\n",
+              "start": 37.83682,
+              "end": 37.97693,
+              "score": 0.85181
+            },
+            {
+              "text": "all ",
+              "start": 38.05699,
+              "end": 38.1971,
+              "score": 0.99341
+            },
+            {
+              "text": "going ",
+              "start": 38.27716,
+              "end": 38.57739,
+              "score": 0.98354
+            },
+            {
+              "text": "direct ",
+              "start": 38.63744,
+              "end": 38.9777,
+              "score": 0.96343
+            },
+            {
+              "text": "to ",
+              "start": 39.05776,
+              "end": 39.15784,
+              "score": 0.98568
+            },
+            {
+              "text": "Heaven, ",
+              "start": 39.25791,
+              "end": 39.61819,
+              "score": 0.97201
+            },
+            {
+              "text": "we ",
+              "start": 40.47885,
+              "end": 40.55891,
+              "score": 1.0
+            },
+            {
+              "text": "were ",
+              "start": 40.61896,
+              "end": 40.73905,
+              "score": 0.97734
+            },
+            {
+              "text": "all ",
+              "start": 40.75907,
+              "end": 40.89918,
+              "score": 0.95488
+            },
+            {
+              "text": "going ",
+              "start": 40.95922,
+              "end": 41.21942,
+              "score": 0.98551
+            },
+            {
+              "text": "direct ",
+              "start": 41.27947,
+              "end": 41.63975,
+              "score": 0.98828
+            },
+            {
+              "text": "the ",
+              "start": 41.73982,
+              "end": 41.81988,
+              "score": 0.92448
+            },
+            {
+              "text": "other ",
+              "start": 41.95999,
+              "end": 42.14013,
+              "score": 1.0
+            },
+            {
+              "text": "way--in\n",
+              "start": 42.22019,
+              "end": 43.00079,
+              "score": 1.0
+            },
+            {
+              "text": "short, ",
+              "start": 43.16091,
+              "end": 43.44113,
+              "score": 0.9668
+            },
+            {
+              "text": "the ",
+              "start": 43.68131,
+              "end": 43.78139,
+              "score": 0.89551
+            },
+            {
+              "text": "period ",
+              "start": 43.88147,
+              "end": 44.28178,
+              "score": 0.99772
+            },
+            {
+              "text": "was ",
+              "start": 44.36184,
+              "end": 44.46192,
+              "score": 0.99919
+            },
+            {
+              "text": "so ",
+              "start": 44.62204,
+              "end": 44.78216,
+              "score": 0.85278
+            },
+            {
+              "text": "far ",
+              "start": 44.98232,
+              "end": 45.20248,
+              "score": 0.99984
+            },
+            {
+              "text": "like ",
+              "start": 45.28255,
+              "end": 45.46268,
+              "score": 1.0
+            },
+            {
+              "text": "the ",
+              "start": 45.54275,
+              "end": 45.62281,
+              "score": 0.91345
+            },
+            {
+              "text": "present ",
+              "start": 45.72288,
+              "end": 46.10318,
+              "score": 0.93546
+            },
+            {
+              "text": "period, ",
+              "start": 46.20325,
+              "end": 46.62358,
+              "score": 0.99717
+            },
+            {
+              "text": "that ",
+              "start": 46.86376,
+              "end": 46.98385,
+              "score": 0.99609
+            },
+            {
+              "text": "some ",
+              "start": 47.06392,
+              "end": 47.24405,
+              "score": 0.94922
+            },
+            {
+              "text": "of ",
+              "start": 47.3041,
+              "end": 47.34413,
+              "score": 1.0
+            },
+            {
+              "text": "its\n",
+              "start": 47.42419,
+              "end": 47.54428,
+              "score": 0.93579
+            },
+            {
+              "text": "noisiest ",
+              "start": 47.70441,
+              "end": 48.28485,
+              "score": 0.98397
+            },
+            {
+              "text": "authorities ",
+              "start": 48.42496,
+              "end": 49.08547,
+              "score": 0.97602
+            },
+            {
+              "text": "insisted ",
+              "start": 49.18555,
+              "end": 49.84605,
+              "score": 0.97929
+            },
+            {
+              "text": "on ",
+              "start": 49.92612,
+              "end": 49.96615,
+              "score": 0.99976
+            },
+            {
+              "text": "its ",
+              "start": 50.02619,
+              "end": 50.14629,
+              "score": 0.95586
+            },
+            {
+              "text": "being ",
+              "start": 50.22635,
+              "end": 50.46653,
+              "score": 0.99707
+            },
+            {
+              "text": "received, ",
+              "start": 50.52658,
+              "end": 51.08701,
+              "score": 0.97939
+            },
+            {
+              "text": "for ",
+              "start": 51.48732,
+              "end": 51.60741,
+              "score": 1.0
+            },
+            {
+              "text": "good ",
+              "start": 51.68747,
+              "end": 51.90764,
+              "score": 0.99961
+            },
+            {
+              "text": "or ",
+              "start": 52.44805,
+              "end": 52.5081,
+              "score": 0.92513
+            },
+            {
+              "text": "for\n",
+              "start": 52.58816,
+              "end": 52.70825,
+              "score": 0.99902
+            },
+            {
+              "text": "evil, ",
+              "start": 52.88839,
+              "end": 53.14859,
+              "score": 0.95912
+            },
+            {
+              "text": "in ",
+              "start": 53.52889,
+              "end": 53.56892,
+              "score": 1.0
+            },
+            {
+              "text": "the ",
+              "start": 53.62896,
+              "end": 53.70902,
+              "score": 0.87646
+            },
+            {
+              "text": "superlative ",
+              "start": 53.82912,
+              "end": 54.74982,
+              "score": 0.95378
+            },
+            {
+              "text": "degree ",
+              "start": 54.82989,
+              "end": 55.23019,
+              "score": 0.97207
+            },
+            {
+              "text": "of ",
+              "start": 55.29024,
+              "end": 55.33027,
+              "score": 1.0
+            },
+            {
+              "text": "comparison ",
+              "start": 55.45036,
+              "end": 56.27099,
+              "score": 0.99941
+            },
+            {
+              "text": "only.",
+              "start": 56.6713,
+              "end": 56.99155,
+              "score": 0.9767
+            }
+          ],
+          "id": "0-0",
+          "duration": 52.01999,
+          "score": 0.97476
+        }
+      ],
+      "duration": 55.2825,
+      "audio_frames": 884520,
+      "probs_path": "taleoftwocities_01_dickens_64kb_align/0.npy",
+      "metadata": null
+    }
+  ],
+  "metadata": null
+}
