@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>easyaligner.text.normalization.spanmapnormalizer.transform – easyaligner</title>
+<title>Tutorial: Align text and audio – easyaligner</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -115,7 +115,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <meta property="og:site_name" content="easyaligner">
 </head>
 
-<body class="nav-fixed fullcontent quarto-dark"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-fixed quarto-dark"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -321,57 +321,48 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
+    </div>
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Tutorial: Align text and audio</h1>
+</div>
 
 
 
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
 
 
-<section id="easyaligner.text.normalization.SpanMapNormalizer.transform" class="level1">
-<h1>transform</h1>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>text.normalization.SpanMapNormalizer.transform(pattern, replacement)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Apply a regex transformation to the current text, while keeping track of the character span that every character in the new text maps to in the original text.</p>
-<p>In the example below, the 4 characters in the replacement “I am” map to the match pattern “I’m” at span (0, 3) of the original text.</p>
-<p>Example text: “I’m sorry” Example pattern: r”I’m” Example replacement: “I am”</p>
-<p>new_text: “I am sorry” new_span_map: [(0, 3), (0, 3), (0, 3), (0, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]</p>
-<section id="parameters" class="level2 doc-section doc-section-parameters">
-<h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 9%">
-<col style="width: 12%">
-<col style="width: 67%">
-<col style="width: 8%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Name</th>
-<th>Type</th>
-<th>Description</th>
-<th>Default</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>pattern</td>
-<td>str</td>
-<td>The regex pattern to match.</td>
-<td><em>required</em></td>
-</tr>
-<tr class="even">
-<td>replacement</td>
-<td>str or callable</td>
-<td>The replacement string or a function that takes a match object and returns a replacement string.</td>
-<td><em>required</em></td>
-</tr>
-</tbody>
-</table>
+</header>
 
 
-</section>
-</section>
+<div id="acca4cb3" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>url <span class="op">=</span> <span class="st">"https://www.gutenberg.org/cache/epub/98/pg98.txt"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>full_text <span class="op">=</span> requests.get(url).text</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract Chapter I text</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>match <span class="op">=</span> re.search(</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="vs">r"</span><span class="kw">(</span><span class="fu">?&lt;</span><span class="vs">=CHAPTER I</span><span class="ch">\.\r\n</span><span class="vs">The Period</span><span class="ch">\r\n</span><span class="kw">)</span><span class="pp">[</span><span class="dv">\s\S</span><span class="pp">]</span><span class="op">+?</span><span class="ex">(</span><span class="fu">?=</span><span class="vs">CHAPTER II</span><span class="ch">\.</span><span class="ex">)</span><span class="vs">"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    full_text,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> match.group().strip()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+
+
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
